@@ -2,18 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [ Development ]
+    branches:
+      - Development
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
   test:
+    name: Test & Build
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Run tests
         run: |
           echo "Aja testit/build tässä"
-
+          echo "Jos tämä komento epäonnistuu, CI kaatuu"
