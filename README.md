@@ -1,3 +1,5 @@
+[![CI](https://github.com/UH-Parsons-Project/faded-parsons-static/actions/workflows/main.yml/badge.svg)](https://github.com/UH-Parsons-Project/faded-parsons-static/actions/workflows/main.yml)
+
 # Python Faded Parsons Problems
 
 This website allows you to run Faded Parsons Problems in the browser.
