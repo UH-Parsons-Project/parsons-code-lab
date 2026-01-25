@@ -1,12 +1,20 @@
 /* global ParsonsWidget */
 
+// Lit web component base + templating and styling utilities
 import {LitElement, html, css} from 'lit';
+// Allows rendering HTML strings safely for trusted content
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
+// Ref helpers to access rendered DOM nodes
 import {ref, createRef} from 'lit/directives/ref.js';
 
 import './loader-element.js';
 import './test-results-element.js';
 
+// ProblemElement: UI wrapper for a single Parsons problem.
+// Responsibilities:
+// - Present problem description
+// - Render two sortable code areas (starter & solution)
+// - Handle Run action and emit a 'run' event with code payload
 export class ProblemElement extends LitElement {
 	static properties = {
 		name: {type: String},
@@ -22,6 +30,7 @@ export class ProblemElement extends LitElement {
 	};
 
 	static styles = css`
+		/* Layout proportions for the two Parsons columns */
 		.starter {
 			width: 40%;
 		}
@@ -31,17 +40,21 @@ export class ProblemElement extends LitElement {
 		}
 	`;
 
+	// Refs to the container elements bound to the Parsons widget
 	starterRef = createRef();
 	solutionRef = createRef();
 
+	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
 		return this;
 	}
 
 	render() {
+		// Default results placeholder until tests are run
 		let results =
 			'Test results will appear here after clicking "Run Tests" above.';
 		if (this.resultsStatus) {
+			// Render the test results component with current status
 			results = html`<test-results-element
 				status=${this.resultsStatus}
 				header=${this.resultsHeader}
@@ -50,6 +63,7 @@ export class ProblemElement extends LitElement {
 		}
 
 		return html`
+			<!-- Problem description card -->
 			<div class="row mt-3">
 				<div class="col-sm-12">
 					<div class="card">
@@ -61,6 +75,7 @@ export class ProblemElement extends LitElement {
 				</div>
 			</div>
 
+			<!-- Parsons widget area: starter (trash) and solution columns -->
 			<div class="row mt-4">
 				<div class="col-sm-12">
 					<div class="card">
@@ -96,6 +111,7 @@ export class ProblemElement extends LitElement {
 				</div>
 			</div>
 
+			<!-- Test results card -->
 			<div class="row mt-4">
 				<div class="col-sm-12">
 					<div class="card">
@@ -112,20 +128,26 @@ export class ProblemElement extends LitElement {
 	}
 
 	firstUpdated() {
+		// Initialize the Parsons widget with references to the two columns
 		this.parsonsWidget = new ParsonsWidget({
 			sortableId: this.solutionRef.value,
 			trashId: this.starterRef.value,
 		});
+		// Load the initial code blocks into the widget
 		this.parsonsWidget.init(this.codeLines);
+		// Optional: sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
 	}
 
 	onRun() {
+		// Update UI to show loading state and emit a 'run' event
 		this.runStatus = 'Running code...';
 		this.dispatchEvent(
 			new CustomEvent('run', {
 				detail: {
+					// Full solution code assembled from sorted blocks
 					code: this.parsonsWidget.solutionCode(),
+					// Serializable block representation for persistence
 					repr: this.parsonsWidget.reprCode(),
 				},
 			})
@@ -133,4 +155,5 @@ export class ProblemElement extends LitElement {
 	}
 }
 
+// Register the custom element for use in HTML
 customElements.define('problem-element', ProblemElement);
