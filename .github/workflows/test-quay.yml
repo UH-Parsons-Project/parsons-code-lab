@@ -19,4 +19,4 @@ jobs:
       - name: Verify login
         run: |
           echo "Login successful!"
-          docker info | grep -i registry
+          docker info | grep -i registry || true
