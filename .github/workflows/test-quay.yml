@@ -7,16 +7,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-login:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
       - name: Login to Quay
         run:
           | # Trys to login with the token an username in github actions secretss || using --password-stdin so that the password is not reaveled in the console
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
-      - name: Verify login
+      - name: Build docker image # Build and name the image
+        run: docker build -t quay.io/tike/ohtu-faded-parsons:latest .
+
+      - name: Push to Quay # Push the docker built image to quay
         run: |
-          echo "Login successful!"
-          docker info | grep -i registry || true
+          docker push quay.io/tike/ohtu-faded-parsons:latest
