@@ -16,4 +16,4 @@ RUN npm run build
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["/bin/sh", "-c", "npm run dev"]
+CMD ["npx", "serve", "-s", "dist", "-l", "8000"]
