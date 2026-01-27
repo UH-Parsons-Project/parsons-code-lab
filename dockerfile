@@ -1,22 +1,21 @@
 FROM node:20
+
 WORKDIR /app
 
-# Fix npm cache permissions for OpenShift random user
-ENV NPM_CONFIG_CACHE=/tmp/.npm
-
-# Copy package files and install dependencies
 COPY package*.json ./
+
 RUN npm install
 
-# Copy source code and build
 COPY . .
+
+RUN chown -R 0:0 /app \
+ && chmod -R a+rX /app \
+ && chmod -R g+rwX /app/dist
+
 RUN npm run build
 
-# Fix permissions for OpenShift (runs as random user)
-RUN chmod -R g=u /app && \
-    chgrp -R 0 /app
-
-# Serve the built static files
+# Set the port Node will listen on (must match OpenShift targetPort)
 ENV PORT=8000
 EXPOSE 8000
-CMD ["npx", "serve", "-s", "dist", "-l", "8000"]
+
+CMD ["npm", "run", "dev"]
