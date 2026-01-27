@@ -1,7 +1,10 @@
 name: Test Quay Login
 
 on:
-  workflow_dispatch: # Manual run
+  push:
+    branches:
+      - quay-test
+  workflow_dispatch:
 
 jobs:
   test-login:
