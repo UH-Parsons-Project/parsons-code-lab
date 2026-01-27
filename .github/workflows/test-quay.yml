@@ -14,9 +14,8 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v4
 
-      - name: Login to Quay
-        run:
-          | # Trys to login with the token an username in github actions secretss || using --password-stdin so that the password is not reaveled in the console
+      - name: Login to Quay # Try to login with the token an username in github actions secretss || using --password-stdin so that the password is not reaveled in the console
+        run: |
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
       - name: Build docker image # Build and name the image
@@ -25,3 +24,27 @@ jobs:
       - name: Push to Quay # Push the docker built image to quay
         run: |
           docker push quay.io/tike/ohtu-faded-parsons:latest
+
+      - name: Install OpenShift oc # Install the oc command to run
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: 4
+
+      - name: Login to OpenShift # Login using token and server, and go to correct project
+        run: |
+          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+          oc project ${{ secrets.OPENSHIFT_PROJECT }}
+
+      - name: Verify login # Test if login actually works and what projects are seen
+        run: |
+          echo "✅ Login successful!"
+          echo "Current user:"
+          oc whoami
+          echo ""
+          echo "Available projects:"
+          oc projects
+
+      - name: Check specific project # Check if we can access the project we want
+        run: |
+          oc project ${{ secrets.OPENSHIFT_PROJECT }}
+          echo "✅ Successfully switched to project: ${{ secrets.OPENSHIFT_PROJECT }}"
