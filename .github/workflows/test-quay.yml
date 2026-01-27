@@ -1,0 +1,19 @@
+name: Test Quay Login
+
+on:
+  workflow_dispatch: # Manual run
+
+jobs:
+  test-login:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Login to Quay
+        run:
+          | # Trys to login with the token an username in github actions secretss || using --password-stdin so that the password is not reaveled in the console
+          echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
+
+      - name: Verify login
+        run: |
+          echo "Login successful!"
+          docker info | grep -i registry
