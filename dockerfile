@@ -8,9 +8,7 @@ RUN npm install
 
 COPY . .
 
-RUN chown -R 0:0 /app \
- && chmod -R a+rX /app \
- && chmod -R g+rwX /app/dist
+RUN chmod -R 777 *
 
 RUN npm run build
 
