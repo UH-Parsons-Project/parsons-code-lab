@@ -1,5 +1,7 @@
+// Initialize object for manual local storage in case 'localStorage' isn't supported
 const veryLocalStorage = {};
-
+// Ensures that the browser supports 'localStorage'
+// returns true if 'localStorage' is defined and usable, else false
 function supportsStorage() {
 	try {
 		return 'localStorage' in window && window['localStorage'] !== null;
@@ -7,7 +9,7 @@ function supportsStorage() {
 		return false;
 	}
 }
-
+// returns saved answers from local storage if they exist, else defaultValue
 export function get(key, defaultValue) {
 	let value;
 	if (!supportsStorage()) {
@@ -17,7 +19,7 @@ export function get(key, defaultValue) {
 	}
 	return value === null || typeof value === 'undefined' ? defaultValue : value;
 }
-
+// saves answers in local storage
 export function set(key, value) {
 	if (!supportsStorage()) {
 		veryLocalStorage[key] = value;
