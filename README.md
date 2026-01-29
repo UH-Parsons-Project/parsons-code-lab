@@ -7,7 +7,7 @@ It uses Pyodide for executing Python doctests and localStorage for storing user 
 
 Check it out here:
 
-https://pamelafox.github.io/faded-parsons-static/index.html
+https://faded-parsons-production-timed-parsons.apps.ocp-prod-0.k8s.it.helsinki.fi/
 
 ## Running the website
 
@@ -32,9 +32,6 @@ docker run --rm faded-parsons-test
 ```
 
 The website can be accessed at http://localhost:3000/.
-## Deploying the website
-
-This website can be deployed anywhere since it's entirely static, and is currently deployed on Github Pages. You can enable Pages on your own fork of the repo to host on Github.
 
 ## Adding a new problem
 
@@ -70,3 +67,7 @@ Instructor:
 - Telegram
 - Discord
 - Meeting up on campus
+
+
+## Credits for original project
+https://github.com/pamelafox/faded-parsons-static
