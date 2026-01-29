@@ -4340,17 +4340,21 @@ function initWidget() {
 		if (localRepr) {
 			codeLines = localRepr;
 		}
+    // Creates the exercise element and sets its attributes
 		probEl = document.createElement('problem-element');
 		probEl.setAttribute('name', problemName);
 		probEl.setAttribute('description', probDescription);
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', func);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
+    // Sets an event listener to the 'run' event
+    // When "Run Tests" is pressed on the website, the event is sent with handleSubmit()
 		probEl.addEventListener('run', (e) => {
 			handleSubmit(e.detail.code, e.detail.repr, func);
 		});
 		probEl.setAttribute('enableRun', 'enableRun');
 		probEl.setAttribute('runStatus', '');
+    // Adds the element to DOM, problem element renders the needed HTML
 		document.getElementById('problem-wrapper').appendChild(probEl);
 	});
 }
