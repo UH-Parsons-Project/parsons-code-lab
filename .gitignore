@@ -3,3 +3,10 @@ __pycache__/
 .venv
 node_modules/
 .eslintcache
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
