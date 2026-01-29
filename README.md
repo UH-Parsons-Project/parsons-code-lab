@@ -21,7 +21,7 @@ Run the image in the desired port
 ```
 docker run -p 3000:8000 faded-parsons:local
 ```
-
+The website can be accessed at http://localhost:3000/.
 ## Deploying the website
 
 This website can be deployed anywhere since it's entirely static, and is currently deployed on Github Pages. You can enable Pages on your own fork of the repo to host on Github.
