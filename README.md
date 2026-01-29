@@ -11,11 +11,15 @@ https://pamelafox.github.io/faded-parsons-static/index.html
 
 ## Running the website
 
-To run locally:
+### To run locally:
 
+Build a docker image
 ```
-npm install
-npm run dev
+docker build -t faded-parsons:local .
+```
+Run the image in the desired port
+```
+docker run -p 3000:8000 faded-parsons:local
 ```
 
 ## Deploying the website
