@@ -1,9 +1,8 @@
-name: Deploy to staging
+name: Deploy to production
 
 on:
-  push:
-    branches:
-      - master
+  release:
+    types: [published]
 
 jobs:
   build-and-push:
@@ -17,9 +16,9 @@ jobs:
         run: |
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
-      - name: Build docker image # Build and name the image staging
-        run: docker build -t quay.io/tike/ohtu-faded-parsons:staging .
+      - name: Build docker image # Build and name the image for production
+        run: docker build -t quay.io/tike/ohtu-faded-parsons:production .
 
       - name: Push to Quay # Push the docker built image to quay
         run: |
-          docker push quay.io/tike/ohtu-faded-parsons:staging
+          docker push quay.io/tike/ohtu-faded-parsons:production
