@@ -1,10 +1,9 @@
-name: Test Quay Login
+name: Deploy to staging
 
 on:
   push:
     branches:
-      - quay-test
-  workflow_dispatch:
+      - main
 
 jobs:
   build-and-push:
@@ -19,8 +18,8 @@ jobs:
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
       - name: Build docker image # Build and name the image
-        run: docker build -t quay.io/tike/ohtu-faded-parsons:latest .
+        run: docker build -t quay.io/tike/ohtu-faded-parsons:staging .
 
       - name: Push to Quay # Push the docker built image to quay
         run: |
-          docker push quay.io/tike/ohtu-faded-parsons:latest
+          docker push quay.io/tike/ohtu-faded-parsons:staging

@@ -16,7 +16,6 @@ RUN chown -R 0:0 /app && \
     chmod -R a+rX /app && \
     chmod -R g+rwX /app/dist
 
-# Set the port Node will listen on (must match OpenShift targetPort)
 ENV PORT=8000
 EXPOSE 8000
 
