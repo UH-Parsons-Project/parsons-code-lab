@@ -59,4 +59,4 @@ Instructor:
 ## Internal team communication 
 - Telegram
 - Discord
-- on-campus work
+- Meeting up on campus
