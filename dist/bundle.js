@@ -3852,8 +3852,10 @@ var jsYaml = {
 	safeDump: safeDump
 };
 
+// Initialize object for manual local storage in case 'localStorage' isn't supported
 const veryLocalStorage = {};
-
+// Ensures that the browser supports 'localStorage'
+// returns true if 'localStorage' is defined and usable, else false
 function supportsStorage() {
 	try {
 		return 'localStorage' in window && window['localStorage'] !== null;
@@ -3861,7 +3863,7 @@ function supportsStorage() {
 		return false;
 	}
 }
-
+// returns saved answers from local storage if they exist, else defaultValue
 function get(key, defaultValue) {
 	let value;
 	if (!supportsStorage()) {
@@ -3871,7 +3873,7 @@ function get(key, defaultValue) {
 	}
 	return value === null || typeof value === 'undefined' ? defaultValue : value;
 }
-
+// saves answers in local storage
 function set(key, value) {
 	if (!supportsStorage()) {
 		veryLocalStorage[key] = value;
@@ -4156,6 +4158,11 @@ customElements.define('test-results-element', TestResultsElement);
 
 /* global ParsonsWidget */
 
+// ProblemElement: UI wrapper for a single Parsons problem.
+// Responsibilities:
+// - Present problem description
+// - Render two sortable code areas (starter & solution)
+// - Handle Run action and emit a 'run' event with code payload
 class ProblemElement extends s {
 	static properties = {
 		name: {type: String},
@@ -4171,6 +4178,7 @@ class ProblemElement extends s {
 	};
 
 	static styles = r$3`
+		/* Layout proportions for the two Parsons columns */
 		.starter {
 			width: 40%;
 		}
@@ -4180,17 +4188,21 @@ class ProblemElement extends s {
 		}
 	`;
 
+	// Refs to the container elements bound to the Parsons widget
 	starterRef = e();
 	solutionRef = e();
 
+	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
 		return this;
 	}
 
 	render() {
+		// Default results placeholder until tests are run
 		let results =
 			'Test results will appear here after clicking "Run Tests" above.';
 		if (this.resultsStatus) {
+			// Render the test results component with current status
 			results = $`<test-results-element
 				status=${this.resultsStatus}
 				header=${this.resultsHeader}
@@ -4199,6 +4211,7 @@ class ProblemElement extends s {
 		}
 
 		return $`
+			<!-- Problem description card -->
 			<div class="row mt-3">
 				<div class="col-sm-12">
 					<div class="card">
@@ -4210,6 +4223,7 @@ class ProblemElement extends s {
 				</div>
 			</div>
 
+			<!-- Parsons widget area: starter (trash) and solution columns -->
 			<div class="row mt-4">
 				<div class="col-sm-12">
 					<div class="card">
@@ -4245,6 +4259,7 @@ class ProblemElement extends s {
 				</div>
 			</div>
 
+			<!-- Test results card -->
 			<div class="row mt-4">
 				<div class="col-sm-12">
 					<div class="card">
@@ -4261,20 +4276,26 @@ class ProblemElement extends s {
 	}
 
 	firstUpdated() {
+		// Initialize the Parsons widget with references to the two columns
 		this.parsonsWidget = new ParsonsWidget({
 			sortableId: this.solutionRef.value,
 			trashId: this.starterRef.value,
 		});
+		// Load the initial code blocks into the widget
 		this.parsonsWidget.init(this.codeLines);
+		// Optional: sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
 	}
 
 	onRun() {
+		// Update UI to show loading state and emit a 'run' event
 		this.runStatus = 'Running code...';
 		this.dispatchEvent(
 			new CustomEvent('run', {
 				detail: {
+					// Full solution code assembled from sorted blocks
 					code: this.parsonsWidget.solutionCode(),
+					// Serializable block representation for persistence
 					repr: this.parsonsWidget.reprCode(),
 				},
 			})
@@ -4282,6 +4303,7 @@ class ProblemElement extends s {
 	}
 }
 
+// Register the custom element for use in HTML
 customElements.define('problem-element', ProblemElement);
 
 class FiniteWorker {
@@ -4311,78 +4333,116 @@ class FiniteWorker {
 	}
 }
 
+// Import external libraries and modules
+
+// Local storage key for saving user code representation
 const LS_REPR = '-repr';
+
+// Global reference to the current problem element
 let probEl;
 
+// Initializes the problem widget. Called when the page loads.
 function initWidget() {
+	// Extract the problem name from URL parameters (e.g., ?name=hello_world)
 	let params = new URL(document.location).searchParams;
 	let problemName = params.get('name');
 
+	// Fetch the YAML configuration and Python code template in parallel
 	const fetchConf = fetch(`parsons_probs/${problemName}.yaml`).then((res) =>
 		res.text()
 	);
 	const fetchFunc = fetch(`parsons_probs/${problemName}.py`).then((res) =>
 		res.text()
 	);
+	
+	// Wait for both fetch requests to complete
 	const allData = Promise.all([fetchConf, fetchFunc]);
 
+	// Process the loaded files
 	allData.then((res) => {
 		const [config, func] = res;
+		
+		// Parse YAML configuration into JavaScript object
 		const configYaml = jsYaml.load(config);
 		const probDescription = configYaml['problem_description'];
+		
+		// Get code lines and add debug print statements plus blank lines
 		let codeLines =
 			configYaml['code_lines'] +
 			"\nprint('DEBUG:', !BLANK)" +
 			"\nprint('DEBUG:', !BLANK)" +
 			'\n# !BLANK' +
 			'\n# !BLANK';
+		
+		// Check if user has previously saved code in local storage
 		const localRepr = get(problemName + LS_REPR);
 		if (localRepr) {
+			// If saved code exists, use it instead of the default
 			codeLines = localRepr;
 		}
-    // Creates the exercise element and sets its attributes
+		
+		// Create a new problem-element web component
 		probEl = document.createElement('problem-element');
+		
+		// Set component attributes
 		probEl.setAttribute('name', problemName);
 		probEl.setAttribute('description', probDescription);
 		probEl.setAttribute('codeLines', codeLines);
-		probEl.setAttribute('codeHeader', func);
+		probEl.setAttribute('codeHeader', func);  // Python function template
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
-    // Sets an event listener to the 'run' event
-    // When "Run Tests" is pressed on the website, the event is sent with handleSubmit()
+		
+		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
 			handleSubmit(e.detail.code, e.detail.repr, func);
 		});
+		
+		// Activate the run button
 		probEl.setAttribute('enableRun', 'enableRun');
 		probEl.setAttribute('runStatus', '');
-    // Adds the element to DOM, problem element renders the needed HTML
+		
+		// Add component to the DOM
 		document.getElementById('problem-wrapper').appendChild(probEl);
 	});
 }
 
+// Handles submitted code by running tests and processing results
+// submittedCode: the code written by the user
+// reprCode: visual representation of user code (for storage)
+// codeHeader: Python function template/header
 async function handleSubmit(submittedCode, reprCode, codeHeader) {
+	// Prepare code and inject test code
 	let testResults = prepareCode(submittedCode, codeHeader);
 
+	// If preparation succeeded, execute the code
 	if (testResults.code) {
 		try {
+			// Add sys.stdout.getvalue() to capture output
 			const code = testResults.code + '\nsys.stdout.getvalue()';
+			
+			// Execute code in a separate worker process (Pyodide)
 			const {results, error} = await new FiniteWorker(code);
+			
+			// Process results or errors
 			if (results) {
 				testResults = processTestResults(results);
 			} else {
 				testResults = processTestError(error, testResults.startLine);
 			}
 		} catch (e) {
+			// Log error to console
 			console.warn(
 				`Error in pyodideWorker at ${e.filename}, Line: ${e.lineno}, ${e.message}`
 			);
 		}
 	}
 
-	probEl.setAttribute('runStatus', '');
-	probEl.setAttribute('resultsStatus', testResults.status);
-	probEl.setAttribute('resultsHeader', testResults.header);
-	probEl.setAttribute('resultsDetails', testResults.details);
+	// Update UI with test results
+	probEl.setAttribute('runStatus', '');  // Clear loading status
+	probEl.setAttribute('resultsStatus', testResults.status);  // Pass/Fail
+	probEl.setAttribute('resultsHeader', testResults.header);  // Result title
+	probEl.setAttribute('resultsDetails', testResults.details);  // Result details
 
+	// Save user code locally for next time
 	set(probEl.getAttribute('name') + LS_REPR, reprCode);
 }
 

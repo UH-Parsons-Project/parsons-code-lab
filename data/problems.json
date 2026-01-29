@@ -1,0 +1,17 @@
+[
+  { "name": "greater_num", "title": "greater_num", "category": "Conditionals" },
+  { "name": "hello_world", "title": "hello_world", "category": "Conditionals" },
+  { "name": "assign_grade", "title": "assign_grade", "category": "Conditionals" },
+  { "name": "count_evens", "title": "count_evens", "category": "Loops" },
+  { "name": "count_multiples", "title": "count_multiples", "category": "Loops" },
+  { "name": "average_scores", "title": "average_scores", "category": "Loops+Lists" },
+  { "name": "concatenator", "title": "concatenator", "category": "Loops+Lists" },
+  { "name": "double_time", "title": "double_time", "category": "List Mutation" },
+  { "name": "sum_grid", "title": "sum_grid", "category": "Nested Lists" },
+  { "name": "contains_15row", "title": "contains_15row", "category": "Nested Lists" },
+  { "name": "count_unread_books", "title": "count_unread_books", "category": "Dicts" },
+  { "name": "plant", "title": "plant", "category": "Classes" },
+  { "name": "movie_purchase", "title": "movie_purchase", "category": "Classes" },
+  { "name": "player", "title": "player", "category": "Classes" },
+  { "name": "clothing", "title": "clothing", "category": "Classes" }
+]

@@ -8,9 +8,14 @@
     <link rel="stylesheet" href="js-parsons/parsons.css"/>
 </head>
 <body>
-    <nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
-        <div class="navbar-brand">🧩 Faded Parsons Problems</div>
-    </nav>
+	<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
+		<div class="navbar-brand">🧩 Faded Parsons Problems</div>
+		<form class="form-inline ml-auto" id="login-form">
+			<input class="form-control mr-2" type="text" id="username" placeholder="Username" aria-label="Username">
+			<input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password">
+			<button class="btn btn-outline-success" id="login-btn" type="submit">Login</button>
+		</form>
+	</nav>
 
     <div class="container">
 		<p>This website lets you work on Faded Parsons Problems, a type of
@@ -22,25 +27,7 @@
 		<p>The problems hosted here are all in Python 3 and checked for correctness using <a target="_blank" href="https://docs.python.org/3/library/doctest.html">doctests</a>.
 	    </p>
 
-        <p>Here's a (non-comprehensive) list of the problem hosted here:</p>
-
-		<ul>
-			<li><a href="problem.html?name=greater_num">greater_num</a> (Conditionals)</li>
-			<li><a href="problem.html?name=hello_world">hello_world</a> (Conditionals)</li>
-			<li><a href="problem.html?name=assign_grade">assign_grade</a> (Conditionals)</li>
-			<li><a href="problem.html?name=count_evens">count_evens</a> (Loops)</li>
-			<li><a href="problem.html?name=count_multiples">count_multiples</a> (Loops)</li>
-			<li><a href="problem.html?name=average_scores">average_scores</a> (Loops+Lists)</li>
-			<li><a href="problem.html?name=concatenator">concatenator</a> (Loops+Lists)</li>
-			<li><a href="problem.html?name=double_time">double_time</a> (List Mutation)</li>
-			<li><a href="problem.html?name=sum_grid">sum_grid</a> (Nested Lists)</li>
-			<li><a href="problem.html?name=contains_15row">contains_15row</a> (Nested Lists)</li>
-			<li><a href="problem.html?name=count_unread_books">count_unread_books</a> (Dicts)</li>
-			<li><a href="problem.html?name=plant">plant</a> (Classes)</li>
-			<li><a href="problem.html?name=movie_purchase">movie_purchase</a> (Classes)</li>
-			<li><a href="problem.html?name=player">player</a> (Classes)</li>
-			<li><a href="problem.html?name=clothing">clothing</a> (Classes)</li>
-		</ul>
+		<p>Here's a (non-comprehensive) list of the problem hosted here:</p>
 
 		<p>If you're a teacher and would like to host your own problems,
 			<a target="blank" href="https://github.com/pamelafox/faded-parsons-static">
@@ -49,5 +36,23 @@
 		</p>
 
     </div>
+	<script>
+	(function(){
+		var form = document.getElementById('login-form');
+		if (!form) return;
+		form.addEventListener('submit', function(e){
+			e.preventDefault();
+			var u = document.getElementById('username').value || '';
+			var p = document.getElementById('password').value || '';
+			// Minimal client-side check: require non-empty values
+			if (!u || !p) {
+				alert('Anna käyttäjätunnus ja salasana.');
+				return;
+			}
+			// Redirect to exercise list (templates folder)
+			window.location.href = 'templates/exerciselist.html';
+		});
+	})();
+	</script>
 </body>
 </html>
