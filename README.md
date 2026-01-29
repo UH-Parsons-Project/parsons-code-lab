@@ -17,10 +17,20 @@ Build a docker image
 ```
 docker build -t faded-parsons:local .
 ```
-Run the image in the desired port
+Run the image in the desired port, with --rm removing it after exiting
 ```
-docker run -p 3000:8000 faded-parsons:local
+docker run --rm -it -p 3000:8000 faded-parsons:local
 ```
+
+Running tests is similar:
+
+```
+docker build -f Dockerfile.test -t faded-parsons-test .
+```
+```
+docker run --rm faded-parsons-test
+```
+
 The website can be accessed at http://localhost:3000/.
 ## Deploying the website
 
