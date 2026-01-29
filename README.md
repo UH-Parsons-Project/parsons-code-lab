@@ -40,6 +40,7 @@ Then you can access the new problem at problem.html?name=problem_name
 "Code is validated and tests are passing, docstrings are written, code is reviewed by a peer developer before merging to main branch"
 
 ## Sprint Backlogs
+- [Sprint 0](https://github.com/orgs/UH-Parsons-Project/projects/6)
 - [Sprint 1](https://github.com/orgs/UH-Parsons-Project/projects/5)
 
 ## Team
