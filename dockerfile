@@ -19,4 +19,4 @@ RUN chown -R 0:0 /app && \
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "prod"]

@@ -7,7 +7,7 @@ It uses Pyodide for executing Python doctests and localStorage for storing user 
 
 Check it out here:
 
-https://faded-parsons-production-timed-parsons.apps.ocp-prod-0.k8s.it.helsinki.fi/
+https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi/
 
 ## Running the website
 
