@@ -31,6 +31,11 @@ docker build -f Dockerfile.test -t faded-parsons-test .
 docker run --rm faded-parsons-test
 ```
 
+Note that it is recomended to run the tests with docker compose:
+```
+docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
+```
+
 The website can be accessed at http://localhost:3000/.
 
 ## Adding a new problem

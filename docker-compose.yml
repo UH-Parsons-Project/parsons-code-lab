@@ -1,0 +1,34 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/usr/src/app
+
+  web-test:
+    build:
+      context: .
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/usr/src/app
+    profiles: ["test"]
+
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      - web-test
+    environment:
+      BASE_URL: http://web-test:8000
+    volumes:
+      - ./tests:/usr/src/app/tests
+      - ./playwright.config.js:/usr/src/app/playwright.config.js
