@@ -1,0 +1,22 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: faded-parsons-production
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-production
+    type: external
+
+spec:
+  host: faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi
+
+  to:
+    kind: Service
+    name: faded-parsons-production
+
+  port:
+    targetPort: 8000
+
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

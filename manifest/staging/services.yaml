@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: faded-parsons-staging
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-staging
+
+spec:
+  selector:
+    app: faded-parsons-staging
+
+  ports:
+    - port: 8000
+      targetPort: 8000

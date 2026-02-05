@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faded-parsons-production
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faded-parsons-production
+  template:
+    metadata:
+      labels:
+        app: faded-parsons-production
+    spec:
+      containers:
+        - name: ohtu-faded-parsons
+          image: quay.io/tike/ohtu-faded-parsons:production
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faded-parsons-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faded-parsons-staging
+  template:
+    metadata:
+      labels:
+        app: faded-parsons-staging
+    spec:
+      containers:
+        - name: faded-parsons-staging
+          image: quay.io/tike/ohtu-faded-parsons:staging
+
+          ports:
+            - containerPort: 8000
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
