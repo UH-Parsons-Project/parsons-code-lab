@@ -52,3 +52,9 @@ CREATE TABLE task_attempts (
 	submitted_order JSONB,
 	submitted_inputs JSONB
 );
+
+CREATE TABLE move_events (
+	id SERIAL PRIMARY KEY,
+	attempt_id INTEGER,
+	event_time TIMESTAMP
+);
