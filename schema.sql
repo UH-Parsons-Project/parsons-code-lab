@@ -21,7 +21,7 @@ CREATE TABLE task_lists (
 	id SERIAL PRIMARY KEY,
 	teacher_id INTEGER NOT NULL REFERENCES teachers(id),
 	title VARCHAR(255) NOT NULL,
-	unique_link_code VARCHAR(50),
+	unique_link_code VARCHAR(50) NOT NULL UNIQUE,
 	created_at TIMESTAMP,
 	expires_at TIMESTAMP
 );
