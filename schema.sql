@@ -19,13 +19,14 @@ CREATE TABLE parsons (
 
 CREATE TABLE task_lists (
 	id SERIAL PRIMARY KEY,
-	teacher_id INTEGER,
+	teacher_id INTEGER NOT NULL REFERENCES teachers(id),
 	title VARCHAR(255) NOT NULL,
 	unique_link_code VARCHAR(50),
 	created_at TIMESTAMP,
 	expires_at TIMESTAMP
 );
 
+CREATE INDEX idx_task_lists_teacher_id ON task_lists(teacher_id);
 CREATE TABLE task_list_items (
 	id SERIAL PRIMARY KEY,
 	task_list_id INTEGER,
