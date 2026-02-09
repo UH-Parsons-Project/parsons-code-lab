@@ -3,14 +3,27 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
-from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-app = FastAPI(title="Faded Parsons Problems")
+from .database import init_db
 
-# Get the base directory (parent of app folder)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup."""
+    # AI Note: Tables are also created by schema.sql in Docker. This provides redundancy
+    # and ensures tables exist when running outside Docker or if schema.sql changes.
+    await init_db()
+    yield
+
+
+app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)
+
+# Get the base directory (parent of backend folder)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 

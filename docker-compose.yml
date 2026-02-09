@@ -1,4 +1,23 @@
+# Local development configuration for Faded Parsons Problems
+# Usage: docker compose up --build
+# Tests: docker compose --profile test up --build --abort-on-container-exit
+
 services:
+  # PostgreSQL database - local development only, production uses external database
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres  # Change in production!
+      POSTGRES_DB: faded_parsons
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql  # Auto-runs on first start
+    ports:
+      - "5432:5432"
+
+  # Main web application
   web:
     build:
       context: .
@@ -8,7 +27,12 @@ services:
       - "8000:8000"
     volumes:
       - .:/usr/src/app
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
+    depends_on:
+      - db
 
+  # Web app instance for running tests against
   web-test:
     build:
       context: .
@@ -18,8 +42,13 @@ services:
       - "8001:8000"
     volumes:
       - .:/usr/src/app
-    profiles: ["test"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
+    depends_on:
+      - db
+    profiles: ["test"]  # Only starts with: docker compose --profile test
 
+  # Playwright test runner
   test:
     profiles: ["test"]
     build:
@@ -32,3 +61,8 @@ services:
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js
+
+# Local development only - persists database data between container restarts.
+# Not needed in production where the database is hosted externally.
+volumes:
+  postgres_data:
