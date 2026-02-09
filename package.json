@@ -33,8 +33,8 @@
 		"build": "rollup -c",
 		"watch": "rollup -c -w",
 		"dev": "npm-run-all --parallel start watch",
-		"start": "uvicorn main:app --reload --host 0.0.0.0 --port 8000",
-		"prod": "uvicorn main:app --host 0.0.0.0 --port 8000",
+		"start": "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000",
+		"prod": "uvicorn backend.main:app --host 0.0.0.0 --port 8000",
 		"prepare": "husky install"
 	},
 	"lint-staged": {

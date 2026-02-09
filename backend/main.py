@@ -10,8 +10,8 @@ from pathlib import Path
 
 app = FastAPI(title="Faded Parsons Problems")
 
-# Get the base directory
-BASE_DIR = Path(__file__).resolve().parent
+# Get the base directory (parent of app folder)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Mount static directories
