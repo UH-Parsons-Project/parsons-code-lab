@@ -1,6 +1,7 @@
 # Local development configuration for Faded Parsons Problems
-# Usage: docker compose up --build
+# Usage: docker compose down -v && docker compose up --build
 # Tests: docker compose --profile test up --build --abort-on-container-exit
+# Note: Use 'down -v' to reset the database (removes postgres_data volume)
 
 services:
   # PostgreSQL database - local development only, production uses external database

@@ -10,14 +10,16 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from .database import init_db
+from .seed import seed_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
-    # AI Note: Tables are also created by schema.sql in Docker. This provides redundancy
+    """Initialize database and seed data on startup."""
+    # Note: Tables are also created by schema.sql in Docker. This provides redundancy
     # and ensures tables exist when running outside Docker or if schema.sql changes.
     await init_db()
+    await seed_db()
     yield
 
 
