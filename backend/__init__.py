@@ -1,1 +1,1 @@
-# App package
+# This file makes 'backend' a Python package, enabling imports like 'backend.main'
