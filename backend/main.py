@@ -5,17 +5,19 @@ Provides endpoints for each page.
 
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from fastapi import FastAPI, Depends, HTTPException, status
+from typing import Annotated
+from fastapi import FastAPI, Depends, HTTPException, status, Response
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from pathlib import Path
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import init_db, get_db
 from .seed import seed_db
-from .auth import authenticate_user, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+from .auth import authenticate_user, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES, CurrentUser
 from .models import Teacher
 
 
@@ -45,15 +47,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Pydantic models for request/response
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-
-class LoginResponse(BaseModel):
+class Token(BaseModel):
     access_token: str
     token_type: str
-    username: str
 
 
 class UserInfo(BaseModel):
@@ -91,45 +87,59 @@ async def problem_page():
 
 
 @app.get("/exerciselist", response_class=HTMLResponse)
-async def exercise_list():
-    """Serve the exercise list page."""
+async def exercise_list(current_user: CurrentUser):
+    """Serve the exercise list page (protected endpoint)."""
     exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
     return FileResponse(exerciselist_path)
 
 
 # Authentication endpoints
-@app.post("/api/login", response_model=LoginResponse)
-async def login(
-    login_data: LoginRequest,
+@app.post("/api/login/access-token", response_model=Token)
+async def login_access_token(
+    response: Response,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Authenticate user and return JWT token.
+    OAuth2 compatible token login, get an access token for future requests.
+    Also sets an HTTP-only cookie for browser-based page navigation.
     """
-    user = await authenticate_user(login_data.username, login_data.password, db)
+    user = await authenticate_user(form_data.username, form_data.password, db)
     
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect username or password"
+        )
+    elif not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
         )
     
-    # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    return LoginResponse(
+    # Set HTTP-only cookie for browser page navigation
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
+        samesite="lax",
+        secure=False  # Set to True in production with HTTPS
+    )
+    
+    return Token(
         access_token=access_token,
-        token_type="bearer",
-        username=user.username
+        token_type="bearer"
     )
 
 
 @app.get("/api/me", response_model=UserInfo)
-async def get_current_user_info(current_user: Teacher = Depends(get_current_user)):
+async def get_current_user_info(current_user: CurrentUser):
     """
     Get current authenticated user information.
     """
@@ -137,3 +147,12 @@ async def get_current_user_info(current_user: Teacher = Depends(get_current_user
         username=current_user.username,
         email=current_user.email
     )
+
+
+@app.post("/api/logout")
+async def logout(response: Response):
+    """
+    Logout user by clearing the authentication cookie.
+    """
+    response.delete_cookie(key="access_token")
+    return {"message": "Successfully logged out"}

@@ -25,14 +25,16 @@
 	<script type="module">
 	import { clearAuth } from '/js/auth-utils.js';
 	
-	// Display username
+	// Display username if available
 	const username = localStorage.getItem('username');
 	if (username) {
 		document.getElementById('user-name').textContent = username;
 	}
 	
 	// Set up logout button
-	document.getElementById('logout-btn').addEventListener('click', function() {
+	document.getElementById('logout-btn').addEventListener('click', async function() {
+		// Call logout endpoint to clear cookie
+		await fetch('/api/logout', { method: 'POST' });
 		clearAuth();
 		window.location.href = '/index.html';
 	});

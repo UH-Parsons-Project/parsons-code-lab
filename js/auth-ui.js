@@ -77,28 +77,46 @@ export function initLoginPage() {
 		}
 		
 		try {
-			const response = await fetch('/api/login', {
+			// OAuth2 expects form data, not JSON
+			const formData = new URLSearchParams();
+			formData.append('username', username);
+			formData.append('password', password);
+			
+			const response = await fetch('/api/login/access-token', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/x-www-form-urlencoded',
 				},
-				body: JSON.stringify({ username, password })
+				body: formData
 			});
 			
 			if (response.ok) {
 				const data = await response.json();
-				// Store token and username
-				setAuth(data.access_token, data.username);
 				
-				// Clear form
-				document.getElementById('username').value = '';
-				document.getElementById('password').value = '';
+				// Get user info using the token
+				const userResponse = await fetch('/api/me', {
+					headers: {
+						'Authorization': `Bearer ${data.access_token}`
+					}
+				});
 				
-				// Show user info
-				showUserInfo(data.username);
-				
-				// Redirect to exercise list
-				window.location.href = '/exerciselist';
+				if (userResponse.ok) {
+					const userData = await userResponse.json();
+					// Store token and username
+					setAuth(data.access_token, userData.username);
+					
+					// Clear form
+					document.getElementById('username').value = '';
+					document.getElementById('password').value = '';
+					
+					// Show user info
+					showUserInfo(userData.username);
+					
+					// Redirect to exercise list
+					window.location.href = '/exerciselist';
+				} else {
+					showError('Failed to get user information');
+				}
 			} else {
 				const error = await response.json();
 				showError(error.detail || 'Login failed');
@@ -116,7 +134,9 @@ export function initLoginPage() {
 	
 	// Handle logout
 	if (logoutBtn) {
-		logoutBtn.addEventListener('click', function() {
+		logoutBtn.addEventListener('click', async function() {
+			// Call logout endpoint to clear cookie
+			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
 			showLoginForm();
 		});
@@ -158,7 +178,9 @@ export async function initProtectedPage(loginPageUrl = '../index.html') {
 	// Handle logout button
 	const logoutBtn = document.getElementById('logout-btn');
 	if (logoutBtn) {
-		logoutBtn.addEventListener('click', function() {
+		logoutBtn.addEventListener('click', async function() {
+			// Call logout endpoint to clear cookie
+			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
 			window.location.href = loginPageUrl;
 		});
@@ -188,7 +210,9 @@ export async function displayAuthStatus() {
 	// Setup logout handler
 	const logoutBtn = document.getElementById('logout-btn');
 	if (logoutBtn) {
-		logoutBtn.addEventListener('click', function() {
+		logoutBtn.addEventListener('click', async function() {
+			// Call logout endpoint to clear cookie
+			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
 			window.location.reload();
 		});

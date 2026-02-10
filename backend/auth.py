@@ -4,8 +4,8 @@ Authentication utilities for JWT token management.
 
 import os
 from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import Depends, HTTPException, status
+from typing import Optional, Annotated
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy import select
@@ -36,11 +36,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> Teacher:
     """
     Dependency to get the current authenticated user from JWT token.
+    Checks cookies first (for browser navigation), then Authorization header (for API calls).
     Raises HTTPException if token is invalid or user not found.
     """
     credentials_exception = HTTPException(
@@ -49,8 +50,19 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
+    # Try to get token from cookie first (for browser page navigation)
+    token = request.cookies.get("access_token")
+    
+    # Fallback to Authorization header (for API calls)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+    
+    if not token:
+        raise credentials_exception
+    
     try:
-        token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
@@ -87,3 +99,7 @@ async def authenticate_user(username: str, password: str, db: AsyncSession) -> O
         return None
     
     return user
+
+
+# Type alias for current user dependency (FastAPI template style)
+CurrentUser = Annotated[Teacher, Depends(get_current_user)]
