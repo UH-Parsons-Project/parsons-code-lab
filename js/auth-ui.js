@@ -149,9 +149,9 @@ export function initLoginPage() {
 /**
  * Initialize protected page authentication UI
  * Verifies user is logged in and handles logout, redirects to login if not authenticated
- * @param {string} loginPageUrl - URL to redirect to if not authenticated (default: '../index.html')
+ * @param {string} loginPageUrl - URL to redirect to if not authenticated (default: '/index.html')
  */
-export async function initProtectedPage(loginPageUrl = '../index.html') {
+export async function initProtectedPage(loginPageUrl = '/index.html') {
 	const token = getAuthToken();
 	const username = getUsername();
 	

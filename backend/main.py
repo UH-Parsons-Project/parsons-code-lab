@@ -68,21 +68,21 @@ app.mount("/parsons_probs", StaticFiles(directory=BASE_DIR / "parsons_probs"), n
 @app.get("/", response_class=HTMLResponse)
 async def index():
     """Serve the main index page."""
-    index_path = BASE_DIR / "index.html"
+    index_path = BASE_DIR / "templates" / "index.html"
     return FileResponse(index_path)
 
 
 @app.get("/index.html", response_class=HTMLResponse)
 async def index_html():
     """Serve the main index page (explicit path)."""
-    index_path = BASE_DIR / "index.html"
+    index_path = BASE_DIR / "templates" / "index.html"
     return FileResponse(index_path)
 
 
 @app.get("/problem.html", response_class=HTMLResponse)
 async def problem_page():
     """Serve the problem page."""
-    problem_path = BASE_DIR / "problem.html"
+    problem_path = BASE_DIR / "templates" / "problem.html"
     return FileResponse(problem_path)
 
 
