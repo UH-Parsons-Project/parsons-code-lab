@@ -10,11 +10,18 @@
 <body>
 	<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
 		<div class="navbar-brand">🧩 Faded Parsons Problems</div>
-		<form class="form-inline ml-auto" id="login-form">
-			<input class="form-control mr-2" type="text" id="username" placeholder="Username" aria-label="Username">
-			<input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password">
-			<button class="btn btn-outline-success" id="login-btn" type="submit">Login</button>
-		</form>
+		<div class="ml-auto" id="auth-section">
+			<form class="form-inline" id="login-form">
+				<div id="error-message" class="text-danger mr-2" style="display: none;"></div>
+				<input class="form-control mr-2" type="text" id="username" placeholder="Username" aria-label="Username" required>
+				<input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
+				<button class="btn btn-outline-success" id="login-btn" type="submit">Login</button>
+			</form>
+			<div id="user-info" class="text-white" style="display: none;">
+				<span class="mr-3">Welcome, <span id="user-name"></span>!</span>
+				<button class="btn btn-outline-light btn-sm" id="logout-btn">Logout</button>
+			</div>
+		</div>
 	</nav>
 
     <div class="container">
@@ -36,23 +43,9 @@
 		</p>
 
     </div>
-	<script>
-	(function(){
-		var form = document.getElementById('login-form');
-		if (!form) return;
-		form.addEventListener('submit', function(e){
-			e.preventDefault();
-			var u = document.getElementById('username').value || '';
-			var p = document.getElementById('password').value || '';
-			// Minimal client-side check: require non-empty values
-			if (!u || !p) {
-				alert('Anna käyttäjätunnus ja salasana.');
-				return;
-			}
-			// Redirect to exercise list (templates folder)
-			window.location.href = 'templates/exerciselist.html';
-		});
-	})();
+	<script type="module">
+		import { initLoginPage } from './js/auth-ui.js';
+		initLoginPage();
 	</script>
 </body>
 </html>

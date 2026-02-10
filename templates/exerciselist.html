@@ -5,57 +5,78 @@
     <title>Faded Parsons Problems</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-    <link rel="stylesheet" href="js-parsons/parsons.css"/>
+    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
 </head>
 <body>
 	<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
 		<div class="navbar-brand">🧩 Faded Parsons Problems</div>
+		<div class="ml-auto">
+			<span class="text-white mr-3">Welcome, <span id="user-name"></span>!</span>
+			<button class="btn btn-outline-light btn-sm" id="logout-btn">Logout</button>
+		</div>
 	</nav>
 	<div class="container">
 		<h1>Exercise List</h1>
 		<div id="problems-list">
 			<p>Loading exercises…</p>
 		</div>
-
-		<script>
-		(function(){
-			var container = document.getElementById('problems-list');
-			function render(list){
-				var ul = document.createElement('ul');
-				list.forEach(function(item){
-					var li = document.createElement('li');
-					var a = document.createElement('a');
-					a.href = '../problem.html?name=' + encodeURIComponent(item.name);
-					a.textContent = item.title;
-					li.appendChild(a);
-					if (item.category) {
-						li.appendChild(document.createTextNode(' (' + item.category + ')'));
-					}
-					ul.appendChild(li);
-				});
-				container.innerHTML = '';
-				container.appendChild(ul);
-			}
-
-			// Try fetching a JSON manifest relative to this template
-			var manifestPath = '../data/problems.json';
-			fetch(manifestPath).then(function(resp){
-				if (!resp.ok) throw new Error('Network response not ok');
-				return resp.json();
-			}).then(function(json){
-				render(json);
-			}).catch(function(){
-				// If fetch fails, attempt to use server-side `exercises` variable if present
-				try {
-					if (typeof exercises !== 'undefined' && exercises.length) {
-						render(exercises);
-						return;
-					}
-				} catch (e) {}
-				container.innerHTML = '<p>Unable to load exercise list.</p>';
-			});
-		})();
-		</script>
 	</div>
-<body/>
-<html/>
+
+	<script type="module">
+	import { clearAuth } from '/js/auth-utils.js';
+	
+	// Display username
+	const username = localStorage.getItem('username');
+	if (username) {
+		document.getElementById('user-name').textContent = username;
+	}
+	
+	// Set up logout button
+	document.getElementById('logout-btn').addEventListener('click', function() {
+		clearAuth();
+		window.location.href = '/index.html';
+	});
+	
+	// Load exercise list
+	const container = document.getElementById('problems-list');
+	
+	function render(list) {
+		const ul = document.createElement('ul');
+		list.forEach(function(item) {
+			const li = document.createElement('li');
+			const a = document.createElement('a');
+			a.href = '/problem.html?name=' + encodeURIComponent(item.name);
+			a.textContent = item.title;
+			li.appendChild(a);
+			if (item.category) {
+				li.appendChild(document.createTextNode(' (' + item.category + ')'));
+			}
+			ul.appendChild(li);
+		});
+		container.innerHTML = '';
+		container.appendChild(ul);
+	}
+
+	// Fetch problems list
+	const manifestPath = '/data/problems.json';
+	fetch(manifestPath)
+		.then(function(resp) {
+			if (!resp.ok) throw new Error('Network response not ok');
+			return resp.json();
+		})
+		.then(function(json) {
+			render(json);
+		})
+		.catch(function() {
+			// If fetch fails, attempt to use server-side `exercises` variable if present
+			try {
+				if (typeof exercises !== 'undefined' && exercises.length) {
+					render(exercises);
+					return;
+				}
+			} catch (e) {}
+			container.innerHTML = '<p>Unable to load exercise list.</p>';
+		});
+	</script>
+</body>
+</html>
