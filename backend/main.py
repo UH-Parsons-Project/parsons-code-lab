@@ -6,8 +6,8 @@ Provides endpoints for each page.
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Annotated
-from fastapi import FastAPI, Depends, HTTPException, status, Response
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Request
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -86,11 +86,19 @@ async def problem_page():
     return FileResponse(problem_path)
 
 
-@app.get("/exerciselist", response_class=HTMLResponse)
-async def exercise_list(current_user: CurrentUser):
+@app.get("/exerciselist")
+async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
     """Serve the exercise list page (protected endpoint)."""
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(url="/index.html", status_code=status.HTTP_303_SEE_OTHER)
+
     exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
-    return FileResponse(exerciselist_path)
+    response = FileResponse(exerciselist_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 
 # Authentication endpoints
@@ -154,5 +162,5 @@ async def logout(response: Response):
     """
     Logout user by clearing the authentication cookie.
     """
-    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="access_token", path="/")
     return {"message": "Successfully logged out"}
