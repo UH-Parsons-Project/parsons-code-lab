@@ -5,7 +5,7 @@ Database models for the application.
 from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
-from passlib.hash import bcrypt
+import bcrypt
 
 from .database import Base
 
@@ -25,8 +25,8 @@ class Teacher(Base):
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""
-        self.password_hash = bcrypt.hash(password)
+        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     def verify_password(self, password: str) -> bool:
         """Verify a password against the stored hash."""
-        return bcrypt.verify(password, self.password_hash)
+        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
