@@ -22,13 +22,13 @@ async def seed_db():
         if existing_teacher is None:
             # Create default admin teacher
             admin = Teacher(
-                username="admin",
-                email="admin@example.com"
+                username="test",
+                email="test@example.com"
             )
-            admin.set_password("admin")  # Change in production!
+            admin.set_password("test")  # Change in production!
             
             session.add(admin)
             await session.commit()
-            print("Created default admin teacher (username: admin, password: admin)")
+            print("Created default admin teacher (username: test, password: test)")
         else:
             print("Admin teacher already exists, skipping seed")
