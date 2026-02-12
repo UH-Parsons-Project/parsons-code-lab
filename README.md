@@ -2,6 +2,9 @@
 
 # Python Faded Parsons Problems
 
+## Credit to the original project
+https://github.com/pamelafox/faded-parsons-static
+
 This website allows you to run Faded Parsons Problems in the browser.
 It uses Pyodide for executing Python doctests and localStorage for storing user progress.
 
@@ -62,7 +65,3 @@ Instructor:
 - Telegram
 - Discord
 - Meeting up on campus
-
-
-## Credits for original project
-https://github.com/pamelafox/faded-parsons-static
