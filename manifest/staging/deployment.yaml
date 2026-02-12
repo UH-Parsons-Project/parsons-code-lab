@@ -20,6 +20,12 @@ spec:
         - name: faded-parsons-staging
           image: quay.io/tike/ohtu-faded-parsons:staging
           imagePullPolicy: Always
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: DATABASE_URL
           ports:
             - containerPort: 8000
 
