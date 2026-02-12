@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
   pull_request:
-    branches: [master, main]
 
 jobs:
   test:
@@ -13,6 +11,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Clean up Docker resources
+        run: docker compose down -v
+        continue-on-error: true
       
       - name: Run tests with Docker Compose
         run: docker compose --profile test up --build --abort-on-container-exit --exit-code-from test

@@ -6,7 +6,7 @@
     <title>Faded Parsons Problem Runner</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-    <link rel="stylesheet" href="js-parsons/parsons.css"/>
+    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
 </head>
 <body>
     <nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
@@ -19,12 +19,12 @@
 <!-- jQuery, jQueryUI, and Pyodide are all loaded via CDN. Other dependencies are bundled. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-<script src="js/jquery.ui.touch-punch.js"></script>
+<script src="/js/jquery.ui.touch-punch.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.19.0/full/pyodide.js"></script>
-<script src="js-parsons/parsons.js"></script>
-<script src="dist/bundle.js" type="module"></script>
+<script src="/js-parsons/parsons.js"></script>
+<script src="//dist/bundle.js" type="module"></script>
 <script type="module">
-import {initWidget} from "./dist/bundle.js";
+import {initWidget} from "/dist/bundle.js";
 // Initializes initWidget
 initWidget();
 </script>

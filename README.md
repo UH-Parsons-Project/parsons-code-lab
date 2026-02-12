@@ -2,6 +2,9 @@
 
 # Python Faded Parsons Problems
 
+## Credit to the original project
+https://github.com/pamelafox/faded-parsons-static
+
 This website allows you to run Faded Parsons Problems in the browser.
 It uses Pyodide for executing Python doctests and localStorage for storing user progress.
 
@@ -13,25 +16,12 @@ https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi
 
 ### To run locally:
 
-Build a docker image
 ```
-docker build -t faded-parsons:local .
-```
-Run the image in the desired port, with --rm removing it after exiting
-```
-docker run --rm -it -p 3000:8000 faded-parsons:local
+docker compose up --build
 ```
 
-Running tests is similar:
+Running tests:
 
-```
-docker build -f Dockerfile.test -t faded-parsons-test .
-```
-```
-docker run --rm faded-parsons-test
-```
-
-Note that it is recomended to run the tests with docker compose:
 ```
 docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
 ```
@@ -75,7 +65,3 @@ Instructor:
 - Telegram
 - Discord
 - Meeting up on campus
-
-
-## Credits for original project
-https://github.com/pamelafox/faded-parsons-static

@@ -1,0 +1,166 @@
+"""
+FastAPI backend for Faded Parsons Problems.
+Provides endpoints for each page.
+"""
+
+from contextlib import asynccontextmanager
+from datetime import timedelta
+from typing import Annotated
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Request
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
+from pathlib import Path
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from .database import init_db, get_db
+from .seed import seed_db
+from .auth import authenticate_user, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES, CurrentUser
+from .models import Teacher
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database and seed data on startup."""
+    # Note: Tables are also created by schema.sql in Docker. This provides redundancy
+    # and ensures tables exist when running outside Docker or if schema.sql changes.
+    await init_db()
+    await seed_db()
+    yield
+
+
+app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)
+
+# CORS middleware for development (restrict in production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to specific origins in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Get the base directory (parent of backend folder)
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Pydantic models for request/response
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserInfo(BaseModel):
+    username: str
+    email: str
+
+
+# Mount static directories
+app.mount("/js", StaticFiles(directory=BASE_DIR / "js"), name="js")
+app.mount("/js-parsons", StaticFiles(directory=BASE_DIR / "js-parsons"), name="js-parsons")
+app.mount("/dist", StaticFiles(directory=BASE_DIR / "dist"), name="dist")
+app.mount("/data", StaticFiles(directory=BASE_DIR / "data"), name="data")
+app.mount("/parsons_probs", StaticFiles(directory=BASE_DIR / "parsons_probs"), name="parsons_probs")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    """Serve the main index page."""
+    index_path = BASE_DIR / "templates" / "index.html"
+    return FileResponse(index_path)
+
+
+@app.get("/index.html", response_class=HTMLResponse)
+async def index_html():
+    """Serve the main index page (explicit path)."""
+    index_path = BASE_DIR / "templates" / "index.html"
+    return FileResponse(index_path)
+
+
+@app.get("/problem.html", response_class=HTMLResponse)
+async def problem_page():
+    """Serve the problem page."""
+    problem_path = BASE_DIR / "templates" / "problem.html"
+    return FileResponse(problem_path)
+
+
+@app.get("/exerciselist")
+async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
+    """Serve the exercise list page (protected endpoint)."""
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(url="/index.html", status_code=status.HTTP_303_SEE_OTHER)
+
+    exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
+    response = FileResponse(exerciselist_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+# Authentication endpoints
+@app.post("/api/login/access-token", response_model=Token)
+async def login_access_token(
+    response: Response,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    OAuth2 compatible token login, get an access token for future requests.
+    Also sets an HTTP-only cookie for browser-based page navigation.
+    """
+    user = await authenticate_user(form_data.username, form_data.password, db)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect username or password"
+        )
+    elif not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    
+    # Set HTTP-only cookie for browser page navigation
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
+        samesite="lax",
+        secure=False  # Set to True in production with HTTPS
+    )
+    
+    return Token(
+        access_token=access_token,
+        token_type="bearer"
+    )
+
+
+@app.get("/api/me", response_model=UserInfo)
+async def get_current_user_info(current_user: CurrentUser):
+    """
+    Get current authenticated user information.
+    """
+    return UserInfo(
+        username=current_user.username,
+        email=current_user.email
+    )
+
+
+@app.post("/api/logout")
+async def logout(response: Response):
+    """
+    Logout user by clearing the authentication cookie.
+    """
+    response.delete_cookie(key="access_token", path="/")
+    return {"message": "Successfully logged out"}
