@@ -9,26 +9,26 @@ from .models import Teacher
 
 async def seed_db():
     """
-    Create initial teacher user if it doesn't exist.
+    Create initial test teacher user if it doesn't exist.
     Called on application startup.
     """
     async with async_session() as session:
-        # Check if admin teacher already exists
+        # Check if test teacher already exists
         result = await session.execute(
-            select(Teacher).where(Teacher.username == "admin")
+            select(Teacher).where(Teacher.username == "test")
         )
         existing_teacher = result.scalar_one_or_none()
         
         if existing_teacher is None:
-            # Create default admin teacher
-            admin = Teacher(
+            # Create default test teacher
+            test = Teacher(
                 username="test",
                 email="test@example.com"
             )
-            admin.set_password("test")  # Change in production!
+            test.set_password("test")  # Change in production!
             
-            session.add(admin)
+            session.add(test)
             await session.commit()
-            print("Created default admin teacher (username: test, password: test)")
+            print("Created default test teacher (username: test, password: test)")
         else:
-            print("Admin teacher already exists, skipping seed")
+            print("Test teacher already exists, skipping seed")
