@@ -3,6 +3,7 @@ Database seeding - creates initial data for development.
 """
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from .database import async_session
 from .models import Teacher
 
@@ -28,7 +29,12 @@ async def seed_db():
             test.set_password("test")  # Change in production!
             
             session.add(test)
-            await session.commit()
-            print("Created default test teacher (username: test, password: test)")
+            try:
+                await session.commit()
+                print("Created default test teacher (username: test, password: test)")
+            except IntegrityError:
+                # User was created by another instance in a race condition
+                await session.rollback()
+                print("Test teacher already exists (created by another instance), skipping seed")
         else:
             print("Test teacher already exists, skipping seed")
