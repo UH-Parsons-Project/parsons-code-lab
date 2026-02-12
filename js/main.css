@@ -1,0 +1,44 @@
+.body {
+	background: #d9d9d9;
+}
+
+.card-soft {
+	background: #f8f9fa;
+	border: 0;
+	border-radius: .35rem;
+	box-shadow: 0 1px 2px rgba(0,0,0,.1);
+	min-height: 120px;
+}
+
+.section-title {
+	text-align: center;
+	font-weight: 500;
+	margin: 1.25rem 0 .75rem;
+}
+
+.stats-title {
+	text-align: center;
+	font-weight: 500;
+	margin-bottom: .75rem;
+}
+
+.stat-single,
+.stat-grid {
+	text-align: center;
+}
+
+.stat-grid {
+	display: flex;
+	justify-content: center;
+	gap: 2rem;
+}
+
+.label {
+	font-size: .9rem;
+	color: #444;
+}
+
+.value {
+	font-size: 1.5rem;
+	font-weight: 600;
+}
