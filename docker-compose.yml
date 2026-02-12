@@ -1,7 +1,7 @@
 # Local development configuration for Faded Parsons Problems
-# Usage: docker compose down -v && docker compose up --build
+# Usage: docker compose up --build
 # Tests: docker compose --profile test up --build --abort-on-container-exit
-# Note: Use 'down -v' to reset the database (removes postgres_data volume)
+# Note: Database is non-persistent - data is cleared when containers are stopped
 
 services:
   # PostgreSQL database - local development only, production uses external database
@@ -13,7 +13,6 @@ services:
       POSTGRES_PASSWORD: postgres  # Change in production!
       POSTGRES_DB: faded_parsons
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql  # Auto-runs on first start
     ports:
       - "5432:5432"
@@ -69,8 +68,3 @@ services:
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js
-
-# Local development only - persists database data between container restarts.
-# Not needed in production where the database is hosted externally.
-volumes:
-  postgres_data:
