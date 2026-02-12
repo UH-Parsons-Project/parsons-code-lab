@@ -18,7 +18,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN mkdir -p /app/dist && chmod -R 777 /app/dist
+
 RUN npm run build
+
+# Deployment-specific permissions for OpenShift/Kubernetes
+RUN chown -R 0:0 /app && \
+    chmod -R a+rX /app && \
+    chmod -R g+rwX /app/dist
 
 ENV PORT=8000
 EXPOSE 8000
