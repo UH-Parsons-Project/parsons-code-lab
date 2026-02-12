@@ -9,8 +9,9 @@
 </head>
 <body>
 	<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
-		<div class="navbar-brand">🧩 Faded Parsons Problems</div>
+		<a class="navbar-brand" href="index.html">🧩 Faded Parsons Problems</a>
 		<div class="ml-auto">
+			<a class="btn btn-outline-light btn-sm mr-3" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>
 			<span class="text-white mr-3">Welcome, <span id="user-name"></span>!</span>
 			<button class="btn btn-outline-light btn-sm" id="logout-btn">Logout</button>
 		</div>
@@ -24,12 +25,15 @@
 
 	<script type="module">
 	import { clearAuth } from '/js/auth-utils.js';
+	import { initNavbarExercisesButton } from '/js/auth-ui.js';
 	
 	// Display username if available
 	const username = localStorage.getItem('username');
 	if (username) {
 		document.getElementById('user-name').textContent = username;
 	}
+
+	initNavbarExercisesButton();
 	
 	// Set up logout button
 	document.getElementById('logout-btn').addEventListener('click', async function() {
