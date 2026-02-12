@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exercise Analytics - Faded Parsons Problems</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
+    <div class="navbar-brand">🧩 Faded Parsons Problems</div>
+
+    <div class="ml-auto d-flex align-items-center">
+      <a href="exerciselist.html"
+         class="btn btn-outline-light btn-sm mr-3">
+        Back to exercise list
+      </a>
+
+      <span class="text-white">
+        <i class="fas fa-user"></i>
+        signed in as <strong id="signed-in-as">ope</strong>
+      </span>
+    </div>
+  </nav>
+
+  <div class="container py-3">
+
+    <!-- Page header -->
+    <h2>Exercise analytics</h2>
+    <div class="text-muted mb-3">
+      Exercise: <span id="exercise-name">—</span>
+    </div>
+
+    <!-- Top row with 3 boxes -->
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <div class="card card-soft">
+          <div class="card-body d-flex align-items-center justify-content-center">
+            <div class="stat-single">
+              <div class="label">Total number of completions</div>
+              <div id="total-completions" class="value">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <div class="card card-soft">
+          <div class="card-body d-flex align-items-center justify-content-center">
+            <div class="stat-single">
+              <div class="label">Number of students who completed task</div>
+              <div id="students-completed" class="value">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <div class="card card-soft">
+          <div class="card-body d-flex align-items-center justify-content-center">
+            <div class="stat-single">
+              <div class="label">Average number of tries before success</div>
+              <div id="avg-tries" class="value">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Statistics</div>
+
+    <!-- Stats grid -->
+    <div class="row">
+
+      <!-- Time to first fail -->
+      <div class="col-md-6 mb-3">
+        <div class="card card-soft">
+          <div class="card-body">
+            <div class="stats-title">Time to first fail</div>
+            <div class="stat-grid">
+              <div>
+                <div class="label">Average</div>
+                <div class="value" id="tff-avg">—</div>
+              </div>
+              <div>
+                <div class="label">Min</div>
+                <div class="value" id="tff-min">—</div>
+              </div>
+              <div>
+                <div class="label">Max</div>
+                <div class="value" id="tff-max">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time to first success -->
+      <div class="col-md-6 mb-3">
+        <div class="card card-soft">
+          <div class="card-body">
+            <div class="stats-title">Time to first success</div>
+            <div class="stat-grid">
+              <div>
+                <div class="label">Average</div>
+                <div class="value" id="tfs-avg">—</div>
+              </div>
+              <div>
+                <div class="label">Min</div>
+                <div class="value" id="tfs-min">—</div>
+              </div>
+              <div>
+                <div class="label">Max</div>
+                <div class="value" id="tfs-max">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thinking time -->
+      <div class="col-md-6 mb-3">
+        <div class="card card-soft">
+          <div class="card-body">
+            <div class="stats-title">Thinking time before starting task</div>
+            <div class="stat-grid">
+              <div>
+                <div class="label">Average</div>
+                <div class="value" id="think-avg">—</div>
+              </div>
+              <div>
+                <div class="label">Min</div>
+                <div class="value" id="think-min">—</div>
+              </div>
+              <div>
+                <div class="label">Max</div>
+                <div class="value" id="think-max">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Number of moves -->
+      <div class="col-md-6 mb-3">
+        <div class="card card-soft">
+          <div class="card-body">
+            <div class="stats-title">Number of moves</div>
+            <div class="stat-grid">
+              <div>
+                <div class="label">Average</div>
+                <div class="value" id="moves-avg">—</div>
+              </div>
+              <div>
+                <div class="label">Min</div>
+                <div class="value" id="moves-min">—</div>
+              </div>
+              <div>
+                <div class="label">Max</div>
+                <div class="value" id="moves-max">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Most common mistakes and inputs -->
+    <div class="card card-soft mb-4">
+      <div class="card-body">
+        <strong>Most common mistakes and inputs</strong>
+        <div id="input-logs" class="text-muted mt-2">
+          (Tähän tietoa yleisimmistä virheistä.)
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Script to find excercise name and user (user bit needs to be updated) -->
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name');
+    const user = params.get('user');
+
+    if (name) document.getElementById('exercise-name').textContent = name;
+    <!-- if (user) document.getElementById('signed-in-as').textContent = user; -->
+  </script>
+
+</body>
+</html>

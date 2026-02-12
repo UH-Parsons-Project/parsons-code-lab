@@ -101,6 +101,23 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
     return response
 
 
+@app.get("/statics_view", response_class=HTMLResponse)
+async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Serve the statics view page (protected endpoint).
+    """
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(url="/index.html", status_code=status.HTTP_303_SEE_OTHER)
+
+    statics_path = BASE_DIR / "templates" / "statics_view.html"
+    response = FileResponse(statics_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
 # Authentication endpoints
 @app.post("/api/login/access-token", response_model=Token)
 async def login_access_token(
