@@ -1,0 +1,17 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: ohtu-faded-parsons
+  namespace: timed-parsons
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: production
+      from:
+        kind: DockerImage
+        name: quay.io/tike/ohtu-faded-parsons:production
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Source

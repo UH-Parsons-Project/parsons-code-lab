@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: faded-parsons-production
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-production
+
+spec:
+  selector:
+    app: faded-parsons-production
+
+  ports:
+    - port: 8000
+      targetPort: 8000
