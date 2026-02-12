@@ -2,6 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: faded-parsons-staging
+  namespace: timed-parsons
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"ohtu-faded-parsons:staging","namespace":"timed-parsons"},"fieldPath":"spec.template.spec.containers[?(@.name==\"faded-parsons-staging\")].image"}]
 spec:
   replicas: 1
   selector:
@@ -15,7 +19,7 @@ spec:
       containers:
         - name: faded-parsons-staging
           image: quay.io/tike/ohtu-faded-parsons:staging
-
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
 
