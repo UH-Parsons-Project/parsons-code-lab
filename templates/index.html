@@ -18,6 +18,7 @@
 				<button class="btn btn-outline-success" id="login-btn" type="submit">Login</button>
 			</form>
 			<div id="user-info" class="text-white" style="display: none;">
+				<a class="btn btn-outline-light btn-sm mr-2" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>
 				<span class="mr-3">Welcome, <span id="user-name"></span>!</span>
 				<button class="btn btn-outline-light btn-sm" id="logout-btn">Logout</button>
 			</div>
@@ -44,8 +45,9 @@
 
     </div>
 	<script type="module">
-		import { initLoginPage } from '/js/auth-ui.js';
+		import { initLoginPage, initNavbarExercisesButton } from '/js/auth-ui.js';
 		initLoginPage();
+		initNavbarExercisesButton();
 	</script>
 </body>
 </html>

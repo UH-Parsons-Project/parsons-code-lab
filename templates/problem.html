@@ -11,6 +11,9 @@
 <body>
     <nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
         <a class="navbar-brand" href="index.html">🧩 Faded Parsons Problems</a>
+        <div class="ml-auto">
+            <a class="btn btn-outline-light btn-sm" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>
+        </div>
     </nav>
 
     <div class="container">
@@ -24,9 +27,11 @@
 <script src="/js-parsons/parsons.js"></script>
 <script src="//dist/bundle.js" type="module"></script>
 <script type="module">
-import {initWidget} from "/dist/bundle.js";
+import { initWidget } from "/dist/bundle.js";
+import { initNavbarExercisesButton } from "/js/auth-ui.js";
 // Initializes initWidget
 initWidget();
+initNavbarExercisesButton();
 </script>
 </body>
 </html>
