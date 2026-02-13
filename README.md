@@ -26,7 +26,7 @@ Running tests:
 docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
 ```
 
-The website can be accessed at http://localhost:3000/.
+The website can be accessed at http://localhost:8000/.
 
 ## Adding a new problem
 
