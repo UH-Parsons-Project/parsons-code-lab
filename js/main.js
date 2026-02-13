@@ -39,13 +39,39 @@ export async function initWidget() {
 
 		const task = await response.json();
 
-		// Extract task data
-		const probDescription = task.description;
+		// Parse description JSON
+		let parsedDescription = {};
+		try {
+			parsedDescription =
+				typeof task.description === 'string'
+					? JSON.parse(task.description)
+					: task.description;
+		} catch (e) {
+			// Fallback if description is not valid JSON
+			parsedDescription = {
+				function_name: '',
+				description: task.description || '',
+				examples: '',
+			};
+		}
+
+		// Build HTML problem statement from structured parts
+		let problemStatementHTML = '';
+		if (parsedDescription.function_name) {
+			problemStatementHTML += `<strong>${parsedDescription.function_name}</strong>`;
+		}
+		if (parsedDescription.description) {
+			problemStatementHTML += ` ${parsedDescription.description}`;
+		}
+		if (parsedDescription.examples) {
+			problemStatementHTML += `<br><pre><code>${parsedDescription.examples}</code></pre>`;
+		}
+
 		const codeBlocksData = task.code_blocks;
 		const functionHeader = codeBlocksData.function_header;
 
 		// Reconstruct code lines from blocks for display
-		let codeLines = reconstructCodeLines(codeBlocksData.blocks, functionHeader);
+		let codeLines = reconstructCodeLines(codeBlocksData.blocks);
 
 		// Add debug print statements and blank lines
 		codeLines =
@@ -67,7 +93,7 @@ export async function initWidget() {
 
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
-		probEl.setAttribute('description', probDescription);
+		probEl.setAttribute('description', problemStatementHTML);
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
@@ -92,18 +118,20 @@ export async function initWidget() {
 
 // Reconstructs code lines from structured blocks
 // blocks: array of block objects with code, indent, faded properties
-// functionHeader: the Python function definition
-function reconstructCodeLines(blocks, functionHeader) {
-	let lines = [functionHeader];
+function reconstructCodeLines(blocks) {
+	let lines = [];
 
 	for (const block of blocks) {
 		// Add proper indentation
 		const indent = '    '.repeat(block.indent);
 		let code = indent + block.code;
 
-		// Add !BLANK marker if this block is faded
-		if (block.faded) {
-			code += ' !BLANK';
+		// Convert ___ to !BLANK for Parsons widget to recognize editable fields
+		code = code.replace(/___/g, '!BLANK');
+
+		// Add #Ngiven marker if this block is pre-filled (given)
+		if (block.given) {
+			code += ' #0given';
 		}
 
 		lines.push(code);

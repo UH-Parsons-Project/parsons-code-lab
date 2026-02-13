@@ -26,6 +26,49 @@ from backend.models import Parsons, Teacher
 PARSONS_PROBS_DIR = Path(__file__).parent.parent / "parsons_probs"
 
 
+def parse_problem_description(html_description: str) -> Dict[str, str]:
+    """
+    Parse HTML problem description into structured parts.
+
+    Extracts:
+    - function_name: The function name from first <code> tag
+    - description: Text description without code tags and without function name
+    - examples: The <pre><code> block with examples
+
+    Args:
+        html_description: HTML formatted problem description
+
+    Returns:
+        Dictionary with 'function_name', 'description', 'examples' keys
+    """
+    result = {"function_name": "", "description": "", "examples": ""}
+
+    # Extract function name from first <code> tag (inline code only, not in <pre>)
+    code_match = re.search(r"<code>(\w+)</code>", html_description)
+    if code_match:
+        result["function_name"] = code_match.group(1)
+
+    # Extract examples from <pre><code>...</code></pre>
+    pre_match = re.search(r"<pre><code>(.*?)</code></pre>", html_description, re.DOTALL)
+    if pre_match:
+        result["examples"] = pre_match.group(1).strip()
+
+    # Extract description text (everything except function name and examples)
+    # Remove <pre><code>...</code></pre> (examples) block entirely
+    description = re.sub(
+        r"<pre><code>.*?</code></pre>", "", html_description, flags=re.DOTALL
+    )
+    # Remove inline <code>...</code> tags entirely (including the function name inside)
+    description = re.sub(r"<code>.*?</code>", "", description)
+    # Remove HTML tags: <p>, <br>, </p>, </div>, <div>, etc.
+    description = re.sub(r"</?[^>]+>", " ", description)
+    # Clean up whitespace
+    description = " ".join(description.split())
+    result["description"] = description.strip()
+
+    return result
+
+
 def parse_code_lines(
     code_lines: str, faded_markers: bool = False
 ) -> tuple[List[Dict[str, Any]], bool]:
@@ -56,9 +99,12 @@ def parse_code_lines(
         if is_faded:
             has_faded = True
 
+        # Check if line is marked as "given" (pre-filled, non-draggable)
+        is_given = bool(re.search(r"#[0-9]+given", line))
+
         # Remove special markers
         clean_code = line.strip()
-        clean_code = re.sub(r"#0given", "", clean_code).strip()
+        clean_code = re.sub(r"#[0-9]+given", "", clean_code).strip()
         clean_code = re.sub(
             r"!BLANK", "___", clean_code
         ).strip()  # Replace !BLANK with underscore placeholder
@@ -71,11 +117,46 @@ def parse_code_lines(
             "code": clean_code,
             "indent": indent_level,
             "faded": is_faded,
+            "given": is_given,
         }
         blocks.append(block)
         block_id += 1
 
     return blocks, has_faded
+
+
+def extract_function_signature(function_file: str) -> str:
+    """
+    Extract only the function signature from a Python file, excluding the docstring.
+
+    Handles both single-line and multi-line function definitions, and strips the docstring.
+
+    Args:
+        function_file: The complete Python file content
+
+    Returns:
+        Function signature (def line only, without docstring)
+    """
+    lines = function_file.split("\n")
+    signature_lines = []
+    in_signature = False
+    found_colon = False
+
+    for line in lines:
+        # Start collecting when we find the def keyword
+        if not in_signature and "def " in line:
+            in_signature = True
+
+        if in_signature:
+            signature_lines.append(line)
+            # Check if this line ends the signature (has the closing colon)
+            if ":" in line:
+                found_colon = True
+                break
+
+    # Join the signature lines and return
+    signature = "\n".join(signature_lines).strip()
+    return signature
 
 
 def get_function_name(function_header: str) -> str:
@@ -115,9 +196,14 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         with open(yaml_path, "r") as f:
             yaml_data = yaml.safe_load(f)
 
-        # Load Python file
+        # Load Python file and extract only the function signature (without docstring)
         with open(py_path, "r") as f:
-            function_header = f.read().strip()
+            function_file_content = f.read()
+        function_header = extract_function_signature(function_file_content)
+
+        # Parse problem description into structured parts
+        html_description = yaml_data.get("problem_description", "")
+        parsed_description = parse_problem_description(html_description)
 
         # Parse code lines into blocks
         code_lines = yaml_data.get("code_lines", "")
@@ -134,7 +220,7 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
 
         return {
             "title": task_name,
-            "description": yaml_data.get("problem_description", ""),
+            "description": json.dumps(parsed_description),
             "task_type": task_type,
             "code_blocks": {"blocks": blocks, "function_header": function_header},
             "correct_solution": {
