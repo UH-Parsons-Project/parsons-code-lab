@@ -85,6 +85,12 @@ async def problem_page():
     problem_path = BASE_DIR / "templates" / "problem.html"
     return FileResponse(problem_path)
 
+@app.get("/nickname", response_class=HTMLResponse)
+async def problem_page():
+    """Serve the problem page."""
+    problem_path = BASE_DIR / "templates" / "nickname.html"
+    return FileResponse(problem_path)
+
 
 @app.get("/exerciselist")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):

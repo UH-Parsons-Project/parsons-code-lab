@@ -1,6 +1,17 @@
-.body {
-	background: #d9d9d9;
+
+.main-nickname {
+	min-height: calc(100vh - 56px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
+
+.nickname-card {
+	min-width: 320px;
+	max-width: 480px;
+	width: 100%;
+}
+
 
 .card-soft {
 	background: #f8f9fa;
@@ -42,3 +53,4 @@
 	font-size: 1.5rem;
 	font-weight: 600;
 }
+
