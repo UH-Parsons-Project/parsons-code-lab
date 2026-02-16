@@ -40,7 +40,7 @@ Then you can access the new problem at problem.html?name=problem_name
 
 ## Original codebase
 
-This codebase is based on the Faded Parsons Problems project found here: https://github.com/pamelafox/faded-parsons-static, which is licenced under the MIT Licence.
+This codebase is based on the Faded Parsons Problems project found here: https://github.com/pamelafox/faded-parsons-static, which is licensed under the MIT License.
 The original project, a static website, allows the user to run Faded Parsons Problems in the browser. It used Pyodide for executing Python doctests and localStorage for storing user progress. The original project contained the functionality for solving and submitting faded parsons problems which were then automatically tested according to task definitions.
 
 The repository was forked in Jan 2026, and this fork renamed and detached in Feb 2026.
