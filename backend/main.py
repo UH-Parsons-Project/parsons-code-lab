@@ -183,6 +183,7 @@ async def login_access_token(
         value=access_token,
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
+        path="/",
         samesite="lax",
         secure=False,  # Set to True in production with HTTPS
     )

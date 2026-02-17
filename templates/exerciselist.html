@@ -78,8 +78,8 @@
 					a.href = '/problem.html?id=' + encodeURIComponent(item.id);
 					a.textContent = item.title;
 					li.appendChild(a);
-					if (item.description) {
-						li.appendChild(document.createTextNode(' - ' + item.description));
+					if (item.category) {
+						li.appendChild(document.createTextNode(' (' + item.category + ')'));
 					}
 					ul.appendChild(li);
 				});
