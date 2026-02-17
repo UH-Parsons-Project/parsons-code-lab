@@ -3,18 +3,22 @@ CREATE TABLE teachers (
 	username VARCHAR(100) NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
 	email VARCHAR(100) UNIQUE NOT NULL,
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	is_active BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE parsons (
 	id SERIAL PRIMARY KEY,
-	created_by_teacher_id INTEGER,
+	created_by_teacher_id INTEGER NOT NULL REFERENCES teachers(id),
 	title VARCHAR(255) NOT NULL,
 	description TEXT,
 	task_type VARCHAR(255),
 	code_blocks JSONB,
 	correct_solution JSONB,
-	created_at TIMESTAMP
+	is_public BOOLEAN DEFAULT TRUE,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE task_lists (

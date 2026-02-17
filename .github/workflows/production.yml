@@ -17,7 +17,7 @@ jobs:
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
       - name: Build docker image # Build and name the image for production
-        run: docker build -t quay.io/tike/ohtu-faded-parsons:production .
+        run: docker build -f Dockerfile.prod -t quay.io/tike/ohtu-faded-parsons:production .
 
       - name: Push to Quay # Push the docker built image to quay
         run: |
