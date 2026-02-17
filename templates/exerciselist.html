@@ -52,7 +52,8 @@
 		list.forEach(function(item) {
 			const li = document.createElement('li');
 			const a = document.createElement('a');
-			a.href = '/problem.html?name=' + encodeURIComponent(item.name);
+			// Use task id as query parameter so problem page can fetch /api/tasks/{id}
+			a.href = '/problem.html?id=' + encodeURIComponent(item.id);
 			a.textContent = item.title;
 			li.appendChild(a);
 			if (item.category) {
