@@ -65,18 +65,26 @@
 		container.appendChild(ul);
 	}
 
-			// Fetch problems list from API
-			fetch('/api/tasks')
-				.then(function (resp) {
-					if (!resp.ok) throw new Error('Network response not ok');
-					return resp.json();
-				})
-				.then(function (json) {
-					render(json);
-				})
-				.catch(function (error) {
-					container.innerHTML = '<p>Unable to load exercise list.</p>';
-				});
-		</script>
-	</body>
+	// Fetch problems list
+	const manifestPath = '/data/problems.json';
+	fetch(manifestPath)
+		.then(function(resp) {
+			if (!resp.ok) throw new Error('Network response not ok');
+			return resp.json();
+		})
+		.then(function(json) {
+			render(json);
+		})
+		.catch(function() {
+			// If fetch fails, attempt to use server-side `exercises` variable if present
+			try {
+				if (typeof exercises !== 'undefined' && exercises.length) {
+					render(exercises);
+					return;
+				}
+			} catch (e) {}
+			container.innerHTML = '<p>Unable to load exercise list.</p>';
+		});
+	</script>
+</body>
 </html>

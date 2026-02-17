@@ -14,13 +14,7 @@ https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi
 docker compose up --build
 ```
 
-### Populate the database:
-
-```
-docker compose exec -T web python -m backend.migrate_tasks
-```
-
-### Running tests:
+Running tests:
 
 ```
 docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
