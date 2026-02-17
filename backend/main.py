@@ -105,6 +105,7 @@ async def problem_page():
     problem_path = BASE_DIR / "templates" / "problem.html"
     return FileResponse(problem_path)
 
+
 @app.get("/nickname", response_class=HTMLResponse)
 async def problem_page():
     """Serve the problem page."""
@@ -137,7 +138,9 @@ async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
-        return RedirectResponse(url="/index.html", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
 
     statics_path = BASE_DIR / "templates" / "statics_view.html"
     response = FileResponse(statics_path)
@@ -238,17 +241,30 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
     List all public tasks.
     Returns: array of tasks with basic info (no code blocks).
     """
+    import json
+
     query = select(Parsons).where(Parsons.is_public)
 
     result = await db.execute(query)
     tasks = result.scalars().all()
 
-    return [
-        {
-            "id": task.id,
-            "title": task.title,
-            "task_type": task.task_type,
-            "created_at": task.created_at.isoformat(),
-        }
-        for task in tasks
-    ]
+    task_list = []
+    for task in tasks:
+        # Parse the description JSON to get the actual description text
+        try:
+            description_data = json.loads(task.description)
+            description_text = description_data.get("description", "")
+        except (json.JSONDecodeError, AttributeError):
+            description_text = ""
+
+        task_list.append(
+            {
+                "id": task.id,
+                "title": task.title,
+                "description": description_text,
+                "task_type": task.task_type,
+                "created_at": task.created_at.isoformat(),
+            }
+        )
+
+    return task_list
