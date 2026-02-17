@@ -2,12 +2,6 @@
 
 # Python Faded Parsons Problems
 
-## Credit to the original project
-https://github.com/pamelafox/faded-parsons-static
-
-This website allows you to run Faded Parsons Problems in the browser.
-It uses Pyodide for executing Python doctests and localStorage for storing user progress.
-
 Check it out here:
 
 https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi/
@@ -32,7 +26,7 @@ docker compose exec -T web python -m backend.migrate_tasks
 docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
 ```
 
-The website can be accessed at http://localhost:3000/.
+The website can be accessed at http://localhost:8000/.
 
 ## Adding a new problem
 
@@ -49,6 +43,13 @@ Then you can access the new problem at problem.html?name=problem_name
 
 ## Product and Sprint Backlogs
 [Product Backlog](https://github.com/orgs/UH-Parsons-Project/projects/12)
+
+## Original codebase
+
+This codebase is based on the Faded Parsons Problems project found here: https://github.com/pamelafox/faded-parsons-static, which is licensed under the MIT License.
+The original project, a static website, allows the user to run Faded Parsons Problems in the browser. It used Pyodide for executing Python doctests and localStorage for storing user progress. The original project contained the functionality for solving and submitting faded parsons problems which were then automatically tested according to task definitions.
+
+The repository was forked in Jan 2026, and this fork was renamed and detached in Feb 2026.
 
 ## Team
 Students:

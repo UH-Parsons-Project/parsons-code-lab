@@ -5,6 +5,13 @@
 
 import { verifyAuth, getAuthToken, getUsername, setAuth, clearAuth } from './auth-utils.js';
 
+function setExercisesButtonVisible(visible) {
+	const exercisesBtn = document.getElementById('exercises-btn');
+	if (exercisesBtn) {
+		exercisesBtn.style.display = visible ? 'inline-block' : 'none';
+	}
+}
+
 /**
  * Initialize login page authentication UI
  * Handles login form submission and checks if user is already logged in
@@ -40,6 +47,7 @@ export function initLoginPage() {
 				userNameElement.textContent = username;
 			}
 		}
+		setExercisesButtonVisible(true);
 	}
 	
 	function showLoginForm() {
@@ -47,6 +55,7 @@ export function initLoginPage() {
 		if (userInfo) {
 			userInfo.style.display = 'none';
 		}
+		setExercisesButtonVisible(false);
 	}
 	
 	function showError(message) {
@@ -147,6 +156,14 @@ export function initLoginPage() {
 }
 
 /**
+ * Initialize navbar exercises button visibility based on auth state.
+ */
+export async function initNavbarExercisesButton() {
+	const userData = await verifyAuth();
+	setExercisesButtonVisible(!!userData);
+}
+
+/**
  * Initialize protected page authentication UI
  * Verifies user is logged in and handles logout, redirects to login if not authenticated
  * @param {string} loginPageUrl - URL to redirect to if not authenticated (default: '/index.html')
@@ -205,6 +222,9 @@ export async function displayAuthStatus() {
 		
 		if (userInfo) userInfo.style.display = 'block';
 		if (loginForm) loginForm.style.display = 'none';
+		setExercisesButtonVisible(true);
+	} else {
+		setExercisesButtonVisible(false);
 	}
 	
 	// Setup logout handler

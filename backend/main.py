@@ -105,6 +105,12 @@ async def problem_page():
     problem_path = BASE_DIR / "templates" / "problem.html"
     return FileResponse(problem_path)
 
+@app.get("/nickname", response_class=HTMLResponse)
+async def problem_page():
+    """Serve the problem page."""
+    problem_path = BASE_DIR / "templates" / "nickname.html"
+    return FileResponse(problem_path)
+
 
 @app.get("/exerciselist")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
@@ -118,6 +124,23 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
 
     exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
     response = FileResponse(exerciselist_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+@app.get("/statics_view", response_class=HTMLResponse)
+async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Serve the statics view page (protected endpoint).
+    """
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(url="/index.html", status_code=status.HTTP_303_SEE_OTHER)
+
+    statics_path = BASE_DIR / "templates" / "statics_view.html"
+    response = FileResponse(statics_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
