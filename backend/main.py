@@ -72,7 +72,7 @@ async def index():
     return FileResponse(index_path)
 
 @app.get("/student_start_page", response_class=HTMLResponse)
-async def index():
+async def student_start_view():
     """Serve the main index page."""
     index_path = BASE_DIR / "templates" / "student_start_page.html"
     return FileResponse(index_path)
