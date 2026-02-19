@@ -5,7 +5,7 @@ Database models for the application.
 from datetime import datetime
 
 import bcrypt
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON,Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
