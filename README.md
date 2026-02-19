@@ -14,7 +14,27 @@ https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi
 docker compose up --build
 ```
 
-### Running tests:
+### Running tests with Pytest:
+
+Install the test dependencies (in a virtual environment if you prefer):
+
+```
+pip install -r requirements.txt
+```
+
+Run tests with code coverage:
+
+```
+pytest tests/unit/ --cov=backend --cov-report=html --cov-report=term
+```
+
+After running tests with coverage, open the HTML report:
+
+```
+xdg-open htmlcov/index.html
+```
+
+### Running tests with Playwright:
 
 Tests use Playwright's global setup to reset the database before running each test.
 

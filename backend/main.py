@@ -77,13 +77,24 @@ class TaskResponse(BaseModel):
     created_at: str
 
 
-# Mount static directories
-app.mount("/js", StaticFiles(directory=BASE_DIR / "js"), name="js")
-app.mount(
-    "/js-parsons", StaticFiles(directory=BASE_DIR / "js-parsons"), name="js-parsons"
-)
-app.mount("/dist", StaticFiles(directory=BASE_DIR / "dist"), name="dist")
-app.mount("/data", StaticFiles(directory=BASE_DIR / "data"), name="data")
+# Mount static directories (only if they exist)
+js_dir = BASE_DIR / "js"
+if js_dir.exists():
+    app.mount("/js", StaticFiles(directory=js_dir), name="js")
+
+js_parsons_dir = BASE_DIR / "js-parsons"
+if js_parsons_dir.exists():
+    app.mount(
+        "/js-parsons", StaticFiles(directory=js_parsons_dir), name="js-parsons"
+    )
+
+dist_dir = BASE_DIR / "dist"
+if dist_dir.exists():
+    app.mount("/dist", StaticFiles(directory=dist_dir), name="dist")
+
+data_dir = BASE_DIR / "data"
+if data_dir.exists():
+    app.mount("/data", StaticFiles(directory=data_dir), name="data")
 
 
 # Test-only endpoint
