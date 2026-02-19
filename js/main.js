@@ -1,15 +1,12 @@
-// Import external libraries and modules
-import yaml from 'js-yaml';  // YAML parsing for configuration files
-
 // Import custom modules
-import {get, set} from './user-storage.js';  // Local storage for user data persistence
+import {get, set} from './user-storage.js'; // Local storage for user data persistence
 import {
-	prepareCode,           // Prepares code for testing
-	processTestResults,    // Processes test results
-	processTestError,      // Handles test errors
+	prepareCode, // Prepares code for testing
+	processTestResults, // Processes test results
+	processTestError, // Handles test errors
 } from './doctest-grader.js';
-import './problem-element.js';  // Problem UI web component
-import {FiniteWorker} from './worker-manager.js';  // Worker process for Python code execution
+import './problem-element.js'; // Problem UI web component
+import {FiniteWorker} from './worker-manager.js'; // Worker process for Python code execution
 
 // Local storage key for saving user code representation
 const LS_REPR = '-repr';
@@ -17,68 +14,130 @@ const LS_REPR = '-repr';
 // Global reference to the current problem element
 let probEl;
 
+// Global variable to store task ID for local storage operations
+let globalTaskId;
+
 // Initializes the problem widget. Called when the page loads.
-export function initWidget() {
-	// Extract the problem name from URL parameters (e.g., ?name=hello_world)
+export async function initWidget() {
+	// Extract the task ID from URL parameters (e.g., ?id=1)
 	let params = new URL(document.location).searchParams;
-	let problemName = params.get('name');
+	globalTaskId = params.get('id');
 
-	// Fetch the YAML configuration and Python code template in parallel
-	const fetchConf = fetch(`parsons_probs/${problemName}.yaml`).then((res) =>
-		res.text()
-	);
-	const fetchFunc = fetch(`parsons_probs/${problemName}.py`).then((res) =>
-		res.text()
-	);
-	
-	// Wait for both fetch requests to complete
-	const allData = Promise.all([fetchConf, fetchFunc]);
+	if (!globalTaskId) {
+		document.getElementById('problem-wrapper').innerHTML =
+			'<p>Error: No task ID provided</p>';
+		return;
+	}
 
-	// Process the loaded files
-	allData.then((res) => {
-		const [config, func] = res;
-		
-		// Parse YAML configuration into JavaScript object
-		const configYaml = yaml.load(config);
-		const probDescription = configYaml['problem_description'];
-		
-		// Get code lines and add debug print statements plus blank lines
-		let codeLines =
-			configYaml['code_lines'] +
+	try {
+		// Fetch task from API
+		const response = await fetch(`/api/tasks/${globalTaskId}`);
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch task: ${response.statusText}`);
+		}
+
+		const task = await response.json();
+
+		// Parse description JSON
+		let parsedDescription = {};
+		try {
+			parsedDescription =
+				typeof task.description === 'string'
+					? JSON.parse(task.description)
+					: task.description;
+		} catch (e) {
+			// Fallback if description is not valid JSON
+			parsedDescription = {
+				function_name: '',
+				description: task.description || '',
+				examples: '',
+			};
+		}
+
+		// Build HTML problem statement from structured parts
+		let problemStatementHTML = '';
+		if (parsedDescription.function_name) {
+			problemStatementHTML += `<strong>${parsedDescription.function_name}</strong>`;
+		}
+		if (parsedDescription.description) {
+			problemStatementHTML += ` ${parsedDescription.description}`;
+		}
+		if (parsedDescription.examples) {
+			problemStatementHTML += `<br><pre><code>${parsedDescription.examples}</code></pre>`;
+		}
+
+		const codeBlocksData = task.code_blocks;
+		const functionHeader = codeBlocksData.function_header;
+
+		// Reconstruct code lines from blocks for display
+		let codeLines = reconstructCodeLines(codeBlocksData.blocks);
+
+		// Add debug print statements and blank lines
+		codeLines =
+			codeLines +
 			"\nprint('DEBUG:', !BLANK)" +
 			"\nprint('DEBUG:', !BLANK)" +
 			'\n# !BLANK' +
 			'\n# !BLANK';
-		
+
 		// Check if user has previously saved code in local storage
-		const localRepr = get(problemName + LS_REPR);
+		const localRepr = get(globalTaskId + LS_REPR);
 		if (localRepr) {
 			// If saved code exists, use it instead of the default
 			codeLines = localRepr;
 		}
-		
+
 		// Create a new problem-element web component
 		probEl = document.createElement('problem-element');
-		
+
 		// Set component attributes
-		probEl.setAttribute('name', problemName);
-		probEl.setAttribute('description', probDescription);
+		probEl.setAttribute('name', globalTaskId);
+		probEl.setAttribute('description', problemStatementHTML);
 		probEl.setAttribute('codeLines', codeLines);
-		probEl.setAttribute('codeHeader', func);  // Python function template
+		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
-		
+
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
-			handleSubmit(e.detail.code, e.detail.repr, func);
+			handleSubmit(e.detail.code, e.detail.repr, functionHeader);
 		});
-		
+
 		// Activate the run button
 		probEl.setAttribute('enableRun', 'enableRun');
 		probEl.setAttribute('runStatus', '');
-		
+
 		// Add component to the DOM
 		document.getElementById('problem-wrapper').appendChild(probEl);
-	});
+	} catch (error) {
+		document.getElementById(
+			'problem-wrapper'
+		).innerHTML = `<p>Error loading task: ${error.message}</p>`;
+	}
+}
+
+// Reconstructs code lines from structured blocks
+// blocks: array of block objects with code, indent, faded properties
+function reconstructCodeLines(blocks) {
+	let lines = [];
+
+	for (const block of blocks) {
+		// Add proper indentation
+		const indent = '    '.repeat(block.indent);
+		let code = indent + block.code;
+
+		// Convert ___ to !BLANK for Parsons widget to recognize editable fields
+		code = code.replace(/___/g, '!BLANK');
+
+		// Add #Ngiven marker if this block is pre-filled (given)
+		if (block.given) {
+			code += ' #0given';
+		}
+
+		lines.push(code);
+	}
+
+	return lines.join('\n');
 }
 
 // Handles submitted code by running tests and processing results
@@ -94,10 +153,10 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 		try {
 			// Add sys.stdout.getvalue() to capture output
 			const code = testResults.code + '\nsys.stdout.getvalue()';
-			
+
 			// Execute code in a separate worker process (Pyodide)
 			const {results, error} = await new FiniteWorker(code);
-			
+
 			// Process results or errors
 			if (results) {
 				testResults = processTestResults(results);
@@ -113,10 +172,10 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 	}
 
 	// Update UI with test results
-	probEl.setAttribute('runStatus', '');  // Clear loading status
-	probEl.setAttribute('resultsStatus', testResults.status);  // Pass/Fail
-	probEl.setAttribute('resultsHeader', testResults.header);  // Result title
-	probEl.setAttribute('resultsDetails', testResults.details);  // Result details
+	probEl.setAttribute('runStatus', ''); // Clear loading status
+	probEl.setAttribute('resultsStatus', testResults.status); // Pass/Fail
+	probEl.setAttribute('resultsHeader', testResults.header); // Result title
+	probEl.setAttribute('resultsDetails', testResults.details); // Result details
 
 	// Save user code locally for next time
 	set(probEl.getAttribute('name') + LS_REPR, reprCode);
