@@ -1,6 +1,5 @@
-# Kaikki tiedostot vaativat @team reviewn
+# Kaikki muut tiedostot vaativat reviewn näiltä käyttäjiltä
 * @serze10 @tihvis @jjuliacaroline @Victheliar @Feycry @BorisVer @vilimah
 
 # README.md ei vaadi reviewtä → PR ei pakollinen
 README.md @nobody
-``
