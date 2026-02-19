@@ -5,7 +5,7 @@ Database models for the application.
 from datetime import datetime
 
 import bcrypt
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON,Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -49,7 +49,7 @@ class Parsons(Base):
         Integer, ForeignKey("teachers.id"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(String(None), nullable=False)  # TEXT type
+    description: Mapped[str] = mapped_column(String(None), nullable=False)
     task_type: Mapped[str] = mapped_column(String(50), nullable=False)
     code_blocks: Mapped[dict] = mapped_column(JSON, nullable=False)
     correct_solution: Mapped[dict] = mapped_column(JSON, nullable=False)

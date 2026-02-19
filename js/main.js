@@ -164,7 +164,10 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 				testResults = processTestError(error, testResults.startLine);
 			}
 		} catch (e) {
-			// Error in pyodideWorker - user will see results in UI
+			// Log error to console
+			console.warn(
+				`Error in pyodideWorker at ${e.filename}, Line: ${e.lineno}, ${e.message}`
+			);
 		}
 	}
 
@@ -175,5 +178,5 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 	probEl.setAttribute('resultsDetails', testResults.details); // Result details
 
 	// Save user code locally for next time
-	set(globalTaskId + LS_REPR, reprCode);
+	set(probEl.getAttribute('name') + LS_REPR, reprCode);
 }

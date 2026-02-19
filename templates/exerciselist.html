@@ -87,18 +87,18 @@
 				container.appendChild(ul);
 			}
 
-			// Fetch problems list from API
-			fetch('/api/tasks')
-				.then(function (resp) {
-					if (!resp.ok) throw new Error('Network response not ok');
-					return resp.json();
-				})
-				.then(function (json) {
-					render(json);
-				})
-				.catch(function (error) {
-					container.innerHTML = '<p>Unable to load exercise list.</p>';
-				});
-		</script>
-	</body>
+	// Fetch problems list
+	fetch('/api/tasks')
+		.then(function (resp) {
+			if (!resp.ok) throw new Error('Network response not ok');
+			return resp.json();
+		})
+		.then(function (json) {
+			render(json);
+		})
+		.catch(function (error) {
+			container.innerHTML = '<p>Unable to load exercise list.</p>';
+		});
+	</script>
+</body>
 </html>
