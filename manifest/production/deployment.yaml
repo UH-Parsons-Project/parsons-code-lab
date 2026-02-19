@@ -19,7 +19,7 @@ spec:
         app: faded-parsons-production
     spec:
       containers:
-        - name: ohtu-faded-parsons
+        - name: faded-parsons-production
           image: quay.io/tike/ohtu-faded-parsons:production
           imagePullPolicy: Always
           env:
