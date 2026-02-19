@@ -30,6 +30,10 @@ docker compose --profile test up --build --abort-on-container-exit --exit-code-f
 
 The website can be accessed at http://localhost:8000/.
 
+## Project Wiki
+https://github.com/UH-Parsons-Project/parsons-code-lab/wiki
+
+
 ## Adding a new problem
 
 Add two files to the `parson_probs` folder:
