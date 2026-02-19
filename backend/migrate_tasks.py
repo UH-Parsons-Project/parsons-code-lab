@@ -289,10 +289,6 @@ async def migrate_tasks():
     """
     print("Starting task migration...")
 
-    # Initialize database
-    await init_db()
-    print("✓ Database initialized")
-
     # Get default teacher
     teacher = await get_or_create_default_teacher()
     if not teacher:
