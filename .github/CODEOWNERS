@@ -1,0 +1,6 @@
+# Kaikki tiedostot vaativat @team reviewn
+* @team
+
+# README.md ei vaadi reviewtä → PR ei pakollinen
+README.md @nobody
+``
