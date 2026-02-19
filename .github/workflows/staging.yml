@@ -22,9 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run unit tests
-        run: |
-          export PYTHONPATH=$PYTHONPATH:.
-          pytest tests/unit/ -v
+        run: pytest tests/unit/ -v
 
   build-and-push:
     runs-on: ubuntu-latest
