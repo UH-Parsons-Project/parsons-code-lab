@@ -22,6 +22,8 @@ docker compose exec -T web python -m backend.migrate_tasks
 
 ### Running tests:
 
+Tests use Playwright's global setup to reset the database before running each test.
+
 ```
 docker compose --profile test up --build --abort-on-container-exit --exit-code-from test
 ```

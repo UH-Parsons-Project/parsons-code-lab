@@ -3,6 +3,7 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
+import os
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -26,14 +27,14 @@ from .auth import (
 )
 from .database import get_db, init_db
 from .models import Parsons, Teacher
+from .reset_db import reset_db
 from .seed import seed_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database and seed data on startup."""
-    # Note: Tables are also created by schema.sql in Docker. This provides redundancy
-    # and ensures tables exist when running outside Docker or if schema.sql changes.
+    # Create tables from SQLAlchemy models and seed initial data
     await init_db()
     await seed_db()
     yield
@@ -83,6 +84,29 @@ app.mount(
 )
 app.mount("/dist", StaticFiles(directory=BASE_DIR / "dist"), name="dist")
 app.mount("/data", StaticFiles(directory=BASE_DIR / "data"), name="data")
+
+
+# Test-only endpoint
+TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
+
+@app.post("/test/reset-db")
+async def reset_test_db():
+    """Reset the database (requires TEST_MODE env variable)."""
+    if not TEST_MODE:
+        raise HTTPException(
+            status_code=403,
+            detail="Test endpoints are only available in test mode"
+        )
+    
+    try:
+        await reset_db()
+        await seed_db()
+        return {"status": "success", "message": "Database reset complete"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reset database: {str(e)}"
+        )
 
 
 @app.get("/", response_class=HTMLResponse)

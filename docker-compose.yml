@@ -12,8 +12,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres  # Change in production!
       POSTGRES_DB: faded_parsons
-    volumes:
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql  # Auto-runs on first start
     ports:
       - "5432:5432"
     healthcheck:
@@ -50,6 +48,7 @@ services:
       - .:/usr/src/app
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
+      TEST_MODE: "true"
     depends_on:
       db:
         condition: service_healthy
