@@ -3,6 +3,7 @@ __pycache__/
 .venv
 node_modules/
 .eslintcache
+dist/
 
 # Playwright
 /test-results/
