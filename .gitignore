@@ -11,3 +11,9 @@ dist/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Pytest & Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml

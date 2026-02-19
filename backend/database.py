@@ -6,7 +6,6 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-
 # Connection string for PostgreSQL. Uses environment variable if set, otherwise defaults to local Docker setup.
 # Format: postgresql+asyncpg://username:password@host:port/database_name
 DATABASE_URL = os.getenv(
@@ -20,11 +19,9 @@ engine = create_async_engine(DATABASE_URL, echo=True)
 # Session factory creates new database sessions. expire_on_commit=False keeps objects usable after commit.
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-
 class Base(DeclarativeBase):
     """Base class for all database models. All models inherit from this to share the same metadata."""
     pass
-
 
 async def get_db():
     """
