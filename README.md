@@ -33,16 +33,6 @@ The website can be accessed at http://localhost:8000/.
 ## Project Wiki
 https://github.com/UH-Parsons-Project/parsons-code-lab/wiki
 
-
-## Adding a new problem
-
-Add two files to the `parson_probs` folder:
-
-* problem_name.py: This should be a Python function that _only_ has the function header, docstring, and doctests. It shouldn't contain the solution.
-* problem_name.yaml: This is a YAML file that includes the problem description (HTML) and code lines with blanks.
-
-Then you can access the new problem at problem.html?name=problem_name
-
 ## Definition of Done
 
 "Code is validated and tests are passing, docstrings are written, code is reviewed by a peer developer before merging to main branch"
