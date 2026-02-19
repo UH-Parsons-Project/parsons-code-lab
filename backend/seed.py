@@ -6,11 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
 from .models import Teacher
+from .migrate_tasks import migrate_tasks
 
 
 async def seed_db():
     """
-    Create initial test teacher user if it doesn't exist.
+    Create initial test teacher user and migrate tasks if they don't exist.
     Called on application startup.
     """
     async with async_session() as session:
@@ -38,3 +39,7 @@ async def seed_db():
                 print("Test teacher already exists (created by another instance), skipping seed")
         else:
             print("Test teacher already exists, skipping seed")
+    
+    # Migrate tasks from parsons_probs/ directory
+    print("\nMigrating tasks from parsons_probs/...")
+    await migrate_tasks()
