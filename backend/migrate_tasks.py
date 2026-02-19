@@ -11,7 +11,6 @@ Usage:
 
 import asyncio
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List
@@ -19,7 +18,7 @@ from typing import Any, Dict, List
 import yaml
 from sqlalchemy import select
 
-from backend.database import async_session, init_db
+from backend.database import async_session
 from backend.models import Parsons, Teacher
 
 # Path to the parsons_probs folder
@@ -127,36 +126,48 @@ def parse_code_lines(
 
 def extract_function_signature(function_file: str) -> str:
     """
-    Extract only the function signature from a Python file, excluding the docstring.
+    Extract the function definition including the docstring from a Python file.
 
-    Handles both single-line and multi-line function definitions, and strips the docstring.
+    Handles both single-line and multi-line function definitions, and includes the docstring.
 
     Args:
         function_file: The complete Python file content
 
     Returns:
-        Function signature (def line only, without docstring)
+        Function definition with docstring (everything up to and including the docstring)
     """
     lines = function_file.split("\n")
-    signature_lines = []
-    in_signature = False
-    found_colon = False
+    result_lines = []
+    in_function = False
+    in_docstring = False
+    docstring_quote = None
 
     for line in lines:
         # Start collecting when we find the def keyword
-        if not in_signature and "def " in line:
-            in_signature = True
+        if not in_function and line.strip().startswith("def "):
+            in_function = True
 
-        if in_signature:
-            signature_lines.append(line)
-            # Check if this line ends the signature (has the closing colon)
-            if ":" in line:
-                found_colon = True
-                break
+        if in_function:
+            result_lines.append(line)
 
-    # Join the signature lines and return
-    signature = "\n".join(signature_lines).strip()
-    return signature
+            # Check for docstring start
+            stripped = line.strip()
+            if not in_docstring:
+                # Check for docstring opening (""" or ''')
+                if '"""' in stripped or "'''" in stripped:
+                    docstring_quote = '"""' if '"""' in stripped else "'''"
+                    in_docstring = True
+                    # Check if it's a one-line docstring
+                    if stripped.count(docstring_quote) >= 2:
+                        # One-line docstring, we're done
+                        break
+            else:
+                # We're in a docstring, check for closing
+                if docstring_quote and docstring_quote in stripped:
+                    # Docstring ended, we're done
+                    break
+
+    return "\n".join(result_lines)
 
 
 def get_function_name(function_header: str) -> str:
@@ -196,7 +207,7 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         with open(yaml_path, "r") as f:
             yaml_data = yaml.safe_load(f)
 
-        # Load Python file and extract only the function signature (without docstring)
+        # Load Python file and extract the function definition (including docstring)
         with open(py_path, "r") as f:
             function_file_content = f.read()
         function_header = extract_function_signature(function_file_content)
