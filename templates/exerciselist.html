@@ -27,7 +27,7 @@
 	<script type="module">
 	import { clearAuth } from '/js/auth-utils.js';
 	import { initNavbarExercisesButton } from '/js/auth-ui.js';
-	
+
 	// Display username if available
 	const username = localStorage.getItem('username');
 	if (username) {
@@ -35,7 +35,7 @@
 	}
 
 	initNavbarExercisesButton();
-	
+
 	// Set up logout button
 	document.getElementById('logout-btn').addEventListener('click', async function() {
 		// Call logout endpoint to clear cookie
@@ -43,16 +43,16 @@
 		clearAuth();
 		window.location.href = '/index.html';
 	});
-	
+
 	// Load exercise list
 	const container = document.getElementById('problems-list');
-	
+
 	function render(list) {
 		const ul = document.createElement('ul');
 		list.forEach(function(item) {
 			const li = document.createElement('li');
 			const a = document.createElement('a');
-			a.href = '/problem.html?name=' + encodeURIComponent(item.name);
+			a.href = '/problem.html?id=' + encodeURIComponent(item.id);
 			a.textContent = item.title;
 			li.appendChild(a);
 			if (item.category) {
