@@ -14,12 +14,6 @@ https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi
 docker compose up --build
 ```
 
-### Populate the database:
-
-```
-docker compose exec -T web python -m backend.migrate_tasks
-```
-
 ### Running tests:
 
 Tests use Playwright's global setup to reset the database before running each test.
