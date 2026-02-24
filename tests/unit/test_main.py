@@ -2,9 +2,13 @@
 Unit tests for main API endpoints.
 """
 
+from unittest.mock import AsyncMock
+
 from fastapi import status
 
+from backend import main as main_module
 from backend.auth import create_access_token
+from backend.models import Parsons
 
 
 class TestStaticPages:
@@ -28,6 +32,11 @@ class TestStaticPages:
     async def test_nickname_page(self, client):
         """Test that the nickname page loads."""
         response = await client.get("/nickname")
+        assert response.status_code == status.HTTP_200_OK
+
+    async def test_student_start_page(self, client):
+        """Test that the student start page loads."""
+        response = await client.get("/student_start_page")
         assert response.status_code == status.HTTP_200_OK
 
 
@@ -246,3 +255,167 @@ class TestIntegrationScenarios:
         # Step 4: Logout
         logout_response = await client.post("/api/logout")
         assert logout_response.status_code == status.HTTP_200_OK
+
+
+class TestTasksEndpoints:
+    """Tests for tasks API endpoints."""
+
+    async def test_get_task_by_id_success(self, client, db_session, test_teacher):
+        """Test that a task can be fetched by ID."""
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Sample Task",
+            description='{"description": "Solve this task"}',
+            task_type="python",
+            code_blocks={"blocks": ["print('hello')"]},
+            correct_solution={"solution": ["print('hello')"]},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        response = await client.get(f"/api/tasks/{task.id}")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["id"] == task.id
+        assert data["title"] == "Sample Task"
+        assert data["description"] == '{"description": "Solve this task"}'
+        assert data["task_type"] == "python"
+        assert data["is_public"] is True
+        assert "created_at" in data
+
+    async def test_get_task_by_id_not_found(self, client):
+        """Test that unknown task ID returns 404."""
+        response = await client.get("/api/tasks/999999")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Task with id 999999 not found" in response.json()["detail"]
+
+    async def test_list_tasks_returns_only_public_tasks(
+        self, client, db_session, test_teacher
+    ):
+        """Test that task listing excludes private tasks."""
+        public_task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Public Task",
+            description='{"description": "Visible"}',
+            task_type="python",
+            code_blocks={"blocks": ["a"]},
+            correct_solution={"solution": ["a"]},
+            is_public=True,
+        )
+        private_task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Private Task",
+            description='{"description": "Hidden"}',
+            task_type="python",
+            code_blocks={"blocks": ["b"]},
+            correct_solution={"solution": ["b"]},
+            is_public=False,
+        )
+        db_session.add(public_task)
+        db_session.add(private_task)
+        await db_session.commit()
+
+        response = await client.get("/api/tasks")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert isinstance(data, list)
+        titles = [item["title"] for item in data]
+        assert "Public Task" in titles
+        assert "Private Task" not in titles
+
+    async def test_list_tasks_parses_description_json(
+        self, client, db_session, test_teacher
+    ):
+        """Test that /api/tasks extracts description text from JSON."""
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="JSON Description Task",
+            description='{"description": "Readable description"}',
+            task_type="python",
+            code_blocks={"blocks": ["c"]},
+            correct_solution={"solution": ["c"]},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+
+        response = await client.get("/api/tasks")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        task_payload = next(item for item in data if item["title"] == task.title)
+        assert task_payload["description"] == "Readable description"
+
+    async def test_list_tasks_invalid_description_json_returns_empty_description(
+        self, client, db_session, test_teacher
+    ):
+        """Test that invalid JSON descriptions are handled gracefully."""
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Broken Description Task",
+            description="this is not valid json",
+            task_type="python",
+            code_blocks={"blocks": ["d"]},
+            correct_solution={"solution": ["d"]},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+
+        response = await client.get("/api/tasks")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        task_payload = next(item for item in data if item["title"] == task.title)
+        assert task_payload["description"] == ""
+
+
+class TestTestModeEndpoint:
+    """Tests for test-only reset database endpoint."""
+
+    async def test_reset_test_db_returns_403_when_test_mode_disabled(
+        self, client, monkeypatch
+    ):
+        """Test that endpoint is blocked when TEST_MODE is false."""
+        monkeypatch.setattr(main_module, "TEST_MODE", False)
+
+        response = await client.post("/test/reset-db")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "only available in test mode" in response.json()["detail"]
+
+    async def test_reset_test_db_success_when_test_mode_enabled(
+        self, client, monkeypatch
+    ):
+        """Test successful DB reset flow in test mode."""
+        monkeypatch.setattr(main_module, "TEST_MODE", True)
+        reset_mock = AsyncMock()
+        seed_mock = AsyncMock()
+        monkeypatch.setattr(main_module, "reset_db", reset_mock)
+        monkeypatch.setattr(main_module, "seed_db", seed_mock)
+
+        response = await client.post("/test/reset-db")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+        reset_mock.assert_awaited_once()
+        seed_mock.assert_awaited_once()
+
+    async def test_reset_test_db_returns_500_on_exception(self, client, monkeypatch):
+        """Test reset endpoint returns 500 when reset fails."""
+        monkeypatch.setattr(main_module, "TEST_MODE", True)
+        failing_reset = AsyncMock(side_effect=RuntimeError("boom"))
+        seed_mock = AsyncMock()
+        monkeypatch.setattr(main_module, "reset_db", failing_reset)
+        monkeypatch.setattr(main_module, "seed_db", seed_mock)
+
+        response = await client.post("/test/reset-db")
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "Failed to reset database" in response.json()["detail"]
+        seed_mock.assert_not_awaited()
