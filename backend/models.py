@@ -63,3 +63,32 @@ class Parsons(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+
+class TaskList(Base):
+    """Task list model."""
+
+    __tablename__ = "task_lists"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    teacher_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    unique_link_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class TaskListItem(Base):
+    """Task list item model."""
+
+    __tablename__ = "task_list_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_list_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_lists.id", ondelete="CASCADE"), nullable=False
+    )
+    task_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
+    )
