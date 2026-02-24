@@ -4,7 +4,8 @@ python-multipart==0.0.22
 sqlalchemy[asyncio]==2.0.46
 asyncpg==0.31.0
 bcrypt==5.0.0
-python-jose[cryptography]==3.3.0
+PyJWT==2.10.1
+cryptography==44.0.0
 pytest==8.3.4
 pytest-asyncio==0.25.2
 httpx==0.28.1

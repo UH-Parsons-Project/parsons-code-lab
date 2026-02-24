@@ -1,3 +1,5 @@
 {
-	"editor.insertSpaces": false
+	"editor.insertSpaces": false,
+	"robotcode.disableExtension": true,
+	"python-envs.pythonProjects": []
 }
