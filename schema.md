@@ -33,3 +33,12 @@ CREATE TABLE task_list_items (
 	task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,
 	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE
 );
+
+CREATE TABLE student_sessions (
+	id SERIAL PRIMARY KEY,
+	session_id UUID NOT NULL,
+	task_list_id INTEGER,
+	username VARCHAR(20),
+	started_at TIMESTAMP,
+	last_activity_at TIMESTAMP
+);
