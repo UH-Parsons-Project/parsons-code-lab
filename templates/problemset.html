@@ -48,7 +48,7 @@
 				list.forEach(function (item) {
 					const li = document.createElement('li');
 					const a = document.createElement('a');
-					a.href = `/set/${uniqueLinkCode}/tasks/${item.id}`;
+					a.href = `/set/${uniqueLinkCode}/tasks/${item.id}/start`;
 					a.textContent = item.title;
 					li.appendChild(a);
 					ul.appendChild(li);

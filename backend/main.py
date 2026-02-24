@@ -244,6 +244,26 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
     return response
 
 
+@app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
+async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+    """Serve the start page for a task by unique link code and task id."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
+    start_path = BASE_DIR / "templates" / "student_start_page.html"
+    response = FileResponse(start_path)
+    response.headers["X-Problemset-Code"] = unique_link_code
+    response.headers["X-Task-Id"] = str(task_id)
+    return response
+
+
 @app.get("/exerciselist")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
     """Serve the exercise list page (protected endpoint)."""
