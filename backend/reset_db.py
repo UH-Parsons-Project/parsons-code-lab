@@ -18,10 +18,10 @@ async def reset_db():
     
     async with engine.begin() as conn:
         print("Dropping all tables...")
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all, checkfirst=True)
         
         print("Creating all tables...")
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all, checkfirst=True)
     
     print("Database reset")
 
