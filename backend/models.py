@@ -2,7 +2,7 @@
 Database models for the application.
 """
 
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 import bcrypt
 from sqlalchemy import JSON,Boolean, DateTime, ForeignKey, Integer, String
@@ -13,7 +13,7 @@ from .database import Base
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 class Teacher(Base):
