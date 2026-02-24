@@ -20,7 +20,7 @@
     <div class="navbar-brand">🧩 Faded Parsons Problems</div>
 
     <div class="ml-auto d-flex align-items-center">
-      <a href="/exerciselist"
+      <a id="back-to-list" href="#"
          class="btn btn-outline-light btn-sm mr-3">
         Back to exercise list
       </a>
@@ -32,8 +32,30 @@
 			DESCRIPTION
 		</h2>
 		<div class="text-center">
-			<button class="btn btn-primary btn-lg">Start</button>
+			<button id="start-btn" class="btn btn-primary btn-lg">Start</button>
 		</div>
 	</div>
   </main>
+
+  <script>
+    // Extract unique_link_code and task_id from URL path
+    // Path: /set/{unique_link_code}/tasks/{task_id}/start
+    const pathParts = window.location.pathname.split('/').filter(p => p);
+    const uniqueLinkCode = pathParts[1]; // set/starter-list/tasks/1/start -> starter-list
+    const taskId = pathParts[3]; // set/starter-list/tasks/1/start -> 1
+
+    // Set the back button to return to the task list
+    const backButton = document.getElementById('back-to-list');
+    if (backButton) {
+      backButton.href = `/set/${uniqueLinkCode}/tasks`;
+    }
+
+    // Set the start button to navigate to the task exercise
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+      startBtn.onclick = function() {
+        window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
+      };
+    }
+  </script>
 </body>
