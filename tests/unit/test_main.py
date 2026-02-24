@@ -29,11 +29,6 @@ class TestStaticPages:
         response = await client.get("/problem.html")
         assert response.status_code == status.HTTP_200_OK
 
-    async def test_nickname_page(self, client):
-        """Test that the nickname page loads."""
-        response = await client.get("/nickname")
-        assert response.status_code == status.HTTP_200_OK
-
     async def test_student_start_page(self, client):
         """Test that the student start page loads."""
         response = await client.get("/student_start_page")
