@@ -171,8 +171,18 @@ async def nickname_page():
 
 
 @app.get("/set/{unique_link_code}", response_class=HTMLResponse)
-async def problemset_page(unique_link_code: str):
+async def problemset_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
     """Serve problemset page by unique link code."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
     problemset_path = BASE_DIR / "templates" / "nickname.html"
     response = FileResponse(problemset_path)
     response.headers["X-Problemset-Code"] = unique_link_code
@@ -180,8 +190,18 @@ async def problemset_page(unique_link_code: str):
 
 
 @app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
-async def problemset_tasks_page(unique_link_code: str):
+async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
     """Serve task list page by unique link code."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
     tasks_path = BASE_DIR / "templates" / "exerciselist.html"
     response = FileResponse(tasks_path)
     response.headers["X-Problemset-Code"] = unique_link_code
@@ -189,8 +209,18 @@ async def problemset_tasks_page(unique_link_code: str):
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
-async def problemset_task_page(unique_link_code: str, task_id: int):
+async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
     """Serve task page by unique link code and task id."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
     task_path = BASE_DIR / "templates" / "problem.html"
     response = FileResponse(task_path)
     response.headers["X-Problemset-Code"] = unique_link_code
@@ -199,8 +229,18 @@ async def problemset_task_page(unique_link_code: str, task_id: int):
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(unique_link_code: str, task_id: int):
+async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
     """Serve task description page by unique link code and task id."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
     description_path = BASE_DIR / "templates" / "problem.html"
     response = FileResponse(description_path)
     response.headers["X-Problemset-Code"] = unique_link_code
