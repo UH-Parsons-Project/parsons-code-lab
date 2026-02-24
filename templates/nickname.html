@@ -22,15 +22,50 @@
   <main class="container main-nickname">
     <div class="card card-soft nickname-card p-4">
       <h2 class="section-title mb-3">Welcome, Student!</h2>
-      <form>
+      <form id="nicknameForm">
         <div class="form-group">
           <label for="nickname"></label>
-          <input type="text" class="form-control" id="nickname" placeholder="Your nickname" required>
+          <input type="text" class="form-control" id="nickname" placeholder="Your nickname" maxlength="20" required>
         </div>
         <button type="submit" class="btn btn-primary btn-block">Continue</button>
       </form>
     </div>
   </main>
+
+  <script>
+    document.getElementById('nicknameForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const nickname = document.getElementById('nickname').value;
+      
+      try {
+        // Validate nickname with backend
+        const response = await fetch('/api/validate-nickname', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ nickname: nickname }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert('Error: ' + errorData.detail);
+          return;
+        }
+        
+        // If validation passes, redirect
+        const pathParts = window.location.pathname.split('/');
+        const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}
+        
+        if (uniqueLinkCode) {
+          window.location.href = `/set/${uniqueLinkCode}/tasks`;
+        }
+      } catch (error) {
+        alert('An error occurred: ' + error.message);
+      }
+    });
+  </script>
 
 </body>
 </html>

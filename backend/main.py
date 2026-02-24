@@ -94,6 +94,10 @@ class ProblemSetTaskResponse(BaseModel):
     created_at: str
 
 
+class NicknameRequest(BaseModel):
+    nickname: str
+
+
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"
 if js_dir.exists():
@@ -160,13 +164,6 @@ async def index_html():
 async def problem_page():
     """Serve the problem page."""
     problem_path = BASE_DIR / "templates" / "problem.html"
-    return FileResponse(problem_path)
-
-
-@app.get("/nickname", response_class=HTMLResponse)
-async def nickname_page():
-    """Serve the problem page."""
-    problem_path = BASE_DIR / "templates" / "nickname.html"
     return FileResponse(problem_path)
 
 
@@ -341,6 +338,26 @@ async def logout(response: Response):
     """
     response.delete_cookie(key="access_token", path="/")
     return {"message": "Successfully logged out"}
+
+
+@app.post("/api/validate-nickname")
+async def validate_nickname(request: NicknameRequest):
+    """Validate nickname length. Must be less than 21 characters (max 20)."""
+    nickname = request.nickname.strip()
+    
+    if not nickname:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nickname cannot be empty",
+        )
+    
+    if len(nickname) > 20:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nickname must be less than 21 characters",
+        )
+    
+    return {"status": "valid", "nickname": nickname}
 
 
 @app.get("/api/tasks/{task_id}", response_model=TaskResponse)
