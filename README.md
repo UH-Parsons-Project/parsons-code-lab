@@ -1,4 +1,7 @@
+
 [![CI](https://github.com/UH-Parsons-Project/faded-parsons-static/actions/workflows/main.yml/badge.svg)](https://github.com/UH-Parsons-Project/faded-parsons-static/actions/workflows/main.yml)
+
+[![Codecov](https://codecov.io/gh/UH-Parsons-Project/parsons-code-lab/branch/main/graph/badge.svg)](https://codecov.io/gh/UH-Parsons-Project/parsons-code-lab)
 
 # Python Faded Parsons Problems
 
@@ -43,6 +46,11 @@ docker compose --profile test up --build --abort-on-container-exit --exit-code-f
 ```
 
 The website can be accessed at http://localhost:8000/.
+
+## Codecov
+
+- CI-workflow [.github/workflows/main.yml](.github/workflows/main.yml) tuottaa koodikattavuusraportin ja lataa sen Codecoviin.
+- Jos repository on yksityinen, lisää repositoryn Settings → Secrets → Actions -kohtaan `CODECOV_TOKEN` (arvo löytyy Codecov-projektisi asetuksista).
 
 ## Project Wiki
 https://github.com/UH-Parsons-Project/parsons-code-lab/wiki
