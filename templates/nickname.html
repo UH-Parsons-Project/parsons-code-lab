@@ -58,6 +58,9 @@
         const pathParts = window.location.pathname.split('/');
         const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}
         
+        // Store nickname in localStorage
+        localStorage.setItem('nickname', nickname);
+        
         if (uniqueLinkCode) {
           window.location.href = `/set/${uniqueLinkCode}/tasks`;
         }

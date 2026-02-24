@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Faded Parsons Problems</title>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+			integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+			crossorigin="anonymous"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://use.fontawesome.com/releases/v5.6.3/css/all.css"
+			integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/"
+			crossorigin="anonymous"
+		/>
+		<link rel="stylesheet" href="/js-parsons/parsons.css" />
+	</head>
+	<body>
+		<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
+			<a class="navbar-brand" href="/">🧩 Faded Parsons Problems</a>
+			<div class="ml-auto">
+				<span class="text-white">Welcome, <span id="user-name"></span>!</span>
+			</div>
+		</nav>
+		<div class="container">
+			<h1>Problems</h1>
+			<div id="problems-list">
+				<p>Loading problems…</p>
+			</div>
+		</div>
+
+		<script type="module">
+			// Display nickname if available
+			const nickname = localStorage.getItem('nickname');
+			if (nickname) {
+				document.getElementById('user-name').textContent = nickname;
+			}
+
+			// Load problem list for this problemset
+			const container = document.getElementById('problems-list');
+			const pathParts = window.location.pathname.split('/');
+			const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}/tasks
+
+			function render(list) {
+				const ul = document.createElement('ul');
+				list.forEach(function (item) {
+					const li = document.createElement('li');
+					const a = document.createElement('a');
+					a.href = `/set/${uniqueLinkCode}/tasks/${item.id}`;
+					a.textContent = item.title;
+					li.appendChild(a);
+					ul.appendChild(li);
+				});
+				container.innerHTML = '';
+				container.appendChild(ul);
+			}
+
+			if (uniqueLinkCode) {
+				// Fetch problems for this problemset
+				fetch(`/api/problemsets/${uniqueLinkCode}/tasks`)
+					.then(function (resp) {
+						if (!resp.ok) throw new Error('Network response not ok');
+						return resp.json();
+					})
+					.then(function (json) {
+						render(json);
+					})
+					.catch(function (error) {
+						container.innerHTML = '<p>Unable to load problems.</p>';
+						console.error(error);
+					});
+			} else {
+				container.innerHTML = '<p>Problem set not found.</p>';
+			}
+		</script>
+</body>
+</html>

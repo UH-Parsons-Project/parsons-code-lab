@@ -89,7 +89,6 @@ class ProblemSetResponse(BaseModel):
 class ProblemSetTaskResponse(BaseModel):
     id: int
     title: str
-    description: str
     task_type: str
     created_at: str
 
@@ -199,7 +198,7 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
             detail=f"Problem set with code {unique_link_code} not found",
         )
 
-    tasks_path = BASE_DIR / "templates" / "exerciselist.html"
+    tasks_path = BASE_DIR / "templates" / "problemset.html"
     response = FileResponse(tasks_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     return response
@@ -446,10 +445,48 @@ async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db))
     )
 
 
-@app.get("/api/problemsets/{problemset_id}/tasks", response_model=list[ProblemSetTaskResponse])
+
+
+@app.get("/api/problemsets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
+async def get_problemset_tasks_by_code(code: str, db: AsyncSession = Depends(get_db)):
+    """Get all tasks belonging to a problemset by unique link code."""
+
+    problemset_stmt = select(TaskList).where(TaskList.unique_link_code == code)
+    problemset_result = await db.execute(problemset_stmt)
+    problemset = problemset_result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {code} not found",
+        )
+
+    stmt = (
+        select(Parsons)
+        .join(TaskListItem, TaskListItem.task_id == Parsons.id)
+        .where(TaskListItem.task_list_id == problemset.id)
+        .order_by(TaskListItem.id.asc())
+    )
+    result = await db.execute(stmt)
+    tasks = result.scalars().all()
+
+    problemset_tasks: list[ProblemSetTaskResponse] = []
+    for task in tasks:
+        problemset_tasks.append(
+            ProblemSetTaskResponse(
+                id=task.id,
+                title=task.title,
+                task_type=task.task_type,
+                created_at=task.created_at.isoformat(),
+            )
+        )
+
+    return problemset_tasks
+
+
+@app.get("/api/problemsets/{problemset_id:int}/tasks", response_model=list[ProblemSetTaskResponse])
 async def get_problemset_tasks(problemset_id: int, db: AsyncSession = Depends(get_db)):
     """Get all tasks belonging to a problemset (task list) by id."""
-    import json
 
     problemset_stmt = select(TaskList.id).where(TaskList.id == problemset_id)
     problemset_result = await db.execute(problemset_stmt)
@@ -472,17 +509,10 @@ async def get_problemset_tasks(problemset_id: int, db: AsyncSession = Depends(ge
 
     problemset_tasks: list[ProblemSetTaskResponse] = []
     for task in tasks:
-        try:
-            description_data = json.loads(task.description)
-            description_text = description_data.get("description", "")
-        except (json.JSONDecodeError, AttributeError):
-            description_text = ""
-
         problemset_tasks.append(
             ProblemSetTaskResponse(
                 id=task.id,
                 title=task.title,
-                description=description_text,
                 task_type=task.task_type,
                 created_at=task.created_at.isoformat(),
             )
