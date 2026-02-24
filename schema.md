@@ -36,9 +36,26 @@ CREATE TABLE task_list_items (
 
 CREATE TABLE student_sessions (
 	id SERIAL PRIMARY KEY,
-	session_id UUID NOT NULL,
-	task_list_id INTEGER,
+	session_id UUID NOT NULL UNIQUE,
+	task_list_id INTEGER REFERENCES task_lists(id) ON DELETE SET NULL,
 	username VARCHAR(20),
-	started_at TIMESTAMP,
-	last_activity_at TIMESTAMP
+	started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	last_activity_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE task_attempts (
+	id SERIAL PRIMARY KEY,
+	student_session_id INTEGER NOT NULL REFERENCES student_sessions(id) ON DELETE CASCADE,
+	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE,
+	task_started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	completed_at TIMESTAMP,
+	success BOOLEAN,
+	submitted_order JSONB,
+	submitted_inputs JSONB
+);
+
+CREATE TABLE move_events (
+	id SERIAL PRIMARY KEY,
+	attempt_id INTEGER NOT NULL REFERENCES task_attempts(id) ON DELETE CASCADE,
+	event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
