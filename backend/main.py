@@ -29,6 +29,12 @@ from .database import get_db, init_db
 from .models import Parsons, TaskList, TaskListItem
 from .reset_db import reset_db
 from .seed import seed_db
+from .student_auth import (
+    create_student_session,
+    set_session_cookie,
+    get_current_student_session,
+    get_current_student_session_no_update,
+)
 
 
 @asynccontextmanager
@@ -95,6 +101,7 @@ class ProblemSetTaskResponse(BaseModel):
 
 class NicknameRequest(BaseModel):
     nickname: str
+    unique_link_code: str
 
 
 # Mount static directories (only if they exist)
@@ -167,8 +174,12 @@ async def problem_page():
 
 
 @app.get("/set/{unique_link_code}", response_class=HTMLResponse)
-async def problemset_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
-    """Serve problemset page by unique link code."""
+async def problemset_page(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session = Depends(get_current_student_session_no_update)
+):
+    """Serve problemset page by unique link code. Redirects to tasks if session exists."""
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -178,6 +189,10 @@ async def problemset_page(unique_link_code: str, db: AsyncSession = Depends(get_
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    # If student already has a session, redirect to tasks page
+    if student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
     problemset_path = BASE_DIR / "templates" / "nickname.html"
     response = FileResponse(problemset_path)
@@ -360,9 +375,14 @@ async def logout(response: Response):
 
 
 @app.post("/api/validate-nickname")
-async def validate_nickname(request: NicknameRequest):
-    """Validate nickname length. Must be less than 21 characters (max 20)."""
+async def validate_nickname(
+    request: NicknameRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """Validate nickname and create student session. Must be less than 21 characters (max 20)."""
     nickname = request.nickname.strip()
+    unique_link_code = request.unique_link_code.strip()
     
     if not nickname:
         raise HTTPException(
@@ -376,7 +396,32 @@ async def validate_nickname(request: NicknameRequest):
             detail="Nickname must be less than 21 characters",
         )
     
-    return {"status": "valid", "nickname": nickname}
+    # Verify the task list exists
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    task_list = result.scalar_one_or_none()
+    
+    if not task_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task list with code {unique_link_code} not found",
+        )
+    
+    # Create student session
+    student_session = await create_student_session(
+        task_list_id=task_list.id,
+        nickname=nickname,
+        db=db
+    )
+    
+    # Set persistent session cookie
+    set_session_cookie(response, student_session.session_id)
+    
+    return {
+        "status": "valid",
+        "nickname": nickname,
+        "session_id": str(student_session.session_id)
+    }
 
 
 @app.get("/api/tasks/{task_id}", response_model=TaskResponse)
