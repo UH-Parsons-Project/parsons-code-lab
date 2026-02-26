@@ -26,7 +26,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, TaskList, TaskListItem
+from .models import Teacher, Parsons, TaskList, TaskListItem
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -171,6 +171,13 @@ async def problem_page():
     """Serve the problem page."""
     problem_path = BASE_DIR / "templates" / "problem.html"
     return FileResponse(problem_path)
+
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page():
+    """Serve a simple registration page."""
+    register_path = BASE_DIR / "templates" / "register.html"
+    return FileResponse(register_path)
 
 
 @app.get("/set/{unique_link_code}", response_class=HTMLResponse)
@@ -372,6 +379,61 @@ async def logout(response: Response):
     """
     response.delete_cookie(key="access_token", path="/")
     return {"message": "Successfully logged out"}
+
+
+@app.post("/api/register")
+async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
+    """Register a new teacher with username, password and email."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        )
+
+    username = str(payload.get("username", "")).strip()
+    password = payload.get("password", "")
+    password_confirm = payload.get("password_confirm", "")
+    email = str(payload.get("email", "")).strip()
+
+    if not username or not password or not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username, password and email are required",
+        )
+
+    if password != password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
+
+    # Basic length checks consistent with model limits
+    if len(username) > 100 or len(email) > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username or email too long",
+        )
+
+    # Check uniqueness
+    stmt = select(Teacher).where((Teacher.username == username) | (Teacher.email == email))
+    result = await db.execute(stmt)
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already exists",
+        )
+
+    teacher = Teacher(username=username, email=email)
+    teacher.set_password(password)
+
+    db.add(teacher)
+    await db.commit()
+    await db.refresh(teacher)
+
+    return {"status": "success", "id": teacher.id}
 
 
 @app.post("/api/validate-nickname")

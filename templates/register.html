@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Faded Parsons Problems</title>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+			integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+			crossorigin="anonymous"
+		<!DOCTYPE html>
+		<html>
+			<head>
+				<meta charset="utf-8" />
+				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<title>Register - Faded Parsons Problems</title>
+				<link
+					rel="stylesheet"
+					href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+					crossorigin="anonymous"
+				/>
+				<link rel="stylesheet" href="/js-parsons/parsons.css" />
+			</head>
+			<body>
+				<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
+					<a class="navbar-brand" href="index.html">🧩 Faded Parsons Problems</a>
+				</nav>
+
+				<main class="container">
+					<div class="row justify-content-center">
+						<div class="col-md-6">
+							<h2 class="mb-4">Register</h2>
+
+							<div id="alert-placeholder"></div>
+
+							<form id="register-form">
+								<div class="form-group">
+									<label for="username">Username</label>
+									<input type="text" class="form-control" id="username" name="username" maxlength="100" required />
+								</div>
+
+								<div class="form-group">
+									<label for="email">Email</label>
+									<input type="email" class="form-control" id="email" name="email" maxlength="100" required />
+								</div>
+
+								<div class="form-group">
+									<label for="password">Password</label>
+									<input type="password" class="form-control" id="password" name="password" required />
+								</div>
+
+								<div class="form-group">
+									<label for="password_confirm">Confirm Password</label>
+									<input type="password" class="form-control" id="password_confirm" name="password_confirm" required />
+								</div>
+
+								<button type="submit" class="btn btn-primary">Register</button>
+							</form>
+
+							<hr />
+							<p>
+								Already have an account? <a href="/index.html">Login</a>
+							</p>
+						</div>
+					</div>
+				</main>
+
+				<script>
+					const form = document.getElementById('register-form');
+					const alertPlaceholder = document.getElementById('alert-placeholder');
+
+					function showAlert(message, type = 'danger') {
+						alertPlaceholder.innerHTML = `
+							<div class="alert alert-${type}" role="alert">
+								${message}
+							</div>
+						`;
+					}
+
+					form.addEventListener('submit', async (e) => {
+						e.preventDefault();
+						alertPlaceholder.innerHTML = '';
+
+						const payload = {
+							username: document.getElementById('username').value,
+							email: document.getElementById('email').value,
+							password: document.getElementById('password').value,
+							password_confirm: document.getElementById('password_confirm').value,
+						};
+
+						// Client-side confirmation check
+						if (payload.password !== payload.password_confirm) {
+							showAlert('Passwords do not match');
+							return;
+						}
+
+						try {
+							const res = await fetch('/api/register', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify(payload),
+							});
+
+							const data = await res.json();
+							if (!res.ok) {
+								showAlert(data.detail || data.message || 'Registration failed');
+								return;
+							}
+
+							showAlert('Registration successful.', 'success');
+							form.reset();
+						} catch (err) {
+							showAlert('Network error');
+						}
+					});
+				</script>
+			</body>
+		</html>
