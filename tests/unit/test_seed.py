@@ -11,6 +11,10 @@ from backend import seed as seed_module
 from backend.models import Parsons, TaskList, TaskListItem, Teacher
 
 
+DEFAULT_SEED_USERNAME = "mattiruotsalainen"
+DEFAULT_SEED_EMAIL = "matti.ruotsalainen@example.com"
+
+
 @pytest_asyncio.fixture
 async def seed_test_engine():
     """Create in-memory DB engine for seed tests."""
@@ -57,7 +61,7 @@ class TestSeedDb:
         async def fake_migrate_tasks():
             async with seed_sessionmaker() as session:
                 teacher_result = await session.execute(
-                    select(Teacher).where(Teacher.username == "test")
+                    select(Teacher).where(Teacher.username == DEFAULT_SEED_USERNAME)
                 )
                 teacher = teacher_result.scalar_one_or_none()
                 assert teacher is not None
@@ -90,7 +94,7 @@ class TestSeedDb:
 
         async with seed_sessionmaker() as session:
             teacher_count = await session.scalar(
-                select(func.count()).select_from(Teacher).where(Teacher.username == "test")
+                select(func.count()).select_from(Teacher).where(Teacher.username == DEFAULT_SEED_USERNAME)
             )
             assert teacher_count == 1
 
@@ -113,8 +117,8 @@ class TestSeedDb:
         monkeypatch.setattr(seed_module, "async_session", seed_sessionmaker)
 
         async with seed_sessionmaker() as session:
-            teacher = Teacher(username="test", email="test@example.com")
-            teacher.set_password("test")
+            teacher = Teacher(username=DEFAULT_SEED_USERNAME, email=DEFAULT_SEED_EMAIL)
+            teacher.set_password("test1234")
             session.add(teacher)
             await session.commit()
             await session.refresh(teacher)
@@ -162,7 +166,7 @@ class TestSeedDb:
 
         async with seed_sessionmaker() as session:
             teacher_count = await session.scalar(
-                select(func.count()).select_from(Teacher).where(Teacher.username == "test")
+                select(func.count()).select_from(Teacher).where(Teacher.username == DEFAULT_SEED_USERNAME)
             )
             assert teacher_count == 1
 
