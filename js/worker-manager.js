@@ -2,7 +2,7 @@ export class FiniteWorker {
 	constructor(code) {
 		this.gotCalledBack = false;
 
-		this.worker = new Worker('dist/worker.js');
+		this.worker = new Worker('/dist/worker.js');
 		this.worker.onmessage = this.handleMessage.bind(this);
 
 		return new Promise((resolve) => {
