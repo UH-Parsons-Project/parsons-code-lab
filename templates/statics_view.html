@@ -27,7 +27,7 @@
 
       <span class="text-white">
         <i class="fas fa-user"></i>
-        signed in as <strong id="signed-in-as">ope</strong>
+        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
       </span>
     </div>
   </nav>
@@ -187,14 +187,33 @@
 
   </div>
 
-  <!-- Script to find excercise name and user (user bit needs to be updated) -->
+  <!-- Script to populate exercise name and signed-in user -->
   <script>
     const params = new URLSearchParams(window.location.search);
     const name = params.get('name');
-    const user = params.get('user');
+    const userNameElement = document.getElementById('user-name');
 
     if (name) document.getElementById('exercise-name').textContent = name;
-    <!-- if (user) document.getElementById('signed-in-as').textContent = user; -->
+
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      userNameElement.textContent = storedUsername;
+    } else {
+      fetch('/api/me', { credentials: 'include' })
+        .then((response) => {
+          if (!response.ok) throw new Error('Could not load user');
+          return response.json();
+        })
+        .then((data) => {
+          if (data && data.username) {
+            userNameElement.textContent = data.username;
+            localStorage.setItem('username', data.username);
+          }
+        })
+        .catch(() => {
+          userNameElement.textContent = '';
+        });
+    }
   </script>
 
 </body>
