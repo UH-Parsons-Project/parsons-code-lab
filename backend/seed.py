@@ -17,22 +17,22 @@ async def seed_db():
     async with async_session() as session:
         # Check if test teacher already exists
         result = await session.execute(
-            select(Teacher).where(Teacher.username == "test")
+            select(Teacher).where(Teacher.username == "Matti Ruotsalainen")
         )
         existing_teacher = result.scalar_one_or_none()
         
         if existing_teacher is None:
             # Create default test teacher
             test = Teacher(
-                username="test",
-                email="test@example.com"
+                username="mattiruotsalainen",
+                email="matti.ruotsalainen@example.com"
             )
-            test.set_password("test")  # Change in production!
+            test.set_password("test1234")  # Change in production!
             
             session.add(test)
             try:
                 await session.commit()
-                print("Created default test teacher (username: test, password: test)")
+                print("Created default test teacher (username: mattiruotsalainen, password: test1234)")
             except IntegrityError:
                 # User was created by another instance in a race condition
                 await session.rollback()
@@ -47,7 +47,7 @@ async def seed_db():
     # Create a default task list for the test teacher
     async with async_session() as session:
         teacher_result = await session.execute(
-            select(Teacher).where(Teacher.username == "test")
+            select(Teacher).where(Teacher.username == "mattiruotsalainen")
         )
         test_teacher = teacher_result.scalar_one_or_none()
 
