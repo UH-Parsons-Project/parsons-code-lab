@@ -4,11 +4,12 @@ Unit tests for main API endpoints.
 
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi import status
 
 from backend import main as main_module
 from backend.auth import create_access_token
-from backend.models import Parsons
+from backend.models import Parsons, TaskList, TaskListItem
 
 
 class TestStaticPages:
@@ -414,3 +415,155 @@ class TestTestModeEndpoint:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert "Failed to reset database" in response.json()["detail"]
         seed_mock.assert_not_awaited()
+
+
+class TestNicknameValidation:
+    """Tests for nickname validation endpoint."""
+
+    async def test_validate_nickname_success_trims_whitespace(self, client):
+        response = await client.post(
+            "/api/validate-nickname",
+            json={"nickname": "  Alice  "},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"status": "valid", "nickname": "Alice"}
+
+    async def test_validate_nickname_empty_after_trim_returns_400(self, client):
+        response = await client.post(
+            "/api/validate-nickname",
+            json={"nickname": "    "},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "cannot be empty" in response.json()["detail"]
+
+    async def test_validate_nickname_too_long_returns_400(self, client):
+        response = await client.post(
+            "/api/validate-nickname",
+            json={"nickname": "a" * 21},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "less than 21" in response.json()["detail"]
+
+
+class TestProblemsetApiEndpoints:
+    """Tests for problemset API endpoints in main.py."""
+
+    async def test_get_problemset_by_id_success(self, client, db_session, test_teacher):
+        problemset = TaskList(
+            title="Algorithms Set",
+            unique_link_code="ALGO01",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        response = await client.get(f"/api/problemsets/{problemset.id}")
+
+        assert response.status_code == status.HTTP_200_OK
+        payload = response.json()
+        assert payload["id"] == problemset.id
+        assert payload["title"] == "Algorithms Set"
+        assert payload["unique_link_code"] == "ALGO01"
+        assert payload["teacher_id"] == test_teacher.id
+        assert "created_at" in payload
+
+    async def test_get_problemset_by_id_not_found(self, client):
+        response = await client.get("/api/problemsets/999999")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.json()["detail"]
+
+    async def test_get_problemset_tasks_by_code_success_ordered(
+        self, client, db_session, test_teacher
+    ):
+        problemset = TaskList(
+            title="Code Route Set",
+            unique_link_code="CODE42",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task_a = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Task A",
+            description='{"description": "A"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        task_b = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Task B",
+            description='{"description": "B"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task_a)
+        db_session.add(task_b)
+        await db_session.commit()
+        await db_session.refresh(task_a)
+        await db_session.refresh(task_b)
+
+        db_session.add(TaskListItem(task_list_id=problemset.id, task_id=task_b.id))
+        db_session.add(TaskListItem(task_list_id=problemset.id, task_id=task_a.id))
+        await db_session.commit()
+
+        response = await client.get("/api/problemsets/CODE42/tasks")
+
+        assert response.status_code == status.HTTP_200_OK
+        payload = response.json()
+        assert [item["title"] for item in payload] == ["Task B", "Task A"]
+
+    async def test_get_problemset_tasks_by_code_not_found(self, client):
+        response = await client.get("/api/problemsets/NOPE/tasks")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.json()["detail"]
+
+    async def test_get_problemset_tasks_by_id_success(self, db_session, test_teacher):
+        problemset = TaskList(
+            title="ID Route Set",
+            unique_link_code="ID42",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Linked Task",
+            description='{"description": "Linked"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        db_session.add(TaskListItem(task_list_id=problemset.id, task_id=task.id))
+        await db_session.commit()
+
+        payload = await main_module.get_problemset_tasks(problemset.id, db_session)
+
+        assert len(payload) == 1
+        assert payload[0].id == task.id
+        assert payload[0].title == "Linked Task"
+
+    async def test_get_problemset_tasks_by_id_not_found(self, db_session):
+        with pytest.raises(main_module.HTTPException) as exc_info:
+            await main_module.get_problemset_tasks(999999, db_session)
+
+        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in exc_info.value.detail
