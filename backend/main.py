@@ -70,6 +70,7 @@ class TaskResponse(BaseModel):
     id: int
     title: str
     description: str
+    task_instructions: str | None
     task_type: str
     code_blocks: dict
     correct_solution: dict
@@ -399,6 +400,7 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
         id=task.id,
         title=task.title,
         description=task.description,
+        task_instructions=task.task_instructions,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
         correct_solution=task.correct_solution,

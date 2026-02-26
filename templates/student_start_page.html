@@ -28,9 +28,8 @@
   </nav>
   <main class="container main-nickname">
     <div class="p-4">
-		<h2 class="section-title mb-3">
-			DESCRIPTION
-		</h2>
+		<h2 class="section-title mb-3">Task Description</h2>
+      <div id="task-instructions" class="mb-4"></div>
 		<div class="text-center">
 			<button id="start-btn" class="btn btn-primary btn-lg">Start</button>
 		</div>
@@ -57,5 +56,23 @@
         window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
       };
     }
+
+    // Fetch task instructions and render them
+    fetch(`/api/tasks/${taskId}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to load task');
+        }
+        return response.json();
+      })
+      .then((task) => {
+        const instructionsEl = document.getElementById('task-instructions');
+        if (instructionsEl && task.task_instructions) {
+          instructionsEl.innerHTML = task.task_instructions;
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading task:', error);
+      });
   </script>
 </body>
