@@ -420,19 +420,32 @@ class TestTestModeEndpoint:
 class TestNicknameValidation:
     """Tests for nickname validation endpoint."""
 
-    async def test_validate_nickname_success_trims_whitespace(self, client):
+    async def test_validate_nickname_success_trims_whitespace(
+        self, client, db_session, test_teacher
+    ):
+        problemset = TaskList(
+            title="Nickname Set",
+            unique_link_code="NICK01",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+
         response = await client.post(
             "/api/validate-nickname",
-            json={"nickname": "  Alice  "},
+            json={"nickname": "  Alice  ", "unique_link_code": "NICK01"},
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {"status": "valid", "nickname": "Alice"}
+        payload = response.json()
+        assert payload["status"] == "valid"
+        assert payload["nickname"] == "Alice"
+        assert "session_id" in payload
 
     async def test_validate_nickname_empty_after_trim_returns_400(self, client):
         response = await client.post(
             "/api/validate-nickname",
-            json={"nickname": "    "},
+            json={"nickname": "    ", "unique_link_code": "NICK01"},
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -441,7 +454,7 @@ class TestNicknameValidation:
     async def test_validate_nickname_too_long_returns_400(self, client):
         response = await client.post(
             "/api/validate-nickname",
-            json={"nickname": "a" * 21},
+            json={"nickname": "a" * 21, "unique_link_code": "NICK01"},
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
