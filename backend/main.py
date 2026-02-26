@@ -217,7 +217,7 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
             detail=f"Problem set with code {unique_link_code} not found",
         )
 
-    task_path = BASE_DIR / "templates" / "problem.html"
+    task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     response.headers["X-Task-Id"] = str(task_id)
