@@ -567,3 +567,98 @@ class TestProblemsetApiEndpoints:
 
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in exc_info.value.detail
+
+
+class TestProblemsetPageEndpoints:
+    """Tests for HTML /set/... routes."""
+
+    async def test_problemset_page_valid_code(self, client, db_session, test_teacher):
+        problemset = TaskList(
+            title="Page Set",
+            unique_link_code="PAGE01",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+
+        response = await client.get("/set/PAGE01")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("X-Problemset-Code") == "PAGE01"
+
+    async def test_problemset_tasks_page_valid_code(self, client, db_session, test_teacher):
+        problemset = TaskList(
+            title="Tasks Page Set",
+            unique_link_code="PAGE02",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+
+        response = await client.get("/set/PAGE02/tasks")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("X-Problemset-Code") == "PAGE02"
+
+    async def test_problemset_task_page_valid_code(self, client, db_session, test_teacher):
+        problemset = TaskList(
+            title="Task Page Set",
+            unique_link_code="PAGE03",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+
+        response = await client.get("/set/PAGE03/tasks/123")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("X-Problemset-Code") == "PAGE03"
+        assert response.headers.get("X-Task-Id") == "123"
+
+    async def test_problemset_task_description_page_valid_code(
+        self, client, db_session, test_teacher
+    ):
+        problemset = TaskList(
+            title="Description Page Set",
+            unique_link_code="PAGE04",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+
+        response = await client.get("/set/PAGE04/tasks/456/description")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("X-Problemset-Code") == "PAGE04"
+        assert response.headers.get("X-Task-Id") == "456"
+
+    async def test_problemset_task_start_page_valid_code(self, client, db_session, test_teacher):
+        problemset = TaskList(
+            title="Start Page Set",
+            unique_link_code="PAGE05",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+
+        response = await client.get("/set/PAGE05/tasks/789/start")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("X-Problemset-Code") == "PAGE05"
+        assert response.headers.get("X-Task-Id") == "789"
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/set/NO_SUCH_CODE",
+            "/set/NO_SUCH_CODE/tasks",
+            "/set/NO_SUCH_CODE/tasks/1",
+            "/set/NO_SUCH_CODE/tasks/1/description",
+            "/set/NO_SUCH_CODE/tasks/1/start",
+        ],
+    )
+    async def test_problemset_set_routes_invalid_code_return_404(self, client, path):
+        response = await client.get(path)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "not found" in response.json()["detail"]
