@@ -5,7 +5,7 @@ Run this script to populate the parsons table from existing task files.
 Usage:
     python -m backend.migrate_tasks
 
-    Or from Docker:
+    Or from Docker (ensure web service is running with --profile web):
     docker compose exec web python -m backend.migrate_tasks
 """
 
