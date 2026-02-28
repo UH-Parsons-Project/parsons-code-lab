@@ -56,6 +56,10 @@
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {
       startBtn.onclick = function() {
+        // Save start time to localStorage
+        const startTime = new Date().toISOString();
+        localStorage.setItem(`task-${taskId}-start-time`, startTime);
+        
         window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
       };
     }

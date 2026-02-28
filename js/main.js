@@ -189,4 +189,34 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 
 	// Save user code locally for next time
 	set(probEl.getAttribute('name') + LS_REPR, reprCode);
+
+	try {
+    // Get start time from localStorage
+    const startTime = localStorage.getItem(`task-${globalTaskId}-start-time`);
+    
+    const resultData = {
+        task_id: parseInt(globalTaskId),
+        success: testResults.status === 'pass',
+        submitted_code: submittedCode,
+        test_output: testResults.details || '',
+        repr_code: reprCode,
+        start_time: startTime
+    };
+
+    const response = await fetch(`/api/tasks/${globalTaskId}/submit-result`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resultData)
+    });
+
+    if (response.ok) {
+        console.log('Test results saved to backend');
+    } else {
+        console.warn('Failed to save test results:', response.statusText);
+    }
+} catch (error) {
+    console.warn('Error saving test results to backend:', error);
+}
 }

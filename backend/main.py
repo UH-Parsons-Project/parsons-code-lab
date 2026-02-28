@@ -5,7 +5,7 @@ Provides endpoints for each page.
 
 import os
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 
@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from datetime import datetime as dt
 from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     CurrentUser,
@@ -26,7 +26,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, TaskList, TaskListItem
+from .models import Parsons, TaskList, TaskListItem, TaskAttempt, StudentSession
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -104,6 +104,15 @@ class NicknameRequest(BaseModel):
     unique_link_code: str
 
 
+class SubmitTestResultRequest(BaseModel):
+    task_id: int
+    success: bool
+    submitted_code: str
+    test_output: str
+    repr_code: str
+    start_time: str | None = None  # ISO format timestamp from localStorage
+
+
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"
 if js_dir.exists():
@@ -135,7 +144,7 @@ async def reset_test_db():
             status_code=403,
             detail="Test endpoints are only available in test mode"
         )
-    
+
     try:
         await reset_db()
         await seed_db()
@@ -383,40 +392,40 @@ async def validate_nickname(
     """Validate nickname and create student session. Must be less than 21 characters (max 20)."""
     nickname = request.nickname.strip()
     unique_link_code = request.unique_link_code.strip()
-    
+
     if not nickname:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Nickname cannot be empty",
         )
-    
+
     if len(nickname) > 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Nickname must be less than 21 characters",
         )
-    
+
     # Verify the task list exists
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     task_list = result.scalar_one_or_none()
-    
+
     if not task_list:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task list with code {unique_link_code} not found",
         )
-    
+
     # Create student session
     student_session = await create_student_session(
         task_list_id=task_list.id,
         nickname=nickname,
         db=db
     )
-    
+
     # Set persistent session cookie
     set_session_cookie(response, student_session.session_id)
-    
+
     return {
         "status": "valid",
         "nickname": nickname,
@@ -584,3 +593,48 @@ async def get_problemset_tasks(problemset_id: int, db: AsyncSession = Depends(ge
         )
 
     return problemset_tasks
+
+
+@app.post("/api/tasks/{task_id}/submit-result")
+async def submit_test_result(
+    task_id: int,
+    result: SubmitTestResultRequest,
+    db: AsyncSession = Depends(get_db),
+    student_session: StudentSession | None = Depends(get_current_student_session)
+):
+    """
+    Save a student's test result for a task.
+    Creates a new attempt record for each submission.
+    """
+    # If no student session, we can't save results
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required to save results"
+        )
+
+    # Parse start time from localStorage or use current time as fallback
+    if result.start_time:
+        try:
+            from datetime import datetime as dt
+            task_started_at = dt.fromisoformat(result.start_time.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            task_started_at = datetime.now(timezone.utc)
+    else:
+        task_started_at = datetime.now(timezone.utc)
+
+    new_attempt = TaskAttempt(
+        student_session_id=student_session.id,
+        task_id=task_id,
+        task_started_at=task_started_at,
+        completed_at=datetime.now(timezone.utc),
+        success=result.success,
+        submitted_inputs={
+            "code": result.submitted_code
+        }
+    )
+    db.add(new_attempt)
+
+    await db.commit()
+
+    return {"status": "success", "message": "Test result saved"}
