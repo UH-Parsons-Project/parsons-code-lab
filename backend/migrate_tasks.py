@@ -5,7 +5,7 @@ Run this script to populate the parsons table from existing task files.
 Usage:
     python -m backend.migrate_tasks
 
-    Or from Docker:
+    Or from Docker (ensure web service is running with --profile web):
     docker compose exec web python -m backend.migrate_tasks
 """
 
@@ -216,6 +216,9 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         html_description = yaml_data.get("problem_description", "")
         parsed_description = parse_problem_description(html_description)
 
+        # Optional separate task instructions (HTML or plain text)
+        task_instructions = yaml_data.get("task_instructions", "")
+
         # Parse code lines into blocks
         code_lines = yaml_data.get("code_lines", "")
         blocks, has_faded = parse_code_lines(code_lines)
@@ -232,6 +235,7 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         return {
             "title": task_name,
             "description": json.dumps(parsed_description),
+            "task_instructions": task_instructions,
             "task_type": task_type,
             "code_blocks": {"blocks": blocks, "function_header": function_header},
             "correct_solution": {
@@ -343,6 +347,7 @@ async def migrate_tasks():
                 created_by_teacher_id=teacher.id,
                 title=task_data["title"],
                 description=task_data["description"],
+                task_instructions=task_data["task_instructions"],
                 task_type=task_data["task_type"],
                 code_blocks=task_data["code_blocks"],
                 correct_solution=task_data["correct_solution"],

@@ -26,13 +26,13 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, Teacher
+from .models import Parsons, TaskList, TaskListItem
 from .reset_db import reset_db
 from .seed import seed_db
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
     # Create tables from SQLAlchemy models and seed initial data
     await init_db()
@@ -70,11 +70,32 @@ class TaskResponse(BaseModel):
     id: int
     title: str
     description: str
+    task_instructions: str | None
     task_type: str
     code_blocks: dict
     correct_solution: dict
     is_public: bool
     created_at: str
+
+
+class ProblemSetResponse(BaseModel):
+    id: int
+    title: str
+    unique_link_code: str
+    teacher_id: int
+    created_at: str
+    expires_at: str | None
+
+
+class ProblemSetTaskResponse(BaseModel):
+    id: int
+    title: str
+    task_type: str
+    created_at: str
+
+
+class NicknameRequest(BaseModel):
+    nickname: str
 
 
 # Mount static directories (only if they exist)
@@ -117,7 +138,7 @@ async def reset_test_db():
         raise HTTPException(
             status_code=500,
             detail=f"Failed to reset database: {str(e)}"
-        )
+        ) from e
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -146,11 +167,102 @@ async def problem_page():
     return FileResponse(problem_path)
 
 
-@app.get("/nickname", response_class=HTMLResponse)
-async def problem_page():
-    """Serve the problem page."""
-    problem_path = BASE_DIR / "templates" / "nickname.html"
-    return FileResponse(problem_path)
+@app.get("/set/{unique_link_code}", response_class=HTMLResponse)
+async def problemset_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
+    """Serve problemset page by unique link code."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
+    problemset_path = BASE_DIR / "templates" / "nickname.html"
+    response = FileResponse(problemset_path)
+    response.headers["X-Problemset-Code"] = unique_link_code
+    return response
+
+
+@app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
+async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
+    """Serve task list page by unique link code."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
+    tasks_path = BASE_DIR / "templates" / "problemset.html"
+    response = FileResponse(tasks_path)
+    response.headers["X-Problemset-Code"] = unique_link_code
+    return response
+
+
+@app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
+async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+    """Serve task page by unique link code and task id."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
+    task_path = BASE_DIR / "templates" / "student_problem.html"
+    response = FileResponse(task_path)
+    response.headers["X-Problemset-Code"] = unique_link_code
+    response.headers["X-Task-Id"] = str(task_id)
+    return response
+
+
+@app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
+async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+    """Serve task description page by unique link code and task id."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
+    description_path = BASE_DIR / "templates" / "problem.html"
+    response = FileResponse(description_path)
+    response.headers["X-Problemset-Code"] = unique_link_code
+    response.headers["X-Task-Id"] = str(task_id)
+    return response
+
+
+@app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
+async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+    """Serve the start page for a task by unique link code and task id."""
+    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    problemset = result.scalar_one_or_none()
+
+    if not problemset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set with code {unique_link_code} not found",
+        )
+
+    start_path = BASE_DIR / "templates" / "student_start_page.html"
+    response = FileResponse(start_path)
+    response.headers["X-Problemset-Code"] = unique_link_code
+    response.headers["X-Task-Id"] = str(task_id)
+    return response
 
 
 @app.get("/exerciselist")
@@ -254,6 +366,26 @@ async def logout(response: Response):
     return {"message": "Successfully logged out"}
 
 
+@app.post("/api/validate-nickname")
+async def validate_nickname(request: NicknameRequest):
+    """Validate nickname length. Must be less than 21 characters (max 20)."""
+    nickname = request.nickname.strip()
+    
+    if not nickname:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nickname cannot be empty",
+        )
+    
+    if len(nickname) > 20:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nickname must be less than 21 characters",
+        )
+    
+    return {"status": "valid", "nickname": nickname}
+
+
 @app.get("/api/tasks/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
     """
@@ -274,6 +406,7 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
         id=task.id,
         title=task.title,
         description=task.description,
+        task_instructions=task.task_instructions,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
         correct_solution=task.correct_solution,
