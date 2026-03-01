@@ -19,6 +19,7 @@ export class ProblemElement extends LitElement {
 	static properties = {
 		name: {type: String},
 		description: {type: String},
+		taskInstructions: {type: String},
 		codeLines: {type: String},
 		codeHeader: {type: String},
 		isLoading: {type: Boolean},
@@ -63,6 +64,7 @@ export class ProblemElement extends LitElement {
 		}
 
 		return html`
+
 			<!-- Problem description card -->
 			<div class="row mt-3">
 				<div class="col-sm-12">

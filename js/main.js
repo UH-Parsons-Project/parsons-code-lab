@@ -19,9 +19,19 @@ let globalTaskId;
 
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {
-	// Extract the task ID from URL parameters (e.g., ?id=1)
+	// Extract the task ID from URL path (e.g., /set/starter-list/tasks/1)
+	// or from URL parameters (e.g., ?id=1) for backwards compatibility
 	let params = new URL(document.location).searchParams;
 	globalTaskId = params.get('id');
+
+	// If no query parameter, try extracting from URL path
+	if (!globalTaskId) {
+		const pathParts = window.location.pathname.split('/').filter(p => p);
+		// Path format: set/unique_link_code/tasks/task_id
+		if (pathParts.length >= 4 && pathParts[2] === 'tasks') {
+			globalTaskId = pathParts[3];
+		}
+	}
 
 	if (!globalTaskId) {
 		document.getElementById('problem-wrapper').innerHTML =
@@ -94,6 +104,7 @@ export async function initWidget() {
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
 		probEl.setAttribute('description', problemStatementHTML);
+		probEl.setAttribute('taskInstructions', task.task_instructions || '');
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');

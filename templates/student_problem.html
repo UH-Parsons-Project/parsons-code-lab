@@ -9,12 +9,16 @@
     <link rel="stylesheet" href="/js-parsons/parsons.css"/>
 </head>
 <body>
-    <nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
-        <a class="navbar-brand" href="index.html">🧩 Parsons Code Lab</a>
-        <div class="ml-auto">
-            <a class="btn btn-outline-light btn-sm" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>
-        </div>
-    </nav>
+	<nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
+		<div class="navbar-brand">🧩 Parsons Code Lab</div>
+
+		<div class="ml-auto d-flex align-items-center">
+		<a id="back-to-list" href="#"
+			class="btn btn-outline-light btn-sm mr-3">
+			Back to exercise list
+		</a>
+		</div>
+	</nav>
 
     <div class="container">
         <div id="problem-wrapper"></div>
@@ -32,6 +36,16 @@ import { initNavbarExercisesButton } from "/js/auth-ui.js";
 // Initializes initWidget
 initWidget();
 initNavbarExercisesButton();
+</script>
+<script>
+	// Set the back button to return to the task list
+	// Path: /set/{unique_link_code}/tasks/{task_id}
+	const pathParts = window.location.pathname.split('/').filter(p => p);
+	const uniqueLinkCode = pathParts[1];
+	const backButton = document.getElementById('back-to-list');
+	if (backButton && uniqueLinkCode) {
+		backButton.href = `/set/${uniqueLinkCode}/tasks`;
+	}
 </script>
 </body>
 </html>
