@@ -26,7 +26,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, TaskList, TaskListItem
+from .models import Parsons, TaskList, TaskListItem, Teacher
 from .reset_db import reset_db
 from .seed import seed_db
 

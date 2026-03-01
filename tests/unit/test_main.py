@@ -9,7 +9,7 @@ from fastapi import status
 
 from backend import main as main_module
 from backend.auth import create_access_token
-from backend.models import Parsons, TaskList, TaskListItem
+from backend.models import Parsons, TaskList, TaskListItem, Teacher
 
 
 class TestStaticPages:
