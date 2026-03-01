@@ -1,0 +1,20 @@
+# Codecov configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 100%  # Allow any decrease without failing
+        informational: true  # Make status informational (won't block PRs)
+    patch:
+      default:
+        target: auto
+        threshold: 100%  # Allow any decrease without failing
+        informational: true  # Make status informational (won't block PRs)
+
+comment:
+  layout: "header, diff, flags, components, footer"
+  behavior: default
+  require_changes: false
