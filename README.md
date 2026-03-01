@@ -14,7 +14,7 @@ https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi
 ### To run locally:
 
 ```
-docker compose up --build
+docker compose --profile web up --build
 ```
 
 ### Running tests with Pytest:
