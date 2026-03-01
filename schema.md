@@ -12,6 +12,7 @@ CREATE TABLE parsons (
 	id SERIAL PRIMARY KEY,
 	created_by_teacher_id INTEGER,
 	title VARCHAR(255) NOT NULL,
+	task_instructions TEXT,
 	description TEXT,
 	task_type VARCHAR(255),
 	code_blocks TEXT,
