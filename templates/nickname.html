@@ -39,13 +39,20 @@
       const nickname = document.getElementById('nickname').value;
       
       try {
+        // Get unique link code from URL
+        const pathParts = window.location.pathname.split('/');
+        const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}
+        
         // Validate nickname with backend
         const response = await fetch('/api/validate-nickname', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ nickname: nickname }),
+          body: JSON.stringify({ 
+            nickname: nickname,
+            unique_link_code: uniqueLinkCode 
+          }),
         });
         
         if (!response.ok) {
@@ -54,10 +61,7 @@
           return;
         }
         
-        // If validation passes, redirect
-        const pathParts = window.location.pathname.split('/');
-        const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}
-        
+        // If validation passes, store nickname and redirect
         // Store nickname in localStorage
         localStorage.setItem('nickname', nickname);
         

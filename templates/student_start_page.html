@@ -28,8 +28,9 @@
   </nav>
   <main class="container main-nickname">
     <div class="p-4">
-		<h2 class="section-title mb-3">Task Description</h2>
-      <div id="task-instructions" class="mb-4"></div>
+		<h2 class="section-title mb-3">
+			In this task you will learn to make a simple loop function.
+		</h2>
 		<div class="text-center">
 			<button id="start-btn" class="btn btn-primary btn-lg">Start</button>
 		</div>
@@ -53,6 +54,10 @@
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {
       startBtn.onclick = function() {
+        // Save start time to localStorage
+        const startTime = new Date().toISOString();
+        localStorage.setItem(`task-${taskId}-start-time`, startTime);
+        
         window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
       };
     }
