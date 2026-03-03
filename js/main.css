@@ -54,3 +54,11 @@
 	font-weight: 600;
 }
 
+.navbar-logo {
+	height: 64px;
+	width: auto;
+}
+
+.navbar {
+  background-color: rgb(125, 94, 186);
+}

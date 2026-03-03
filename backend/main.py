@@ -118,6 +118,13 @@ if data_dir.exists():
     app.mount("/data", StaticFiles(directory=data_dir), name="data")
 
 
+@app.get("/ohtuproj_logo.png")
+async def logo_image():
+    """Serve the navbar logo image used by templates."""
+    logo_path = BASE_DIR / "ohtuproj_logo.png"
+    return FileResponse(logo_path)
+
+
 # Test-only endpoint
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
