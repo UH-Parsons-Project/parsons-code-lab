@@ -87,7 +87,11 @@ async def get_student_session(
     # Check if session has expired based on last activity
     if check_expiry:
         expiry_threshold = datetime.now(timezone.utc) - timedelta(hours=STUDENT_SESSION_EXPIRE_HOURS)
-        if session.last_activity_at < expiry_threshold:
+        # Handle both timezone-aware and naive datetimes (SQLite may return naive)
+        last_activity = session.last_activity_at
+        if last_activity.tzinfo is None:
+            last_activity = last_activity.replace(tzinfo=timezone.utc)
+        if last_activity < expiry_threshold:
             # Session expired
             return None
 
