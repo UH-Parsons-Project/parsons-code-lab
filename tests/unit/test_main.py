@@ -5,11 +5,14 @@ Unit tests for main API endpoints.
 from unittest.mock import AsyncMock
 
 import pytest
+import uuid
+from datetime import datetime, timezone
 from fastapi import status
+from sqlalchemy import select
 
 from backend import main as main_module
 from backend.auth import create_access_token
-from backend.models import Parsons, TaskList, TaskListItem
+from backend.models import Parsons, TaskList, TaskListItem, StudentSession, TaskAttempt
 
 
 class TestStaticPages:
@@ -675,3 +678,409 @@ class TestProblemsetPageEndpoints:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.json()["detail"]
+
+
+class TestSubmitTestResultEndpoint:
+    """Tests for POST /api/tasks/{task_id}/submit-result endpoint."""
+
+    async def test_submit_result_without_student_session_returns_401(
+        self, client, db_session, test_teacher
+    ):
+        """Test that submitting without a student session returns 401."""
+        # Create a task
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        # Submit without session cookie
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('hello')",
+                "test_output": "Tests passed",
+                "repr_code": "print('hello')",
+            },
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "session required" in response.json()["detail"].lower()
+
+    async def test_submit_result_with_student_session_success(
+        self, client, db_session, test_teacher
+    ):
+        """Test successful submission with student session."""
+        # Create problemset
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST01",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        # Create task
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        # Create student session
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit with session cookie
+        client.cookies.set("student_session", str(session_id))
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('hello')",
+                "test_output": "Tests passed",
+                "repr_code": "print('hello')",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+
+        # Verify attempt was saved
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempts = result.scalars().all()
+        assert len(attempts) == 1
+        assert attempts[0].task_id == task.id
+        assert attempts[0].success is True
+
+    async def test_submit_result_with_start_time_iso_format(
+        self, client, db_session, test_teacher
+    ):
+        """Test submission with ISO format start time."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST02",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent2",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit with ISO format start_time
+        client.cookies.set("student_session", str(session_id))
+        start_time = "2026-03-03T10:00:00+00:00"
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('test')",
+                "test_output": "Tests passed",
+                "repr_code": "print('test')",
+                "start_time": start_time,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify the attempt recorded the start time
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        assert attempt.task_started_at.year == 2026
+        assert attempt.task_started_at.month == 3
+        assert attempt.task_started_at.day == 3
+
+    async def test_submit_result_with_z_format_timestamp(
+        self, client, db_session, test_teacher
+    ):
+        """Test submission with Z-format timestamp (localStorage format)."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST03",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent3",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit with Z-format timestamp
+        client.cookies.set("student_session", str(session_id))
+        start_time = "2026-03-03T10:30:00.000Z"
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": False,
+                "submitted_code": "print('test')",
+                "test_output": "Test failed",
+                "repr_code": "print('test')",
+                "start_time": start_time,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    async def test_submit_result_without_start_time_uses_current_time(
+        self, client, db_session, test_teacher
+    ):
+        """Test that omitting start_time uses current timestamp."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST04",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent4",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit without start_time
+        before_submit = datetime.now(timezone.utc)
+        client.cookies.set("student_session", str(session_id))
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('test')",
+                "test_output": "Tests passed",
+                "repr_code": "print('test')",
+            },
+        )
+        after_submit = datetime.now(timezone.utc)
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify the attempt used current time
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        # Handle naive datetime from SQLite
+        task_started_at = attempt.task_started_at
+        if task_started_at.tzinfo is None:
+            task_started_at = task_started_at.replace(tzinfo=timezone.utc)
+        assert before_submit <= task_started_at <= after_submit
+
+    async def test_submit_result_records_attempt_data(
+        self, client, db_session, test_teacher
+    ):
+        """Test that all attempt data is correctly recorded."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST05",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent5",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit
+        client.cookies.set("student_session", str(session_id))
+        submitted_code = "def hello():\n    return 'world'"
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": submitted_code,
+                "test_output": "All tests passed!",
+                "repr_code": submitted_code,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify all fields are recorded correctly
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        assert attempt.task_id == task.id
+        assert attempt.success is True
+        assert attempt.submitted_inputs["code"] == submitted_code
+        assert attempt.completed_at is not None
+        assert attempt.task_started_at <= attempt.completed_at
+
+    async def test_submit_result_with_failure_status(
+        self, client, db_session, test_teacher
+    ):
+        """Test submission with failure status is recorded correctly."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST06",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent6",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit failed attempt
+        client.cookies.set("student_session", str(session_id))
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": False,
+                "submitted_code": "print('wrong')",
+                "test_output": "AssertionError: Expected 'hello' but got 'wrong'",
+                "repr_code": "print('wrong')",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify failure is recorded
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        assert attempt.success is False
