@@ -1,5 +1,8 @@
 problem_name: add_in_range
 
+task_instructions: |
+  In this exercise you will learn to create a simple while loop.
+
 problem_description: |
   <code>add_in_range</code> returns the sum of all integers between start and
   stop (inclusive)<br>
