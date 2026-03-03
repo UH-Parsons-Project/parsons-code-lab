@@ -57,7 +57,7 @@ https://github.com/UH-Parsons-Project/parsons-code-lab/wiki
 
 ## Definition of Done
 
-"Code is validated and tests are passing, docstrings are written, code is reviewed by a peer developer before merging to main branch"
+Code is validated and all tests are passing, docstrings are written, code is reviewed and approved by a peer developer before merging to the main branch, and the feature is successfully deployed to the production environment.
 
 ## Product and Sprint Backlogs
 [Product Backlog](https://github.com/orgs/UH-Parsons-Project/projects/12)
