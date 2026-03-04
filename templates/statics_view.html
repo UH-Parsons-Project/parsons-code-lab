@@ -12,6 +12,35 @@
 
   <link rel="stylesheet" href="/js/main.css">
 
+  <style>
+    .mistake-block {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    .mistake-label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+    .mistake-code {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      border-left: 4px solid #dc3545;
+      overflow-x: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .mistake-code code {
+      background-color: transparent;
+      padding: 0;
+      color: #212529;
+      white-space: pre;
+    }
+  </style>
+
 </head>
 
 <body>
@@ -34,13 +63,12 @@
 
   <div class="container py-3">
 
-    <!-- Page header -->
     <h2>Exercise analytics</h2>
     <div class="text-muted mb-3">
       Exercise: <span id="exercise-name">—</span>
     </div>
 
-    <!-- Top row with 3 boxes -->
+    <!-- Top row -->
     <div class="row">
       <div class="col-md-4 mb-3">
         <div class="card card-soft">
@@ -57,8 +85,8 @@
         <div class="card card-soft">
           <div class="card-body d-flex align-items-center justify-content-center">
             <div class="stat-single">
-              <div class="label">Number of students who completed task</div>
-              <div id="students-completed" class="value">—</div>
+              <div class="label">Students attempted / completed</div>
+              <div id="students-stats" class="value">—</div>
             </div>
           </div>
         </div>
@@ -78,7 +106,6 @@
 
     <div class="section-title">Statistics</div>
 
-    <!-- Stats grid -->
     <div class="row">
 
       <!-- Time to first fail -->
@@ -87,18 +114,9 @@
           <div class="card-body">
             <div class="stats-title">Time to first fail</div>
             <div class="stat-grid">
-              <div>
-                <div class="label">Average</div>
-                <div class="value" id="tff-avg">—</div>
-              </div>
-              <div>
-                <div class="label">Min</div>
-                <div class="value" id="tff-min">—</div>
-              </div>
-              <div>
-                <div class="label">Max</div>
-                <div class="value" id="tff-max">—</div>
-              </div>
+              <div><div class="label">Average</div><div class="value" id="tff-avg">—</div></div>
+              <div><div class="label">Min</div><div class="value" id="tff-min">—</div></div>
+              <div><div class="label">Max</div><div class="value" id="tff-max">—</div></div>
             </div>
           </div>
         </div>
@@ -110,18 +128,9 @@
           <div class="card-body">
             <div class="stats-title">Time to first success</div>
             <div class="stat-grid">
-              <div>
-                <div class="label">Average</div>
-                <div class="value" id="tfs-avg">—</div>
-              </div>
-              <div>
-                <div class="label">Min</div>
-                <div class="value" id="tfs-min">—</div>
-              </div>
-              <div>
-                <div class="label">Max</div>
-                <div class="value" id="tfs-max">—</div>
-              </div>
+              <div><div class="label">Average</div><div class="value" id="tfs-avg">—</div></div>
+              <div><div class="label">Min</div><div class="value" id="tfs-min">—</div></div>
+              <div><div class="label">Max</div><div class="value" id="tfs-max">—</div></div>
             </div>
           </div>
         </div>
@@ -132,18 +141,11 @@
         <div class="card card-soft">
           <div class="card-body">
             <div class="stats-title">Thinking time before starting task</div>
-            <div class="stat-grid">
-              <div>
-                <div class="label">Average</div>
-                <div class="value" id="think-avg">—</div>
-              </div>
-              <div>
-                <div class="label">Min</div>
-                <div class="value" id="think-min">—</div>
-              </div>
-              <div>
-                <div class="label">Max</div>
-                <div class="value" id="think-max">—</div>
+            <div id="thinking-time-content">
+              <div class="stat-grid">
+                <div><div class="label">Average</div><div class="value" id="think-avg">—</div></div>
+                <div><div class="label">Min</div><div class="value" id="think-min">—</div></div>
+                <div><div class="label">Max</div><div class="value" id="think-max">—</div></div>
               </div>
             </div>
           </div>
@@ -155,18 +157,11 @@
         <div class="card card-soft">
           <div class="card-body">
             <div class="stats-title">Number of moves</div>
-            <div class="stat-grid">
-              <div>
-                <div class="label">Average</div>
-                <div class="value" id="moves-avg">—</div>
-              </div>
-              <div>
-                <div class="label">Min</div>
-                <div class="value" id="moves-min">—</div>
-              </div>
-              <div>
-                <div class="label">Max</div>
-                <div class="value" id="moves-max">—</div>
+            <div id="moves-content">
+              <div class="stat-grid">
+                <div><div class="label">Average</div><div class="value" id="moves-avg">—</div></div>
+                <div><div class="label">Min</div><div class="value" id="moves-min">—</div></div>
+                <div><div class="label">Max</div><div class="value" id="moves-max">—</div></div>
               </div>
             </div>
           </div>
@@ -175,44 +170,120 @@
 
     </div>
 
-    <!-- Most common mistakes and inputs -->
+    <!-- Most common mistakes -->
     <div class="card card-soft mb-4">
       <div class="card-body">
         <strong>Most common mistakes and inputs</strong>
-        <div id="input-logs" class="text-muted mt-2">
-          (Tähän tietoa yleisimmistä virheistä.)
-        </div>
+        <div id="input-logs" class="text-muted mt-2">Loading...</div>
       </div>
     </div>
 
   </div>
 
-  <!-- Script to populate exercise name and signed-in user -->
   <script>
     const params = new URLSearchParams(window.location.search);
-    const name = params.get('name');
-    const userNameElement = document.getElementById('user-name');
+    const taskId = params.get('id');
+    const problemsetCode = params.get('problemset');
 
-    if (name) document.getElementById('exercise-name').textContent = name;
-
+    // Load username
+    const userNameEl = document.getElementById('user-name');
     const storedUsername = localStorage.getItem('username');
     if (storedUsername) {
-      userNameElement.textContent = storedUsername;
+      userNameEl.textContent = storedUsername;
     } else {
       fetch('/api/me', { credentials: 'include' })
-        .then((response) => {
-          if (!response.ok) throw new Error('Could not load user');
-          return response.json();
-        })
-        .then((data) => {
-          if (data && data.username) {
-            userNameElement.textContent = data.username;
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (data?.username) {
+            userNameEl.textContent = data.username;
             localStorage.setItem('username', data.username);
           }
         })
-        .catch(() => {
-          userNameElement.textContent = '';
+        .catch(() => { userNameEl.textContent = ''; });
+    }
+
+    function formatTime(seconds) {
+      if (!seconds) return '0s';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    }
+
+    function setStatGroup(avgId, minId, maxId, data) {
+      document.getElementById(avgId).textContent = formatTime(data.avg);
+      document.getElementById(minId).textContent = formatTime(data.min);
+      document.getElementById(maxId).textContent = formatTime(data.max);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    if (taskId) {
+      let apiUrl = `/api/tasks/${taskId}/statistics`;
+      if (problemsetCode) apiUrl += `?problemset_code=${encodeURIComponent(problemsetCode)}`;
+
+      fetch(apiUrl, { credentials: 'include' })
+        .then(r => {
+          if (!r.ok) throw new Error('Could not load statistics');
+          return r.json();
+        })
+        .then(data => {
+          document.getElementById('exercise-name').textContent = data.task_name || '—';
+          document.getElementById('total-completions').textContent = data.total_completions ?? 0;
+          document.getElementById('students-stats').textContent =
+            `${data.students_attempted ?? 0} / ${data.students_completed ?? 0}`;
+          document.getElementById('avg-tries').textContent = data.avg_tries ?? 0;
+
+          if (data.time_to_first_fail) setStatGroup('tff-avg', 'tff-min', 'tff-max', data.time_to_first_fail);
+          if (data.time_to_first_success) setStatGroup('tfs-avg', 'tfs-min', 'tfs-max', data.time_to_first_success);
+
+          // Thinking time — not yet tracked
+          if (data.thinking_time) {
+            setStatGroup('think-avg', 'think-min', 'think-max', data.thinking_time);
+          } else {
+            document.getElementById('thinking-time-content').innerHTML =
+              '<em class="text-muted">Not yet tracked.</em>';
+          }
+
+          // Number of moves — not yet tracked
+          if (data.number_of_moves) {
+            document.getElementById('moves-avg').textContent = data.number_of_moves.avg;
+            document.getElementById('moves-min').textContent = data.number_of_moves.min;
+            document.getElementById('moves-max').textContent = data.number_of_moves.max;
+          } else {
+            document.getElementById('moves-content').innerHTML =
+              '<em class="text-muted">Not yet tracked.</em>';
+          }
+
+          // Common mistakes
+          const logsDiv = document.getElementById('input-logs');
+          if (data.common_mistakes?.length > 0) {
+            let html = '<div style="margin-bottom:1rem"><strong>Most common mistakes:</strong></div>';
+            data.common_mistakes.forEach((m, i) => {
+              html += `
+                <div class="mistake-block">
+                  <div class="mistake-label">
+                    Mistake #${i + 1} (occurred ${m.count} time${m.count > 1 ? 's' : ''})
+                  </div>
+                  <pre class="mistake-code"><code>${escapeHtml(m.code)}</code></pre>
+                </div>`;
+            });
+            logsDiv.innerHTML = html;
+          } else {
+            logsDiv.innerHTML = '<em>No failed attempts recorded yet.</em>';
+          }
+        })
+        .catch(err => {
+          console.error('Error loading statistics:', err);
+          document.getElementById('exercise-name').textContent = 'Error loading data';
+          document.getElementById('input-logs').innerHTML = '<em>Could not load data.</em>';
         });
+    } else {
+      document.getElementById('exercise-name').textContent = 'No task ID provided';
+      document.getElementById('input-logs').innerHTML = '';
     }
   </script>
 

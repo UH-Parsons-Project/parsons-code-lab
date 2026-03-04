@@ -17,7 +17,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime as dt
 from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     CurrentUser,
@@ -40,7 +39,6 @@ from .student_auth import (
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
-    # Create tables from SQLAlchemy models and seed initial data
     await init_db()
     await seed_db()
     yield
@@ -48,7 +46,6 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)
 
-# CORS middleware for development (restrict in production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Change to specific origins in production
@@ -57,7 +54,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Get the base directory (parent of backend folder)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -133,7 +129,6 @@ if data_dir.exists():
     app.mount("/data", StaticFiles(directory=data_dir), name="data")
 
 
-# Test-only endpoint
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
 @app.post("/test/reset-db")
@@ -144,7 +139,6 @@ async def reset_test_db():
             status_code=403,
             detail="Test endpoints are only available in test mode"
         )
-
     try:
         await reset_db()
         await seed_db()
@@ -164,20 +158,17 @@ async def index():
 
 @app.get("/student_start_page", response_class=HTMLResponse)
 async def student_start_view():
-    """Serve the main index page."""
     index_path = BASE_DIR / "templates" / "student_start_page.html"
     return FileResponse(index_path)
 
 @app.get("/index.html", response_class=HTMLResponse)
 async def index_html():
-    """Serve the main index page (explicit path)."""
     index_path = BASE_DIR / "templates" / "index.html"
     return FileResponse(index_path)
 
 
 @app.get("/problem.html", response_class=HTMLResponse)
 async def problem_page():
-    """Serve the problem page."""
     problem_path = BASE_DIR / "templates" / "problem.html"
     return FileResponse(problem_path)
 
@@ -188,7 +179,6 @@ async def problemset_page(
     db: AsyncSession = Depends(get_db),
     student_session = Depends(get_current_student_session_no_update)
 ):
-    """Serve problemset page by unique link code. Redirects to tasks if session exists."""
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -199,7 +189,6 @@ async def problemset_page(
             detail=f"Problem set with code {unique_link_code} not found",
         )
 
-    # If student already has a session, redirect to tasks page
     if student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -211,7 +200,6 @@ async def problemset_page(
 
 @app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
 async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
-    """Serve task list page by unique link code."""
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -230,7 +218,6 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
 async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
-    """Serve task page by unique link code and task id."""
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -250,7 +237,6 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
 async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
-    """Serve task description page by unique link code and task id."""
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -270,7 +256,6 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
 async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
-    """Serve the start page for a task by unique link code and task id."""
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -290,7 +275,6 @@ async def problemset_task_start_page(unique_link_code: str, task_id: int, db: As
 
 @app.get("/exerciselist")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
-    """Serve the exercise list page (protected endpoint)."""
     try:
         await get_current_user(request, db)
     except HTTPException:
@@ -307,9 +291,6 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
 
 @app.get("/statics_view", response_class=HTMLResponse)
 async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
-    """
-    Serve the statics view page (protected endpoint).
-    """
     try:
         await get_current_user(request, db)
     except HTTPException:
@@ -331,10 +312,6 @@ async def login_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    OAuth2 compatible token login, get an access token for future requests.
-    Also sets an HTTP-only cookie for browser-based page navigation.
-    """
     user = await authenticate_user(form_data.username, form_data.password, db)
 
     if not user:
@@ -352,12 +329,11 @@ async def login_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
 
-    # Set HTTP-only cookie for browser page navigation
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
         samesite="lax",
         secure=False,  # Set to True in production with HTTPS
@@ -368,17 +344,11 @@ async def login_access_token(
 
 @app.get("/api/me", response_model=UserInfo)
 async def get_current_user_info(current_user: CurrentUser):
-    """
-    Get current authenticated user information.
-    """
     return UserInfo(username=current_user.username, email=current_user.email)
 
 
 @app.post("/api/logout")
 async def logout(response: Response):
-    """
-    Logout user by clearing the authentication cookie.
-    """
     response.delete_cookie(key="access_token", path="/")
     return {"message": "Successfully logged out"}
 
@@ -405,7 +375,6 @@ async def validate_nickname(
             detail="Nickname must be less than 21 characters",
         )
 
-    # Verify the task list exists
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     task_list = result.scalar_one_or_none()
@@ -416,14 +385,12 @@ async def validate_nickname(
             detail=f"Task list with code {unique_link_code} not found",
         )
 
-    # Create student session
     student_session = await create_student_session(
         task_list_id=task_list.id,
         nickname=nickname,
         db=db
     )
 
-    # Set persistent session cookie
     set_session_cookie(response, student_session.session_id)
 
     return {
@@ -435,10 +402,6 @@ async def validate_nickname(
 
 @app.get("/api/tasks/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
-    """
-    Get a single task by ID.
-    Returns the complete task data including code blocks and solution.
-    """
     stmt = select(Parsons).where(Parsons.id == task_id)
     result = await db.execute(stmt)
     task = result.scalar_one_or_none()
@@ -463,20 +426,13 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/tasks")
 async def list_tasks(db: AsyncSession = Depends(get_db)):
-    """
-    List all public tasks.
-    Returns: array of tasks with basic info (no code blocks).
-    """
     import json
 
-    query = select(Parsons).where(Parsons.is_public)
-
-    result = await db.execute(query)
+    result = await db.execute(select(Parsons).where(Parsons.is_public))
     tasks = result.scalars().all()
 
     task_list = []
     for task in tasks:
-        # Parse the description JSON to get the actual description text
         try:
             description_data = json.loads(task.description)
             description_text = description_data.get("description", "")
@@ -498,7 +454,6 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/problemsets/{problemset_id}", response_model=ProblemSetResponse)
 async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db)):
-    """Get a single problemset (task list) by id."""
     stmt = select(TaskList).where(TaskList.id == problemset_id)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -519,20 +474,22 @@ async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db))
     )
 
 
-
-
 @app.get("/api/problemsets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
-async def get_problemset_tasks_by_code(code: str, db: AsyncSession = Depends(get_db)):
-    """Get all tasks belonging to a problemset by unique link code."""
+async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
+    """Get all tasks belonging to a problemset. Accepts either a unique link code or an integer ID."""
+    # Determine whether the caller passed an integer ID or a string code
+    if code.isdigit():
+        problemset_stmt = select(TaskList).where(TaskList.id == int(code))
+    else:
+        problemset_stmt = select(TaskList).where(TaskList.unique_link_code == code)
 
-    problemset_stmt = select(TaskList).where(TaskList.unique_link_code == code)
     problemset_result = await db.execute(problemset_stmt)
     problemset = problemset_result.scalar_one_or_none()
 
     if not problemset:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {code} not found",
+            detail=f"Problem set '{code}' not found",
         )
 
     stmt = (
@@ -544,55 +501,15 @@ async def get_problemset_tasks_by_code(code: str, db: AsyncSession = Depends(get
     result = await db.execute(stmt)
     tasks = result.scalars().all()
 
-    problemset_tasks: list[ProblemSetTaskResponse] = []
-    for task in tasks:
-        problemset_tasks.append(
-            ProblemSetTaskResponse(
-                id=task.id,
-                title=task.title,
-                task_type=task.task_type,
-                created_at=task.created_at.isoformat(),
-            )
+    return [
+        ProblemSetTaskResponse(
+            id=task.id,
+            title=task.title,
+            task_type=task.task_type,
+            created_at=task.created_at.isoformat(),
         )
-
-    return problemset_tasks
-
-
-@app.get("/api/problemsets/{problemset_id:int}/tasks", response_model=list[ProblemSetTaskResponse])
-async def get_problemset_tasks(problemset_id: int, db: AsyncSession = Depends(get_db)):
-    """Get all tasks belonging to a problemset (task list) by id."""
-
-    problemset_stmt = select(TaskList.id).where(TaskList.id == problemset_id)
-    problemset_result = await db.execute(problemset_stmt)
-    problemset_exists = problemset_result.scalar_one_or_none()
-
-    if not problemset_exists:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problemset with id {problemset_id} not found",
-        )
-
-    stmt = (
-        select(Parsons)
-        .join(TaskListItem, TaskListItem.task_id == Parsons.id)
-        .where(TaskListItem.task_list_id == problemset_id)
-        .order_by(TaskListItem.id.asc())
-    )
-    result = await db.execute(stmt)
-    tasks = result.scalars().all()
-
-    problemset_tasks: list[ProblemSetTaskResponse] = []
-    for task in tasks:
-        problemset_tasks.append(
-            ProblemSetTaskResponse(
-                id=task.id,
-                title=task.title,
-                task_type=task.task_type,
-                created_at=task.created_at.isoformat(),
-            )
-        )
-
-    return problemset_tasks
+        for task in tasks
+    ]
 
 
 @app.post("/api/tasks/{task_id}/submit-result")
@@ -602,22 +519,15 @@ async def submit_test_result(
     db: AsyncSession = Depends(get_db),
     student_session: StudentSession | None = Depends(get_current_student_session)
 ):
-    """
-    Save a student's test result for a task.
-    Creates a new attempt record for each submission.
-    """
-    # If no student session, we can't save results
     if not student_session:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Student session required to save results"
         )
 
-    # Parse start time from localStorage or use current time as fallback
     if result.start_time:
         try:
-            from datetime import datetime as dt
-            task_started_at = dt.fromisoformat(result.start_time.replace('Z', '+00:00'))
+            task_started_at = datetime.fromisoformat(result.start_time.replace('Z', '+00:00'))
         except (ValueError, AttributeError):
             task_started_at = datetime.now(timezone.utc)
     else:
@@ -629,12 +539,137 @@ async def submit_test_result(
         task_started_at=task_started_at,
         completed_at=datetime.now(timezone.utc),
         success=result.success,
-        submitted_inputs={
-            "code": result.submitted_code
-        }
+        submitted_inputs={"code": result.submitted_code}
     )
     db.add(new_attempt)
-
     await db.commit()
 
     return {"status": "success", "message": "Test result saved"}
+
+
+@app.get("/api/tasks/{task_id}/statistics")
+async def get_task_statistics(
+    task_id: int,
+    current_user: CurrentUser,
+    problemset_code: str | None = None,
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify task exists
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with id {task_id} not found"
+        )
+
+    # Build attempts query, optionally filtered by problemset
+    attempts_query = select(TaskAttempt).where(TaskAttempt.task_id == task_id)
+
+    if problemset_code:
+        problemset_result = await db.execute(
+            select(TaskList).where(TaskList.unique_link_code == problemset_code)
+        )
+        problemset = problemset_result.scalar_one_or_none()
+
+        if problemset:
+            attempts_query = (
+                select(TaskAttempt)
+                .join(StudentSession, TaskAttempt.student_session_id == StudentSession.id)
+                .where(
+                    TaskAttempt.task_id == task_id,
+                    StudentSession.task_list_id == problemset.id
+                )
+            )
+
+    attempts_result = await db.execute(attempts_query)
+    attempts = attempts_result.scalars().all()
+
+    if not attempts:
+        return {
+            "task_name": task.title,
+            "total_completions": 0,
+            "students_attempted": 0,
+            "students_completed": 0,
+            "avg_tries": 0,
+            "time_to_first_fail": {"avg": 0, "min": 0, "max": 0},
+            "time_to_first_success": {"avg": 0, "min": 0, "max": 0},
+            "thinking_time": None,
+            "number_of_moves": None,
+            "common_mistakes": []
+        }
+
+    successful_attempts = [a for a in attempts if a.success]
+    failed_attempts = [a for a in attempts if not a.success]
+
+    students_attempted = len(set(a.student_session_id for a in attempts))
+    students_completed = len(set(a.student_session_id for a in successful_attempts))
+
+    # Average tries before first success (per student)
+    student_attempts: dict = {}
+    for attempt in attempts:
+        student_attempts.setdefault(attempt.student_session_id, []).append(attempt)
+
+    tries_before_success = []
+    for session_attempts in student_attempts.values():
+        sorted_attempts = sorted(session_attempts, key=lambda a: a.completed_at or datetime.now(timezone.utc))
+        for idx, attempt in enumerate(sorted_attempts):
+            if attempt.success:
+                tries_before_success.append(idx + 1)
+                break
+
+    avg_tries = sum(tries_before_success) / len(tries_before_success) if tries_before_success else 0
+
+    # Time to first fail
+    tff_values = [
+        (a.completed_at - a.task_started_at).total_seconds()
+        for a in failed_attempts
+        if a.completed_at and a.task_started_at
+    ]
+    tff = {
+        "avg": round(sum(tff_values) / len(tff_values), 2) if tff_values else 0,
+        "min": round(min(tff_values), 2) if tff_values else 0,
+        "max": round(max(tff_values), 2) if tff_values else 0,
+    }
+
+    # Time to first success
+    tfs_values = []
+    for session_attempts in student_attempts.values():
+        sorted_attempts = sorted(session_attempts, key=lambda a: a.completed_at or datetime.now(timezone.utc))
+        for attempt in sorted_attempts:
+            if attempt.success and attempt.completed_at and attempt.task_started_at:
+                tfs_values.append((attempt.completed_at - attempt.task_started_at).total_seconds())
+                break
+
+    tfs = {
+        "avg": round(sum(tfs_values) / len(tfs_values), 2) if tfs_values else 0,
+        "min": round(min(tfs_values), 2) if tfs_values else 0,
+        "max": round(max(tfs_values), 2) if tfs_values else 0,
+    }
+
+    # Common mistakes (top 5 most frequent failed submissions)
+    mistake_counts: dict = {}
+    for attempt in failed_attempts:
+        if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
+            code = attempt.submitted_inputs.get("code", "")
+            if code:
+                mistake_counts[code] = mistake_counts.get(code, 0) + 1
+
+    common_mistakes = [
+        {"code": code, "count": count}
+        for code, count in sorted(mistake_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    ]
+
+    return {
+        "task_name": task.title,
+        "total_completions": len(attempts),
+        "students_attempted": students_attempted,
+        "students_completed": students_completed,
+        "avg_tries": round(avg_tries, 2),
+        "time_to_first_fail": tff,
+        "time_to_first_success": tfs,
+        "thinking_time": None,   # Not yet tracked — requires first-action event
+        "number_of_moves": None, # Not yet tracked — requires move_events table
+        "common_mistakes": common_mistakes,
+    }
