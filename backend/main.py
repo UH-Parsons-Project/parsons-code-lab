@@ -478,7 +478,8 @@ async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db))
 async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     """Get all tasks belonging to a problemset. Accepts either a unique link code or an integer ID."""
     # Determine whether the caller passed an integer ID or a string code
-    if code.isdigit():
+    code_str = str(code)
+    if code_str.isdigit():
         problemset_stmt = select(TaskList).where(TaskList.id == int(code))
     else:
         problemset_stmt = select(TaskList).where(TaskList.unique_link_code == code)
