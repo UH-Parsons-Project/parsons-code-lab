@@ -59,6 +59,33 @@
 	width: auto;
 }
 
+.login {
+  background-color: rgb(164, 246, 150);
+  color: black;
+  border-radius: 4px;
+  border: none;
+  padding: 5px 30px;
+  cursor: pointer;
+}
+
+.login:hover {
+	background-color: rgb(192, 241, 184);
+}
+
+.register {
+  background-color: rgb(159, 244, 247);
+  color: black;
+  border-radius: 4px;
+  border: none;
+  padding: 5px 30px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.register:hover {
+	background-color: rgb(204, 247, 248);
+}
+
 .navbar {
-  background-color: rgb(125, 94, 186);
+  background-color: rgb(168, 180, 247);
 }

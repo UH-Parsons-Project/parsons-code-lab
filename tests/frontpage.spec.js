@@ -1,11 +1,14 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-test('has title', async ({ page }) => {
+test('has logo image', async ({ page }) => {
   await page.goto('/');
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Parsons Code Lab/);
+  // Check that the logo image is visible
+  const logo = page.locator('img.navbar-logo');
+  await expect(logo).toBeVisible();
+  await expect(logo).toHaveAttribute('src', '/ohtuproj_logo.png');
+  await expect(logo).toHaveAttribute('alt', 'Parsons Code Lab Logo');
 });
 
 test('shows login form on front page', async ({ page }) => {

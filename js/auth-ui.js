@@ -151,6 +151,16 @@ export function initLoginPage() {
 		});
 	}
 	
+	// Handle register button
+	const registerBtn = document.getElementById('register-btn');
+	// console.log('Register button found:', registerBtn); // Debug log
+	if (registerBtn) {
+		registerBtn.addEventListener('click', function(e) {
+			// console.log('Register button clicked'); // Debug log
+			window.location.href = '/register';
+		});
+	}
+	
 	// Check authentication on page load
 	checkAuth();
 }
