@@ -55,6 +55,17 @@ services:
         condition: service_healthy
     profiles: ["test"]  # Only starts with: docker compose --profile test
 
+  # Unit test runner
+  unittest:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile.unittest
+    volumes:
+      - ./tests:/usr/src/app/tests
+      - ./backend:/usr/src/app/backend
+      - ./htmlcov:/usr/src/app/htmlcov
+
   # Playwright test runner
   test:
     profiles: ["test"]
