@@ -488,10 +488,22 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
         )
 
     # Basic length checks consistent with model limits
-    if len(username) > 100 or len(email) > 100:
+    if len(username) > 50 or len(email) > 100:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="username or email too long",
+        )
+
+    if len(username) < 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username must have a minimum length of 5 characters",
+        )
+
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="password must have a minimum length of 8 characters",
         )
 
     # Check uniqueness
