@@ -1,1481 +1,767 @@
 """
-Unit tests for main API endpoints.
+Unit tests for backend/main.py.
+
+Uses shared fixtures from conftest.py:
+  - test_teacher / inactive_teacher  (Teacher rows)
+  - task                             (a public Parsons problem)
+  - private_task                     (a non-public Parsons problem)
+  - problemset                       (TaskList with unique_link_code "WEEK1")
+  - problemset_with_task             (problemset + task linked via TaskListItem)
+  - student_session                  (StudentSession for problemset)
+
+SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
-from unittest.mock import AsyncMock
+import uuid
+from datetime import datetime
 
 import pytest
-import uuid
-from datetime import datetime, timezone
-from fastapi import status
 from sqlalchemy import select
 
-from backend import main as main_module
 from backend.auth import create_access_token
-from backend.models import Parsons, TaskList, TaskListItem, StudentSession, TaskAttempt, Teacher
-
-class TestStaticPages:
-    """Tests for static page endpoints."""
-
-    async def test_index_page(self, client):
-        """Test that the index page loads."""
-        response = await client.get("/")
-        assert response.status_code == status.HTTP_200_OK
-
-    async def test_index_html_explicit(self, client):
-        """Test that index.html loads explicitly."""
-        response = await client.get("/index.html")
-        assert response.status_code == status.HTTP_200_OK
-
-    async def test_problem_page(self, client):
-        """Test that the problem page loads."""
-        response = await client.get("/problem.html")
-        assert response.status_code == status.HTTP_200_OK
-
-    async def test_student_start_page(self, client):
-        """Test that the student start page loads."""
-        response = await client.get("/student_start_page")
-        assert response.status_code == status.HTTP_200_OK
-
-
-class TestProtectedPages:
-    """Tests for protected page endpoints that require authentication."""
-
-    async def test_exercise_list_without_auth(self, client):
-        """Test that exercise list redirects when not authenticated."""
-        response = await client.get("/exerciselist", follow_redirects=False)
-        assert response.status_code == status.HTTP_303_SEE_OTHER
-        assert response.headers["location"] == "/index.html"
-
-    async def test_exercise_list_with_auth(self, client, test_teacher):
-        """Test that exercise list loads for authenticated users."""
-        token = create_access_token({"sub": test_teacher.username})
-        client.cookies.set("access_token", token)
-        response = await client.get("/exerciselist")
-        client.cookies.clear()
-        assert response.status_code == status.HTTP_200_OK
-        assert "no-store" in response.headers.get("cache-control", "")
-
-    async def test_statics_view_without_auth(self, client):
-        """Test that statics view redirects when not authenticated."""
-        response = await client.get("/statics_view", follow_redirects=False)
-        assert response.status_code == status.HTTP_303_SEE_OTHER
-        assert response.headers["location"] == "/index.html"
-
-    async def test_statics_view_with_auth(self, client, test_teacher):
-        """Test that statics view loads for authenticated users."""
-        token = create_access_token({"sub": test_teacher.username})
-        client.cookies.set("access_token", token)
-        response = await client.get("/statics_view")
-        client.cookies.clear()
-        assert response.status_code == status.HTTP_200_OK
-        assert "no-store" in response.headers.get("cache-control", "")
-
-
-class TestLoginEndpoint:
-    """Tests for login endpoint."""
-
-    async def test_login_with_valid_credentials(self, client, test_teacher):
-        """Test login with valid username and password."""
-        response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "testteacher",
-                "password": "testpassword123"
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "access_token" in data
-        assert data["token_type"] == "bearer"
-
-        # Check that cookie is set
-        assert "access_token" in response.cookies
-
-    async def test_login_with_invalid_username(self, client):
-        """Test login with non-existent username."""
-        response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "nonexistent",
-                "password": "testpassword123"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Incorrect username or password" in response.json()["detail"]
-
-    async def test_login_with_invalid_password(self, client, test_teacher):
-        """Test login with wrong password."""
-        response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "testteacher",
-                "password": "wrongpassword"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Incorrect username or password" in response.json()["detail"]
-
-    async def test_login_with_inactive_user(self, client, inactive_teacher):
-        """Test login with inactive user account."""
-        response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "inactiveteacher",
-                "password": "testpassword123"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        # Inactive users are treated as invalid credentials for security
-        assert "Incorrect username or password" in response.json()["detail"]
-
-    async def test_login_with_empty_credentials(self, client):
-        """Test login with empty username and password."""
-        response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "",
-                "password": ""
-            }
-        )
-
-        # FastAPI validates form data and returns 422 for empty required fields
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-
-class TestRegisterEndpoint:
-    """Tests for user registration endpoint."""
-
-    async def test_register_with_valid_data(self, client, db_session):
-        """Test successful registration with valid data."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "newteacher",
-                "password": "securepassword123",
-                "password_confirm": "securepassword123",
-                "email": "newteacher@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["status"] == "success"
-        assert "id" in data
-        assert isinstance(data["id"], int)
-
-    async def test_register_page_loads(self, client):
-        """Test that the registration page loads successfully."""
-        response = await client.get("/register")
-        assert response.status_code == status.HTTP_200_OK
-
-    async def test_register_missing_username(self, client):
-        """Test registration fails when username is missing."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_missing_password(self, client):
-        """Test registration fails when password is missing."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password_confirm": "password123",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_missing_email(self, client):
-        """Test registration fails when email is missing."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "password123",
-                "password_confirm": "password123"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_empty_username(self, client):
-        """Test registration fails with empty username."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_empty_password(self, client):
-        """Test registration fails with empty password."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "",
-                "password_confirm": "",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_empty_email(self, client):
-        """Test registration fails with empty email."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": ""
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_whitespace_only_username(self, client):
-        """Test registration fails with whitespace-only username."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "   ",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_whitespace_only_email(self, client):
-        """Test registration fails with whitespace-only email."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "   "
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "required" in response.json()["detail"].lower()
-
-    async def test_register_password_mismatch(self, client):
-        """Test registration fails when passwords don't match."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "password123",
-                "password_confirm": "differentpassword",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "do not match" in response.json()["detail"].lower()
-
-    async def test_register_duplicate_username(self, client, test_teacher):
-        """Test registration fails with duplicate username."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testteacher",  # Already exists
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "different@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "already exists" in response.json()["detail"].lower()
-
-    async def test_register_duplicate_email(self, client, test_teacher):
-        """Test registration fails with duplicate email."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "differentuser",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "test@example.com"  # Already exists
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "already exists" in response.json()["detail"].lower()
-
-    async def test_register_username_too_long(self, client):
-        """Test registration fails when username exceeds max length."""
-        long_username = "a" * 101  # Max is 100
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": long_username,
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "too long" in response.json()["detail"].lower()
-
-    async def test_register_email_too_long(self, client):
-        """Test registration fails when email exceeds max length."""
-        long_email = "a" * 90 + "@example.com"  # Total > 100
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": long_email
-            }
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "too long" in response.json()["detail"].lower()
-
-    async def test_register_username_at_max_length(self, client):
-        """Test registration succeeds with username at max length (100)."""
-        max_length_username = "a" * 100
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": max_length_username,
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "test@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "success"
-
-    async def test_register_email_at_max_length(self, client):
-        """Test registration succeeds with email at max length (100)."""
-        # Create an email exactly 100 characters
-        max_length_email = "a" * 87 + "@example.com"  # Total = 100
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "testuser",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": max_length_email
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "success"
-
-    async def test_register_invalid_json(self, client):
-        """Test registration fails with invalid JSON payload."""
-        response = await client.post(
-            "/api/register",
-            content="not valid json",
-            headers={"Content-Type": "application/json"}
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "invalid json" in response.json()["detail"].lower()
-
-    async def test_register_username_with_spaces(self, client):
-        """Test registration with username containing spaces (should be trimmed)."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "  spaceuser  ",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "  space@example.com  "
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["status"] == "success"
-
-    async def test_register_and_verify_password_hashed(self, client, db_session):
-        """Test that password is properly hashed after registration."""
-        from sqlalchemy import select
-        from backend.models import Teacher
-
-        password = "testpass123"
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "hashtest",
-                "password": password,
-                "password_confirm": password,
-                "email": "hashtest@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verify password is hashed in database
-        result = await db_session.execute(
-            select(Teacher).where(Teacher.username == "hashtest")
-        )
-        teacher = result.scalar_one_or_none()
-
-        assert teacher is not None
-        assert teacher.password_hash != password  # Should be hashed
-        assert teacher.verify_password(password)  # But should verify correctly
-
-    async def test_register_creates_active_user(self, client, db_session):
-        """Test that newly registered user is active by default."""
-        from sqlalchemy import select
-        from backend.models import Teacher
-
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "activeuser",
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "activeuser@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verify user is active
-        result = await db_session.execute(
-            select(Teacher).where(Teacher.username == "activeuser")
-        )
-        teacher = result.scalar_one_or_none()
-
-        assert teacher is not None
-        assert teacher.is_active is True
-
-    async def test_register_and_login_flow(self, client):
-        """Test complete flow: register and then login."""
-        # Step 1: Register
-        register_response = await client.post(
-            "/api/register",
-            json={
-                "username": "flowuser",
-                "password": "flowpassword123",
-                "password_confirm": "flowpassword123",
-                "email": "flowuser@example.com"
-            }
-        )
-
-        assert register_response.status_code == status.HTTP_200_OK
-
-        # Step 2: Login with the newly created account
-        login_response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "flowuser",
-                "password": "flowpassword123"
-            }
-        )
-
-        assert login_response.status_code == status.HTTP_200_OK
-        data = login_response.json()
-        assert "access_token" in data
-        assert data["token_type"] == "bearer"
-
-    async def test_register_special_characters_in_password(self, client):
-        """Test registration with special characters in password."""
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "specialuser",
-                "password": "P@ssw0rd!#$%",
-                "password_confirm": "P@ssw0rd!#$%",
-                "email": "special@example.com"
-            }
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "success"
-
-    async def test_register_case_sensitive_username(self, client, test_teacher):
-        """Test that username comparison is case-sensitive for uniqueness."""
-        # Try to register with different case
-        response = await client.post(
-            "/api/register",
-            json={
-                "username": "TESTTEACHER",  # Different case from existing
-                "password": "password123",
-                "password_confirm": "password123",
-                "email": "different@example.com"
-            }
-        )
-
-        # This should succeed since SQL is case-sensitive by default
-        # Unless the database is configured otherwise
-        assert response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
-
-
-class TestCurrentUserEndpoint:
-    """Tests for current user info endpoint."""
-
-    async def test_get_current_user_info_with_auth(self, client, test_teacher):
-        """Test getting current user info when authenticated."""
-        token = create_access_token({"sub": test_teacher.username})
-
-        response = await client.get(
-            "/api/me",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["username"] == test_teacher.username
-        assert data["email"] == test_teacher.email
-
-    async def test_get_current_user_info_without_auth(self, client):
-        """Test getting current user info without authentication."""
-        response = await client.get("/api/me")
-
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    async def test_get_current_user_info_with_invalid_token(self, client):
-        """Test getting current user info with invalid token."""
-        response = await client.get(
-            "/api/me",
-            headers={"Authorization": "Bearer invalid_token"}
-        )
-
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-class TestLogoutEndpoint:
-    """Tests for logout endpoint."""
-
-    async def test_logout(self, client):
-        """Test logout clears the access token cookie."""
-        response = await client.post("/api/logout")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["message"] == "Successfully logged out"
-
-        # Check that cookie is deleted (set to empty or expired)
-        if "access_token" in response.cookies:
-            assert response.cookies["access_token"] == "" or \
-                   response.cookies.get("max-age") == "0"
-
-    async def test_logout_without_prior_login(self, client):
-        """Test logout works even without being logged in."""
-        response = await client.post("/api/logout")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["message"] == "Successfully logged out"
-
-
-class TestCORSConfiguration:
-    """Tests for CORS middleware configuration."""
-
-    async def test_cors_headers_present(self, client):
-        """Test that CORS headers are present in responses."""
-        response = await client.options(
-            "/api/me",
-            headers={
-                "Origin": "http://localhost:3000",
-                "Access-Control-Request-Method": "GET"
-            }
-        )
-
-        # CORS middleware should handle OPTIONS requests
-        assert response.status_code in [status.HTTP_200_OK, status.HTTP_204_NO_CONTENT]
-
-
-class TestIntegrationScenarios:
-    """Integration tests for common user workflows."""
-
-    async def test_complete_login_and_access_flow(self, client, test_teacher):
-        """Test complete flow: login, access protected resource, logout."""
-        # Step 1: Login
-        login_response = await client.post(
-            "/api/login/access-token",
-            data={
-                "username": "testteacher",
-                "password": "testpassword123"
-            }
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-        token = login_response.json()["access_token"]
-
-        # Step 2: Access user info
-        me_response = await client.get(
-            "/api/me",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        assert me_response.status_code == status.HTTP_200_OK
-        assert me_response.json()["username"] == "testteacher"
-
-        # Step 3: Access protected page
-        client.cookies.set("access_token", token)
-        exercise_response = await client.get("/exerciselist")
-        client.cookies.clear()
-        assert exercise_response.status_code == status.HTTP_200_OK
-
-        # Step 4: Logout
-        logout_response = await client.post("/api/logout")
-        assert logout_response.status_code == status.HTTP_200_OK
-
-
-class TestTasksEndpoints:
-    """Tests for tasks API endpoints."""
-
-    async def test_get_task_by_id_success(self, client, db_session, test_teacher):
-        """Test that a task can be fetched by ID."""
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Sample Task",
-            description='{"description": "Solve this task"}',
-            task_type="python",
-            code_blocks={"blocks": ["print('hello')"]},
-            correct_solution={"solution": ["print('hello')"]},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        response = await client.get(f"/api/tasks/{task.id}")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == task.id
-        assert data["title"] == "Sample Task"
-        assert data["description"] == '{"description": "Solve this task"}'
-        assert data["task_type"] == "python"
-        assert data["is_public"] is True
-        assert "created_at" in data
-
-    async def test_get_task_by_id_not_found(self, client):
-        """Test that unknown task ID returns 404."""
-        response = await client.get("/api/tasks/999999")
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "Task with id 999999 not found" in response.json()["detail"]
-
-    async def test_list_tasks_returns_only_public_tasks(
-        self, client, db_session, test_teacher
-    ):
-        """Test that task listing excludes private tasks."""
-        public_task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Public Task",
-            description='{"description": "Visible"}',
-            task_type="python",
-            code_blocks={"blocks": ["a"]},
-            correct_solution={"solution": ["a"]},
-            is_public=True,
-        )
-        private_task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Private Task",
-            description='{"description": "Hidden"}',
-            task_type="python",
-            code_blocks={"blocks": ["b"]},
-            correct_solution={"solution": ["b"]},
-            is_public=False,
-        )
-        db_session.add(public_task)
-        db_session.add(private_task)
-        await db_session.commit()
-
-        response = await client.get("/api/tasks")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
-        titles = [item["title"] for item in data]
-        assert "Public Task" in titles
-        assert "Private Task" not in titles
-
-    async def test_list_tasks_parses_description_json(
-        self, client, db_session, test_teacher
-    ):
-        """Test that /api/tasks extracts description text from JSON."""
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="JSON Description Task",
-            description='{"description": "Readable description"}',
-            task_type="python",
-            code_blocks={"blocks": ["c"]},
-            correct_solution={"solution": ["c"]},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-
-        response = await client.get("/api/tasks")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        task_payload = next(item for item in data if item["title"] == task.title)
-        assert task_payload["description"] == "Readable description"
-
-    async def test_list_tasks_invalid_description_json_returns_empty_description(
-        self, client, db_session, test_teacher
-    ):
-        """Test that invalid JSON descriptions are handled gracefully."""
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Broken Description Task",
-            description="this is not valid json",
-            task_type="python",
-            code_blocks={"blocks": ["d"]},
-            correct_solution={"solution": ["d"]},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-
-        response = await client.get("/api/tasks")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        task_payload = next(item for item in data if item["title"] == task.title)
-        assert task_payload["description"] == ""
-
-
-class TestTestModeEndpoint:
-    """Tests for test-only reset database endpoint."""
-
-    async def test_reset_test_db_returns_403_when_test_mode_disabled(
-        self, client, monkeypatch
-    ):
-        """Test that endpoint is blocked when TEST_MODE is false."""
-        monkeypatch.setattr(main_module, "TEST_MODE", False)
-
-        response = await client.post("/test/reset-db")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "only available in test mode" in response.json()["detail"]
-
-    async def test_reset_test_db_success_when_test_mode_enabled(
-        self, client, monkeypatch
-    ):
-        """Test successful DB reset flow in test mode."""
-        monkeypatch.setattr(main_module, "TEST_MODE", True)
-        reset_mock = AsyncMock()
-        seed_mock = AsyncMock()
-        monkeypatch.setattr(main_module, "reset_db", reset_mock)
-        monkeypatch.setattr(main_module, "seed_db", seed_mock)
-
-        response = await client.post("/test/reset-db")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "success"
-        reset_mock.assert_awaited_once()
-        seed_mock.assert_awaited_once()
-
-    async def test_reset_test_db_returns_500_on_exception(self, client, monkeypatch):
-        """Test reset endpoint returns 500 when reset fails."""
-        monkeypatch.setattr(main_module, "TEST_MODE", True)
-        failing_reset = AsyncMock(side_effect=RuntimeError("boom"))
-        seed_mock = AsyncMock()
-        monkeypatch.setattr(main_module, "reset_db", failing_reset)
-        monkeypatch.setattr(main_module, "seed_db", seed_mock)
-
-        response = await client.post("/test/reset-db")
-
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "Failed to reset database" in response.json()["detail"]
-        seed_mock.assert_not_awaited()
-
-
-class TestNicknameValidation:
-    """Tests for nickname validation endpoint."""
-
-    async def test_validate_nickname_success_trims_whitespace(
-        self, client, db_session, test_teacher
-    ):
-        problemset = TaskList(
-            title="Nickname Set",
-            unique_link_code="NICK01",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-
-        response = await client.post(
-            "/api/validate-nickname",
-            json={"nickname": "  Alice  ", "unique_link_code": "NICK01"},
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        payload = response.json()
-        assert payload["status"] == "valid"
-        assert payload["nickname"] == "Alice"
-        assert "session_id" in payload
-
-    async def test_validate_nickname_empty_after_trim_returns_400(self, client):
-        response = await client.post(
-            "/api/validate-nickname",
-            json={"nickname": "    ", "unique_link_code": "NICK01"},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "cannot be empty" in response.json()["detail"]
-
-    async def test_validate_nickname_too_long_returns_400(self, client):
-        response = await client.post(
-            "/api/validate-nickname",
-            json={"nickname": "a" * 21, "unique_link_code": "NICK01"},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "less than 21" in response.json()["detail"]
-
-
-class TestProblemsetApiEndpoints:
-    """Tests for problemset API endpoints in main.py."""
-
-    async def test_get_problemset_by_id_success(self, client, db_session, test_teacher):
-        problemset = TaskList(
-            title="Algorithms Set",
-            unique_link_code="ALGO01",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        response = await client.get(f"/api/problemsets/{problemset.id}")
-
-        assert response.status_code == status.HTTP_200_OK
-        payload = response.json()
-        assert payload["id"] == problemset.id
-        assert payload["title"] == "Algorithms Set"
-        assert payload["unique_link_code"] == "ALGO01"
-        assert payload["teacher_id"] == test_teacher.id
-        assert "created_at" in payload
-
-    async def test_get_problemset_by_id_not_found(self, client):
-        response = await client.get("/api/problemsets/999999")
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in response.json()["detail"]
-
-    async def test_get_problemset_tasks_by_code_success_ordered(
-        self, client, db_session, test_teacher
-    ):
-        problemset = TaskList(
-            title="Code Route Set",
-            unique_link_code="CODE42",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task_a = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Task A",
-            description='{"description": "A"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        task_b = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Task B",
-            description='{"description": "B"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task_a)
-        db_session.add(task_b)
-        await db_session.commit()
-        await db_session.refresh(task_a)
-        await db_session.refresh(task_b)
-
-        db_session.add(TaskListItem(task_list_id=problemset.id, task_id=task_b.id))
-        db_session.add(TaskListItem(task_list_id=problemset.id, task_id=task_a.id))
-        await db_session.commit()
-
-        response = await client.get("/api/problemsets/CODE42/tasks")
-
-        assert response.status_code == status.HTTP_200_OK
-        payload = response.json()
-        assert [item["title"] for item in payload] == ["Task B", "Task A"]
-
-    async def test_get_problemset_tasks_by_code_not_found(self, client):
-        response = await client.get("/api/problemsets/NOPE/tasks")
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in response.json()["detail"]
-
-    async def test_get_problemset_tasks_by_id_success(self, db_session, test_teacher):
-        problemset = TaskList(
-            title="ID Route Set",
-            unique_link_code="ID42",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Linked Task",
-            description='{"description": "Linked"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        db_session.add(TaskListItem(task_list_id=problemset.id, task_id=task.id))
-        await db_session.commit()
-
-        payload = await main_module.get_problemset_tasks(problemset.id, db_session)
-
-        assert len(payload) == 1
-        assert payload[0].id == task.id
-        assert payload[0].title == "Linked Task"
-
-    async def test_get_problemset_tasks_by_id_not_found(self, db_session):
-        with pytest.raises(main_module.HTTPException) as exc_info:
-            await main_module.get_problemset_tasks(999999, db_session)
-
-        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in exc_info.value.detail
-
-
-class TestProblemsetPageEndpoints:
-    """Tests for HTML /set/... routes."""
-
-    async def test_problemset_page_valid_code(self, client, db_session, test_teacher):
-        problemset = TaskList(
-            title="Page Set",
-            unique_link_code="PAGE01",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-
-        response = await client.get("/set/PAGE01")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.headers.get("X-Problemset-Code") == "PAGE01"
-
-    async def test_problemset_tasks_page_valid_code(self, client, db_session, test_teacher):
-        problemset = TaskList(
-            title="Tasks Page Set",
-            unique_link_code="PAGE02",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-
-        response = await client.get("/set/PAGE02/tasks")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.headers.get("X-Problemset-Code") == "PAGE02"
-
-    async def test_problemset_task_page_valid_code(self, client, db_session, test_teacher):
-        problemset = TaskList(
-            title="Task Page Set",
-            unique_link_code="PAGE03",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-
-        response = await client.get("/set/PAGE03/tasks/123")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.headers.get("X-Problemset-Code") == "PAGE03"
-        assert response.headers.get("X-Task-Id") == "123"
-
-    async def test_problemset_task_description_page_valid_code(
-        self, client, db_session, test_teacher
-    ):
-        problemset = TaskList(
-            title="Description Page Set",
-            unique_link_code="PAGE04",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-
-        response = await client.get("/set/PAGE04/tasks/456/description")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.headers.get("X-Problemset-Code") == "PAGE04"
-        assert response.headers.get("X-Task-Id") == "456"
-
-    async def test_problemset_task_start_page_valid_code(self, client, db_session, test_teacher):
-        problemset = TaskList(
-            title="Start Page Set",
-            unique_link_code="PAGE05",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-
-        response = await client.get("/set/PAGE05/tasks/789/start")
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.headers.get("X-Problemset-Code") == "PAGE05"
-        assert response.headers.get("X-Task-Id") == "789"
-
-    @pytest.mark.parametrize(
-        "path",
-        [
-            "/set/NO_SUCH_CODE",
-            "/set/NO_SUCH_CODE/tasks",
-            "/set/NO_SUCH_CODE/tasks/1",
-            "/set/NO_SUCH_CODE/tasks/1/description",
-            "/set/NO_SUCH_CODE/tasks/1/start",
-        ],
+from backend.main import app
+from backend.models import Parsons, StudentSession, TaskAttempt, TaskList, TaskListItem
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _auth(username: str) -> dict:
+    """Return an Authorization header dict for the given teacher username."""
+    return {"Authorization": f"Bearer {create_access_token({'sub': username})}"}
+
+
+def _submit(task_id: int, *, success=True, code="print(1)",
+            start_time="2026-01-01T10:00:00") -> dict:
+    """Build a submit-result JSON body."""
+    payload = {
+        "task_id": task_id,
+        "success": success,
+        "submitted_code": code,
+        "test_output": "ok" if success else "fail",
+        "repr_code": code,
+    }
+    if start_time is not None:
+        payload["start_time"] = start_time
+    return payload
+
+
+async def _add_attempt(db_session, ss_id: int, task_id: int, *,
+                        success: bool, code="x",
+                        start=None, end=None) -> TaskAttempt:
+    start = start or datetime(2026, 1, 1, 0, 0, 0)
+    end = end or datetime(2026, 1, 1, 0, 1, 0)
+    a = TaskAttempt(
+        student_session_id=ss_id,
+        task_id=task_id,
+        task_started_at=start,
+        completed_at=end,
+        success=success,
+        submitted_inputs={"code": code},
     )
-    async def test_problemset_set_routes_invalid_code_return_404(self, client, path):
-        response = await client.get(path)
+    db_session.add(a)
+    await db_session.commit()
+    await db_session.refresh(a)
+    return a
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in response.json()["detail"]
+
+# ---------------------------------------------------------------------------
+# /test/reset-db
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestResetDb:
+    async def test_forbidden_when_test_mode_is_false(self, client):
+        import backend.main as m
+        original = m.TEST_MODE
+        m.TEST_MODE = False
+        try:
+            r = await client.post("/test/reset-db")
+            assert r.status_code == 403
+        finally:
+            m.TEST_MODE = original
 
 
-class TestSubmitTestResultEndpoint:
-    """Tests for POST /api/tasks/{task_id}/submit-result endpoint."""
+# ---------------------------------------------------------------------------
+# Static HTML pages
+# ---------------------------------------------------------------------------
 
-    async def test_submit_result_without_student_session_returns_401(
-        self, client, db_session, test_teacher
-    ):
-        """Test that submitting without a student session returns 401."""
-        # Create a task
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
+@pytest.mark.asyncio
+class TestStaticPages:
+    async def test_index_returns_200(self, client):
+        assert (await client.get("/")).status_code == 200
+
+    async def test_index_html_returns_200(self, client):
+        assert (await client.get("/index.html")).status_code == 200
+
+    async def test_problem_html_returns_200(self, client):
+        assert (await client.get("/problem.html")).status_code == 200
+
+    async def test_register_page_returns_200(self, client):
+        assert (await client.get("/register")).status_code == 200
+
+    async def test_student_start_page_returns_200(self, client):
+        assert (await client.get("/student_start_page")).status_code == 200
+
+    async def test_exerciselist_unauthenticated_redirects(self, client):
+        r = await client.get("/exerciselist", follow_redirects=False)
+        assert r.status_code == 303
+        assert "/index.html" in r.headers["location"]
+
+    async def test_exerciselist_authenticated_returns_200(self, client, test_teacher):
+        r = await client.get("/exerciselist", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+    async def test_statics_view_unauthenticated_redirects(self, client):
+        r = await client.get("/statics_view", follow_redirects=False)
+        assert r.status_code == 303
+        assert "/index.html" in r.headers["location"]
+
+    async def test_statics_view_authenticated_returns_200(self, client, test_teacher):
+        r = await client.get("/statics_view", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# /set/{unique_link_code}  and sub-pages
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestProblemsetPages:
+    async def test_unknown_code_returns_404(self, client):
+        assert (await client.get("/set/NOCODE")).status_code == 404
+
+    async def test_no_session_serves_nickname_page(self, client, problemset):
+        r = await client.get(f"/set/{problemset.unique_link_code}", follow_redirects=False)
+        assert r.status_code == 200
+
+    async def test_active_session_redirects_to_tasks(self, client, problemset, student_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        r = await client.get(f"/set/{problemset.unique_link_code}", follow_redirects=False)
+        client.cookies.clear()
+        assert r.status_code == 303
+        assert "/tasks" in r.headers["location"]
+
+    async def test_tasks_page_unknown_code_returns_404(self, client):
+        assert (await client.get("/set/NOCODE/tasks")).status_code == 404
+
+    async def test_tasks_page_returns_200(self, client, problemset):
+        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks")).status_code == 200
+
+    async def test_task_page_unknown_code_returns_404(self, client):
+        assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
+
+    async def test_task_page_returns_200(self, client, problemset, task):
+        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}")).status_code == 200
+
+    async def test_description_page_unknown_code_returns_404(self, client):
+        assert (await client.get("/set/NOCODE/tasks/1/description")).status_code == 404
+
+    async def test_description_page_returns_200(self, client, problemset, task):
+        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}/description")).status_code == 200
+
+    async def test_start_page_unknown_code_returns_404(self, client):
+        assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
+
+    async def test_start_page_returns_200(self, client, problemset, task):
+        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}/start")).status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# POST /api/login/access-token
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestLogin:
+    async def test_valid_credentials_return_token(self, client, test_teacher):
+        r = await client.post(
+            "/api/login/access-token",
+            data={"username": "testteacher", "password": "testpassword123"},
         )
-        db_session.add(task)
+        assert r.status_code == 200
+        assert "access_token" in r.json()
+        assert r.json()["token_type"] == "bearer"
+
+    async def test_valid_login_sets_cookie(self, client, test_teacher):
+        r = await client.post(
+            "/api/login/access-token",
+            data={"username": "testteacher", "password": "testpassword123"},
+        )
+        assert "access_token" in r.cookies
+
+    async def test_wrong_password_returns_400(self, client, test_teacher):
+        r = await client.post(
+            "/api/login/access-token",
+            data={"username": "testteacher", "password": "wrong"},
+        )
+        assert r.status_code == 400
+        assert "Incorrect" in r.json()["detail"]
+
+    async def test_nonexistent_user_returns_400(self, client):
+        r = await client.post(
+            "/api/login/access-token",
+            data={"username": "ghost", "password": "pass"},
+        )
+        assert r.status_code == 400
+
+    async def test_inactive_user_returns_400(self, client, inactive_teacher):
+        # authenticate_user() returns None for inactive users, so the response
+        # is "Incorrect username or password" rather than "Inactive user".
+        r = await client.post(
+            "/api/login/access-token",
+            data={"username": "inactiveteacher", "password": "testpassword123"},
+        )
+        assert r.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# GET /api/me
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestGetMe:
+    async def test_authenticated_returns_user_info(self, client, test_teacher):
+        r = await client.get("/api/me", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        assert r.json() == {"username": "testteacher", "email": "test@example.com"}
+
+    async def test_unauthenticated_returns_401(self, client):
+        assert (await client.get("/api/me")).status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /api/logout
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestLogout:
+    async def test_returns_success_message(self, client):
+        r = await client.post("/api/logout")
+        assert r.status_code == 200
+        assert "logged out" in r.json()["message"].lower()
+
+
+# ---------------------------------------------------------------------------
+# POST /api/register
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestRegister:
+    _valid = {
+        "username": "newteacher",
+        "password": "password123",
+        "password_confirm": "password123",
+        "email": "new@example.com",
+    }
+
+    async def test_valid_registration_succeeds(self, client):
+        r = await client.post("/api/register", json=self._valid)
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+
+    async def test_invalid_json_returns_400(self, client):
+        r = await client.post(
+            "/api/register",
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+        assert r.status_code == 400
+
+    async def test_empty_username_returns_400(self, client):
+        r = await client.post("/api/register", json={**self._valid, "username": ""})
+        assert r.status_code == 400
+        assert "required" in r.json()["detail"]
+
+    async def test_empty_password_returns_400(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "password": "", "password_confirm": ""})
+        assert r.status_code == 400
+
+    async def test_empty_email_returns_400(self, client):
+        r = await client.post("/api/register", json={**self._valid, "email": ""})
+        assert r.status_code == 400
+
+    async def test_password_mismatch_returns_400(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "password_confirm": "different"})
+        assert r.status_code == 400
+        assert "Passwords do not match" in r.json()["detail"]
+
+    async def test_username_too_long_returns_400(self, client):
+        r = await client.post("/api/register", json={**self._valid, "username": "a" * 51})
+        assert r.status_code == 400
+        assert "too long" in r.json()["detail"]
+
+    async def test_email_too_long_returns_400(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "email": "a" * 101 + "@x.com"})
+        assert r.status_code == 400
+        assert "too long" in r.json()["detail"]
+
+    async def test_username_too_short_returns_400(self, client):
+        r = await client.post("/api/register", json={**self._valid, "username": "ab"})
+        assert r.status_code == 400
+        assert "minimum length" in r.json()["detail"]
+
+    async def test_password_too_short_returns_400(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "password": "short", "password_confirm": "short"})
+        assert r.status_code == 400
+        assert "minimum length" in r.json()["detail"]
+
+    async def test_duplicate_username_returns_400(self, client, test_teacher):
+        payload = {**self._valid, "username": "testteacher", "email": "other@example.com"}
+        r = await client.post("/api/register", json=payload)
+        assert r.status_code == 400
+        assert "already exists" in r.json()["detail"]
+
+    async def test_duplicate_email_returns_400(self, client, test_teacher):
+        payload = {**self._valid, "username": "uniqueuser9", "email": "test@example.com"}
+        r = await client.post("/api/register", json=payload)
+        assert r.status_code == 400
+        assert "already exists" in r.json()["detail"]
+
+    async def test_whitespace_username_treated_as_empty(self, client):
+        r = await client.post("/api/register", json={**self._valid, "username": "   "})
+        assert r.status_code == 400
+
+    async def test_whitespace_email_treated_as_empty(self, client):
+        r = await client.post("/api/register", json={**self._valid, "email": "   "})
+        assert r.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# POST /api/validate-nickname
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestValidateNickname:
+    async def test_valid_nickname_returns_session_id(self, client, problemset):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "Alice",
+                                     "unique_link_code": problemset.unique_link_code})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "valid"
+        assert body["nickname"] == "Alice"
+        assert "session_id" in body
+
+    async def test_nickname_is_trimmed(self, client, problemset):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "  Bob  ",
+                                     "unique_link_code": problemset.unique_link_code})
+        assert r.status_code == 200
+        assert r.json()["nickname"] == "Bob"
+
+    async def test_whitespace_only_nickname_returns_400(self, client, problemset):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "   ",
+                                     "unique_link_code": problemset.unique_link_code})
+        assert r.status_code == 400
+        assert "empty" in r.json()["detail"].lower()
+
+    async def test_nickname_too_long_returns_400(self, client, problemset):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "a" * 21,
+                                     "unique_link_code": problemset.unique_link_code})
+        assert r.status_code == 400
+
+    async def test_nickname_at_max_length_succeeds(self, client, problemset):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "a" * 20,
+                                     "unique_link_code": problemset.unique_link_code})
+        assert r.status_code == 200
+
+    async def test_unknown_task_list_returns_404(self, client):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "Alice", "unique_link_code": "NOEXIST"})
+        assert r.status_code == 404
+
+    async def test_sets_session_cookie(self, client, problemset):
+        r = await client.post("/api/validate-nickname",
+                               json={"nickname": "Cookie",
+                                     "unique_link_code": problemset.unique_link_code})
+        assert r.status_code == 200
+        assert "student_session" in r.cookies
+
+
+# ---------------------------------------------------------------------------
+# GET /api/tasks/{task_id}
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestGetTask:
+    async def test_returns_task_data(self, client, task):
+        r = await client.get(f"/api/tasks/{task.id}")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["id"] == task.id
+        assert body["title"] == "Hello World"
+        assert body["task_instructions"] == "Arrange the blocks to print 'Hello, World!'"
+        assert body["task_type"] == "python"
+
+    async def test_task_without_instructions_returns_null(self, client, db_session, test_teacher):
+        t = Parsons(
+            created_by_teacher_id=test_teacher.id, title="NoInstr", task_type="python",
+            description='{}', code_blocks={}, correct_solution={}, is_public=True,
+        )
+        db_session.add(t)
         await db_session.commit()
-        await db_session.refresh(task)
+        await db_session.refresh(t)
+        r = await client.get(f"/api/tasks/{t.id}")
+        assert r.status_code == 200
+        assert r.json()["task_instructions"] is None
 
-        # Submit without session cookie
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": True,
-                "submitted_code": "print('hello')",
-                "test_output": "Tests passed",
-                "repr_code": "print('hello')",
-            },
+    async def test_nonexistent_task_returns_404(self, client):
+        assert (await client.get("/api/tasks/99999")).status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# GET /api/tasks  — list public tasks
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestListTasks:
+    async def test_includes_public_excludes_private(self, client, task, private_task):
+        r = await client.get("/api/tasks")
+        assert r.status_code == 200
+        ids = [t["id"] for t in r.json()]
+        assert task.id in ids
+        assert private_task.id not in ids
+
+    async def test_parses_json_description_field(self, client, task):
+        r = await client.get("/api/tasks")
+        found = next(t for t in r.json() if t["id"] == task.id)
+        assert found["description"] == "Print hello world."
+
+    async def test_invalid_json_description_returns_empty_string(self, client, db_session, test_teacher):
+        t = Parsons(
+            created_by_teacher_id=test_teacher.id, title="BadJson", task_type="python",
+            description="not-json", code_blocks={}, correct_solution={}, is_public=True,
         )
-
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "session required" in response.json()["detail"].lower()
-
-    async def test_submit_result_with_student_session_success(
-        self, client, db_session, test_teacher
-    ):
-        """Test successful submission with student session."""
-        # Create problemset
-        problemset = TaskList(
-            title="Test Set",
-            unique_link_code="TEST01",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
+        db_session.add(t)
         await db_session.commit()
-        await db_session.refresh(problemset)
+        r = await client.get("/api/tasks")
+        found = next(t for t in r.json() if t["title"] == "BadJson")
+        assert found["description"] == ""
 
-        # Create task
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
+    async def test_empty_description_string_returns_empty(self, client, db_session, test_teacher):
+        t = Parsons(
+            created_by_teacher_id=test_teacher.id, title="EmptyStr", task_type="python",
+            description="", code_blocks={}, correct_solution={}, is_public=True,
         )
-        db_session.add(task)
+        db_session.add(t)
         await db_session.commit()
-        await db_session.refresh(task)
+        r = await client.get("/api/tasks")
+        found = next(t for t in r.json() if t["title"] == "EmptyStr")
+        assert found["description"] == ""
 
-        # Create student session
-        session_id = uuid.uuid4()
-        student_session = StudentSession(
-            session_id=session_id,
-            task_list_id=problemset.id,
-            username="TestStudent",
+
+# ---------------------------------------------------------------------------
+# GET /api/problemsets/{id}
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestGetProblemset:
+    async def test_returns_problemset_data(self, client, problemset):
+        r = await client.get(f"/api/problemsets/{problemset.id}")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["id"] == problemset.id
+        assert body["unique_link_code"] == "WEEK1"
+        assert body["expires_at"] is None
+
+    async def test_problemset_with_expires_at(self, client, db_session, test_teacher):
+        from datetime import timezone
+        ps = TaskList(
+            teacher_id=test_teacher.id, title="Expiring", unique_link_code="EXP01",
+            expires_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
         )
-        db_session.add(student_session)
+        db_session.add(ps)
         await db_session.commit()
-        await db_session.refresh(student_session)
+        await db_session.refresh(ps)
+        r = await client.get(f"/api/problemsets/{ps.id}")
+        assert r.status_code == 200
+        assert r.json()["expires_at"] is not None
 
-        # Submit with session cookie
-        client.cookies.set("student_session", str(session_id))
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": True,
-                "submitted_code": "print('hello')",
-                "test_output": "Tests passed",
-                "repr_code": "print('hello')",
-            },
-        )
+    async def test_nonexistent_returns_404(self, client):
+        assert (await client.get("/api/problemsets/99999")).status_code == 404
 
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "success"
 
-        # Verify attempt was saved
+# ---------------------------------------------------------------------------
+# GET /api/problemsets/{code}/tasks
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestGetProblemsetTasks:
+    async def test_get_by_string_code(self, client, problemset_with_task):
+        ps, task = problemset_with_task
+        r = await client.get(f"/api/problemsets/{ps.unique_link_code}/tasks")
+        assert r.status_code == 200
+        assert len(r.json()) == 1
+        assert r.json()[0]["id"] == task.id
+
+    async def test_get_by_numeric_id(self, client, problemset_with_task):
+        ps, task = problemset_with_task
+        r = await client.get(f"/api/problemsets/{ps.id}/tasks")
+        assert r.status_code == 200
+        assert r.json()[0]["id"] == task.id
+
+    async def test_unknown_code_returns_404(self, client):
+        assert (await client.get("/api/problemsets/NOSUCHCODE/tasks")).status_code == 404
+
+    async def test_unknown_id_returns_404(self, client):
+        assert (await client.get("/api/problemsets/99999/tasks")).status_code == 404
+
+    async def test_empty_problemset_returns_empty_list(self, client, problemset):
+        r = await client.get(f"/api/problemsets/{problemset.unique_link_code}/tasks")
+        assert r.status_code == 200
+        assert r.json() == []
+
+
+# ---------------------------------------------------------------------------
+# POST /api/tasks/{task_id}/submit-result
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestSubmitResult:
+    async def test_no_session_returns_401(self, client, task):
+        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+                               json=_submit(task.id))
+        assert r.status_code == 401
+
+    async def test_success_with_iso_start_time(self, client, task, student_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+                               json=_submit(task.id, success=True,
+                                            start_time="2026-03-01T10:00:00"))
+        client.cookies.clear()
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+
+    async def test_success_with_z_suffix_timestamp(self, client, task, student_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+                               json=_submit(task.id, start_time="2026-03-01T10:00:00Z"))
+        client.cookies.clear()
+        assert r.status_code == 200
+
+    async def test_invalid_start_time_falls_back_to_now(self, client, task, student_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+                               json=_submit(task.id, start_time="not-a-date"))
+        client.cookies.clear()
+        assert r.status_code == 200
+
+    async def test_missing_start_time_uses_now(self, client, task, student_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+                               json=_submit(task.id, start_time=None))
+        client.cookies.clear()
+        assert r.status_code == 200
+
+    async def test_attempt_persisted_in_db(self, client, task, student_session, db_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        await client.post(f"/api/tasks/{task.id}/submit-result",
+                          json=_submit(task.id, success=True, code="my_answer",
+                                       start_time="2026-01-01T00:00:00"))
+        client.cookies.clear()
         result = await db_session.execute(
-            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
-        )
-        attempts = result.scalars().all()
-        assert len(attempts) == 1
-        assert attempts[0].task_id == task.id
-        assert attempts[0].success is True
-
-    async def test_submit_result_with_start_time_iso_format(
-        self, client, db_session, test_teacher
-    ):
-        """Test submission with ISO format start time."""
-        # Setup
-        problemset = TaskList(
-            title="Test Set",
-            unique_link_code="TEST02",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        session_id = uuid.uuid4()
-        student_session = StudentSession(
-            session_id=session_id,
-            task_list_id=problemset.id,
-            username="TestStudent2",
-        )
-        db_session.add(student_session)
-        await db_session.commit()
-        await db_session.refresh(student_session)
-
-        # Submit with ISO format start_time
-        client.cookies.set("student_session", str(session_id))
-        start_time = "2026-03-03T10:00:00+00:00"
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": True,
-                "submitted_code": "print('test')",
-                "test_output": "Tests passed",
-                "repr_code": "print('test')",
-                "start_time": start_time,
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verify the attempt recorded the start time
-        result = await db_session.execute(
-            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+            select(TaskAttempt).where(TaskAttempt.task_id == task.id)
         )
         attempt = result.scalar_one()
-        assert attempt.task_started_at.year == 2026
-        assert attempt.task_started_at.month == 3
-        assert attempt.task_started_at.day == 3
-
-    async def test_submit_result_with_z_format_timestamp(
-        self, client, db_session, test_teacher
-    ):
-        """Test submission with Z-format timestamp (localStorage format)."""
-        # Setup
-        problemset = TaskList(
-            title="Test Set",
-            unique_link_code="TEST03",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        session_id = uuid.uuid4()
-        student_session = StudentSession(
-            session_id=session_id,
-            task_list_id=problemset.id,
-            username="TestStudent3",
-        )
-        db_session.add(student_session)
-        await db_session.commit()
-        await db_session.refresh(student_session)
-
-        # Submit with Z-format timestamp
-        client.cookies.set("student_session", str(session_id))
-        start_time = "2026-03-03T10:30:00.000Z"
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": False,
-                "submitted_code": "print('test')",
-                "test_output": "Test failed",
-                "repr_code": "print('test')",
-                "start_time": start_time,
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-    async def test_submit_result_without_start_time_uses_current_time(
-        self, client, db_session, test_teacher
-    ):
-        """Test that omitting start_time uses current timestamp."""
-        # Setup
-        problemset = TaskList(
-            title="Test Set",
-            unique_link_code="TEST04",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        session_id = uuid.uuid4()
-        student_session = StudentSession(
-            session_id=session_id,
-            task_list_id=problemset.id,
-            username="TestStudent4",
-        )
-        db_session.add(student_session)
-        await db_session.commit()
-        await db_session.refresh(student_session)
-
-        # Submit without start_time
-        before_submit = datetime.now(timezone.utc)
-        client.cookies.set("student_session", str(session_id))
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": True,
-                "submitted_code": "print('test')",
-                "test_output": "Tests passed",
-                "repr_code": "print('test')",
-            },
-        )
-        after_submit = datetime.now(timezone.utc)
-
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verify the attempt used current time
-        result = await db_session.execute(
-            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
-        )
-        attempt = result.scalar_one()
-        # Handle naive datetime from SQLite
-        task_started_at = attempt.task_started_at
-        if task_started_at.tzinfo is None:
-            task_started_at = task_started_at.replace(tzinfo=timezone.utc)
-        assert before_submit <= task_started_at <= after_submit
-
-    async def test_submit_result_records_attempt_data(
-        self, client, db_session, test_teacher
-    ):
-        """Test that all attempt data is correctly recorded."""
-        # Setup
-        problemset = TaskList(
-            title="Test Set",
-            unique_link_code="TEST05",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        session_id = uuid.uuid4()
-        student_session = StudentSession(
-            session_id=session_id,
-            task_list_id=problemset.id,
-            username="TestStudent5",
-        )
-        db_session.add(student_session)
-        await db_session.commit()
-        await db_session.refresh(student_session)
-
-        # Submit
-        client.cookies.set("student_session", str(session_id))
-        submitted_code = "def hello():\n    return 'world'"
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": True,
-                "submitted_code": submitted_code,
-                "test_output": "All tests passed!",
-                "repr_code": submitted_code,
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verify all fields are recorded correctly
-        result = await db_session.execute(
-            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
-        )
-        attempt = result.scalar_one()
-        assert attempt.task_id == task.id
         assert attempt.success is True
-        assert attempt.submitted_inputs["code"] == submitted_code
-        assert attempt.completed_at is not None
-        assert attempt.task_started_at <= attempt.completed_at
+        assert attempt.submitted_inputs["code"] == "my_answer"
 
-    async def test_submit_result_with_failure_status(
-        self, client, db_session, test_teacher
-    ):
-        """Test submission with failure status is recorded correctly."""
-        # Setup
-        problemset = TaskList(
-            title="Test Set",
-            unique_link_code="TEST06",
-            teacher_id=test_teacher.id,
-        )
-        db_session.add(problemset)
-        await db_session.commit()
-        await db_session.refresh(problemset)
-
-        task = Parsons(
-            created_by_teacher_id=test_teacher.id,
-            title="Test Task",
-            description='{"description": "Test"}',
-            task_type="python",
-            code_blocks={"blocks": []},
-            correct_solution={"solution": []},
-            is_public=True,
-        )
-        db_session.add(task)
-        await db_session.commit()
-        await db_session.refresh(task)
-
-        session_id = uuid.uuid4()
-        student_session = StudentSession(
-            session_id=session_id,
-            task_list_id=problemset.id,
-            username="TestStudent6",
-        )
-        db_session.add(student_session)
-        await db_session.commit()
-        await db_session.refresh(student_session)
-
-        # Submit failed attempt
-        client.cookies.set("student_session", str(session_id))
-        response = await client.post(
-            f"/api/tasks/{task.id}/submit-result",
-            json={
-                "task_id": task.id,
-                "success": False,
-                "submitted_code": "print('wrong')",
-                "test_output": "AssertionError: Expected 'hello' but got 'wrong'",
-                "repr_code": "print('wrong')",
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verify failure is recorded
+    async def test_failure_attempt_persisted(self, client, task, student_session, db_session):
+        client.cookies.set("student_session", str(student_session.session_id))
+        await client.post(f"/api/tasks/{task.id}/submit-result",
+                          json=_submit(task.id, success=False, code="wrong",
+                                       start_time="2026-01-01T00:00:00"))
+        client.cookies.clear()
         result = await db_session.execute(
-            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+            select(TaskAttempt).where(TaskAttempt.task_id == task.id)
         )
         attempt = result.scalar_one()
         assert attempt.success is False
+
+
+# ---------------------------------------------------------------------------
+# GET /api/tasks/{task_id}/statistics
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestStatistics:
+    async def test_requires_authentication(self, client, task):
+        assert (await client.get(f"/api/tasks/{task.id}/statistics")).status_code == 401
+
+    async def test_task_not_found_returns_404(self, client, test_teacher):
+        r = await client.get("/api/tasks/99999/statistics",
+                              headers=_auth(test_teacher.username))
+        assert r.status_code == 404
+
+    async def test_no_attempts_returns_zeros(self, client, task, test_teacher):
+        r = await client.get(f"/api/tasks/{task.id}/statistics",
+                              headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        body = r.json()
+        assert body["task_name"] == task.title
+        assert body["total_completions"] == 0
+        assert body["students_attempted"] == 0
+        assert body["students_completed"] == 0
+        assert body["avg_tries"] == 0
+        assert body["common_mistakes"] == []
+        assert body["time_to_first_success"] == {"avg": 0, "min": 0, "max": 0}
+
+    async def test_single_success_calculates_time_correctly(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=True,
+                            start=datetime(2026, 1, 1, 0, 0, 0),
+                            end=datetime(2026, 1, 1, 0, 2, 0))
+        r = await client.get(f"/api/tasks/{task.id}/statistics",
+                              headers=_auth(test_teacher.username))
+        body = r.json()
+        assert body["total_completions"] == 1
+        assert body["students_completed"] == 1
+        assert body["avg_tries"] == 1
+        assert body["time_to_first_success"]["avg"] == 120.0
+
+    async def test_failures_before_success_counted_correctly(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        for i in range(2):
+            await _add_attempt(db_session, student_session.id, task.id, success=False,
+                                code=f"wrong_{i}",
+                                start=datetime(2026, 1, 1, 0, i, 0),
+                                end=datetime(2026, 1, 1, 0, i, 30))
+        await _add_attempt(db_session, student_session.id, task.id, success=True,
+                            start=datetime(2026, 1, 1, 0, 3, 0),
+                            end=datetime(2026, 1, 1, 0, 4, 0))
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        assert body["total_completions"] == 3
+        assert body["students_completed"] == 1
+        assert body["avg_tries"] == 3          # success was on attempt #3
+        assert body["time_to_first_fail"]["avg"] == 30.0
+
+    async def test_all_failures_no_completions(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        for i in range(3):
+            await _add_attempt(db_session, student_session.id, task.id, success=False,
+                                code="wrong",
+                                start=datetime(2026, 1, 1, 0, i, 0),
+                                end=datetime(2026, 1, 1, 0, i, 30))
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        assert body["students_completed"] == 0
+        assert body["avg_tries"] == 0
+        assert body["time_to_first_success"]["avg"] == 0
+
+    async def test_multiple_students_aggregated(
+        self, client, task, problemset, test_teacher, db_session
+    ):
+        for i in range(3):
+            ss = StudentSession(
+                session_id=uuid.uuid4(), task_list_id=problemset.id, username=f"S{i}"
+            )
+            db_session.add(ss)
+            await db_session.commit()
+            await db_session.refresh(ss)
+            await _add_attempt(db_session, ss.id, task.id, success=True,
+                                start=datetime(2026, 1, 1, 0, 0, 0),
+                                end=datetime(2026, 1, 1, 0, i + 1, 0))
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        assert body["students_attempted"] == 3
+        assert body["students_completed"] == 3
+        assert body["time_to_first_success"]["min"] == 60.0
+        assert body["time_to_first_success"]["max"] == 180.0
+        assert body["time_to_first_success"]["avg"] == 120.0
+
+    async def test_common_mistakes_sorted_by_frequency(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=False, code="bad")
+        await _add_attempt(db_session, student_session.id, task.id, success=False, code="bad")
+        await _add_attempt(db_session, student_session.id, task.id, success=False, code="worse")
+        await _add_attempt(db_session, student_session.id, task.id, success=True, code="good")
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        mistakes = body["common_mistakes"]
+        assert mistakes[0]["code"] == "bad"
+        assert mistakes[0]["count"] == 2
+
+    async def test_common_mistakes_capped_at_five(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        for i in range(7):
+            await _add_attempt(db_session, student_session.id, task.id,
+                                success=False, code=f"mistake_{i}")
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        assert len(body["common_mistakes"]) <= 5
+
+    async def test_attempt_missing_code_key_not_a_mistake(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        a = TaskAttempt(
+            student_session_id=student_session.id, task_id=task.id,
+            task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
+            success=False, submitted_inputs={},   # no "code" key
+        )
+        db_session.add(a)
+        await db_session.commit()
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        assert body["common_mistakes"] == []
+
+    async def test_attempt_with_null_submitted_inputs(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        a = TaskAttempt(
+            student_session_id=student_session.id, task_id=task.id,
+            task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
+            success=False, submitted_inputs=None,
+        )
+        db_session.add(a)
+        await db_session.commit()
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+        assert body["common_mistakes"] == []
+
+    async def test_filter_by_problemset_isolates_students(
+        self, client, task, problemset, student_session, test_teacher, db_session
+    ):
+        # second problemset + student
+        ps2 = TaskList(
+            teacher_id=test_teacher.id, title="PS2", unique_link_code="WEEK2"
+        )
+        db_session.add(ps2)
+        await db_session.commit()
+        await db_session.refresh(ps2)
+        ss2 = StudentSession(session_id=uuid.uuid4(), task_list_id=ps2.id, username="Other")
+        db_session.add(ss2)
+        await db_session.commit()
+        await db_session.refresh(ss2)
+
+        await _add_attempt(db_session, student_session.id, task.id, success=True)
+        await _add_attempt(db_session, ss2.id, task.id, success=True)
+
+        body = (await client.get(
+            f"/api/tasks/{task.id}/statistics?problemset_code={problemset.unique_link_code}",
+            headers=_auth(test_teacher.username),
+        )).json()
+        assert body["students_attempted"] == 1
+
+    async def test_filter_by_nonexistent_code_returns_all(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=True)
+        body = (await client.get(
+            f"/api/tasks/{task.id}/statistics?problemset_code=NOCODE",
+            headers=_auth(test_teacher.username),
+        )).json()
+        assert body["total_completions"] == 1

@@ -2,6 +2,7 @@
 Pytest configuration and fixtures for unit tests.
 """
 
+import uuid
 import pytest
 import pytest_asyncio
 from typing import AsyncGenerator
@@ -18,7 +19,7 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
-from backend.models import Teacher
+from backend.models import Parsons, StudentSession, TaskList, TaskListItem, Teacher
 
 
 @pytest_asyncio.fixture
@@ -112,3 +113,81 @@ async def inactive_teacher(db_session) -> Teacher:
 def valid_token_data() -> dict:
     """Return valid token data for testing."""
     return {"sub": "testteacher"}
+
+
+# ---------------------------------------------------------------------------
+# Shared domain-object fixtures
+# ---------------------------------------------------------------------------
+
+@pytest_asyncio.fixture
+async def task(db_session, test_teacher) -> Parsons:
+    """A single public Parsons task owned by test_teacher."""
+    t = Parsons(
+        created_by_teacher_id=test_teacher.id,
+        title="Hello World",
+        description='{"description": "Print hello world."}',
+        task_instructions="Arrange the blocks to print 'Hello, World!'",
+        task_type="python",
+        code_blocks={"blocks": ["print('Hello, World!')"]},
+        correct_solution={"solution": ["print('Hello, World!')"]},
+        is_public=True,
+    )
+    db_session.add(t)
+    await db_session.commit()
+    await db_session.refresh(t)
+    return t
+
+
+@pytest_asyncio.fixture
+async def private_task(db_session, test_teacher) -> Parsons:
+    """A private (not public) Parsons task owned by test_teacher."""
+    t = Parsons(
+        created_by_teacher_id=test_teacher.id,
+        title="Private Task",
+        description='{"description": "Internal only."}',
+        task_type="python",
+        code_blocks={"blocks": []},
+        correct_solution={"solution": []},
+        is_public=False,
+    )
+    db_session.add(t)
+    await db_session.commit()
+    await db_session.refresh(t)
+    return t
+
+
+@pytest_asyncio.fixture
+async def problemset(db_session, test_teacher) -> TaskList:
+    """A problem set (TaskList) owned by test_teacher."""
+    ps = TaskList(
+        teacher_id=test_teacher.id,
+        title="Week 1 Exercises",
+        unique_link_code="WEEK1",
+    )
+    db_session.add(ps)
+    await db_session.commit()
+    await db_session.refresh(ps)
+    return ps
+
+
+@pytest_asyncio.fixture
+async def problemset_with_task(db_session, problemset, task) -> tuple[TaskList, Parsons]:
+    """A problem set that already contains *task*."""
+    item = TaskListItem(task_list_id=problemset.id, task_id=task.id)
+    db_session.add(item)
+    await db_session.commit()
+    return problemset, task
+
+
+@pytest_asyncio.fixture
+async def student_session(db_session, problemset) -> StudentSession:
+    """A student session associated with *problemset*."""
+    ss = StudentSession(
+        session_id=uuid.uuid4(),
+        task_list_id=problemset.id,
+        username="student1",
+    )
+    db_session.add(ss)
+    await db_session.commit()
+    await db_session.refresh(ss)
+    return ss

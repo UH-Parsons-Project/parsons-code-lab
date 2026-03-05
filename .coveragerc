@@ -1,0 +1,7 @@
+[run]
+concurrency = greenlet
+omit =
+    tests/*
+
+[report]
+show_missing = True
