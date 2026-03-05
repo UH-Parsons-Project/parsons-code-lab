@@ -54,3 +54,29 @@
 	font-weight: 600;
 }
 
+.mistake-block {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+.mistake-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+.mistake-code {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #dc3545;
+  overflow-x: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+.mistake-code code {
+  background-color: transparent;
+  padding: 0;
+  color: #212529;
+  white-space: pre;
+}
