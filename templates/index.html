@@ -2,20 +2,21 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Faded Parsons Problems</title>
+    <title>Parsons Code Lab</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
     <link rel="stylesheet" href="/js-parsons/parsons.css"/>
 </head>
 <body>
 	<nav class="navbar navbar-expand-md sticky-top navbar-dark bg-dark mb-4">
-		<a class="navbar-brand" href="index.html">🧩 Faded Parsons Problems</a>
+		<a class="navbar-brand" href="index.html">🧩 Parsons Code Lab</a>
 		<div class="ml-auto" id="auth-section">
 			<form class="form-inline" id="login-form">
 				<div id="error-message" class="text-danger mr-2" style="display: none;"></div>
 				<input class="form-control mr-2" type="text" id="username" placeholder="Username" aria-label="Username" required>
 				<input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
 				<button class="btn btn-outline-success" id="login-btn" type="submit">Login</button>
+				<a class="btn btn-outline-primary ml-2" id="register-btn" href="/register">Register</a>
 			</form>
 			<div id="user-info" class="text-white" style="display: none;">
 				<a class="btn btn-outline-light btn-sm mr-2" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>

@@ -213,6 +213,7 @@ class TestMigrationFlow:
             if title == "new":
                 return {
                     "title": "new",
+                    "task_instructions": "",
                     "description": "{}",
                     "task_type": "normal",
                     "code_blocks": {"blocks": []},
@@ -252,6 +253,7 @@ class TestMigrationFlow:
             lambda _: {
                 "title": "will_fail",
                 "description": "{}",
+                "task_instructions": "",
                 "task_type": "normal",
                 "code_blocks": {"blocks": []},
                 "correct_solution": {"correct_order": [], "test_function": "test_fail"},

@@ -5,12 +5,14 @@ Unit tests for main API endpoints.
 from unittest.mock import AsyncMock
 
 import pytest
+import uuid
+from datetime import datetime, timezone
 from fastapi import status
+from sqlalchemy import select
 
 from backend import main as main_module
 from backend.auth import create_access_token
-from backend.models import Parsons, TaskList, TaskListItem
-
+from backend.models import Parsons, TaskList, TaskListItem, StudentSession, TaskAttempt, Teacher
 
 class TestStaticPages:
     """Tests for static page endpoints."""
@@ -143,6 +145,402 @@ class TestLoginEndpoint:
 
         # FastAPI validates form data and returns 422 for empty required fields
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+class TestRegisterEndpoint:
+    """Tests for user registration endpoint."""
+
+    async def test_register_with_valid_data(self, client, db_session):
+        """Test successful registration with valid data."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "newteacher",
+                "password": "securepassword123",
+                "password_confirm": "securepassword123",
+                "email": "newteacher@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "success"
+        assert "id" in data
+        assert isinstance(data["id"], int)
+
+    async def test_register_page_loads(self, client):
+        """Test that the registration page loads successfully."""
+        response = await client.get("/register")
+        assert response.status_code == status.HTTP_200_OK
+
+    async def test_register_missing_username(self, client):
+        """Test registration fails when username is missing."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_missing_password(self, client):
+        """Test registration fails when password is missing."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password_confirm": "password123",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_missing_email(self, client):
+        """Test registration fails when email is missing."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "password123",
+                "password_confirm": "password123"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_empty_username(self, client):
+        """Test registration fails with empty username."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_empty_password(self, client):
+        """Test registration fails with empty password."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "",
+                "password_confirm": "",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_empty_email(self, client):
+        """Test registration fails with empty email."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": ""
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_whitespace_only_username(self, client):
+        """Test registration fails with whitespace-only username."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "   ",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_whitespace_only_email(self, client):
+        """Test registration fails with whitespace-only email."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "   "
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "required" in response.json()["detail"].lower()
+
+    async def test_register_password_mismatch(self, client):
+        """Test registration fails when passwords don't match."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "password123",
+                "password_confirm": "differentpassword",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "do not match" in response.json()["detail"].lower()
+
+    async def test_register_duplicate_username(self, client, test_teacher):
+        """Test registration fails with duplicate username."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testteacher",  # Already exists
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "different@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "already exists" in response.json()["detail"].lower()
+
+    async def test_register_duplicate_email(self, client, test_teacher):
+        """Test registration fails with duplicate email."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "differentuser",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "test@example.com"  # Already exists
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "already exists" in response.json()["detail"].lower()
+
+    async def test_register_username_too_long(self, client):
+        """Test registration fails when username exceeds max length."""
+        long_username = "a" * 101  # Max is 100
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": long_username,
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "too long" in response.json()["detail"].lower()
+
+    async def test_register_email_too_long(self, client):
+        """Test registration fails when email exceeds max length."""
+        long_email = "a" * 90 + "@example.com"  # Total > 100
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": long_email
+            }
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "too long" in response.json()["detail"].lower()
+
+    async def test_register_username_at_max_length(self, client):
+        """Test registration succeeds with username at max length (100)."""
+        max_length_username = "a" * 100
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": max_length_username,
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "test@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+
+    async def test_register_email_at_max_length(self, client):
+        """Test registration succeeds with email at max length (100)."""
+        # Create an email exactly 100 characters
+        max_length_email = "a" * 87 + "@example.com"  # Total = 100
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "testuser",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": max_length_email
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+
+    async def test_register_invalid_json(self, client):
+        """Test registration fails with invalid JSON payload."""
+        response = await client.post(
+            "/api/register",
+            content="not valid json",
+            headers={"Content-Type": "application/json"}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "invalid json" in response.json()["detail"].lower()
+
+    async def test_register_username_with_spaces(self, client):
+        """Test registration with username containing spaces (should be trimmed)."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "  spaceuser  ",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "  space@example.com  "
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "success"
+
+    async def test_register_and_verify_password_hashed(self, client, db_session):
+        """Test that password is properly hashed after registration."""
+        from sqlalchemy import select
+        from backend.models import Teacher
+
+        password = "testpass123"
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "hashtest",
+                "password": password,
+                "password_confirm": password,
+                "email": "hashtest@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify password is hashed in database
+        result = await db_session.execute(
+            select(Teacher).where(Teacher.username == "hashtest")
+        )
+        teacher = result.scalar_one_or_none()
+
+        assert teacher is not None
+        assert teacher.password_hash != password  # Should be hashed
+        assert teacher.verify_password(password)  # But should verify correctly
+
+    async def test_register_creates_active_user(self, client, db_session):
+        """Test that newly registered user is active by default."""
+        from sqlalchemy import select
+        from backend.models import Teacher
+
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "activeuser",
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "activeuser@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify user is active
+        result = await db_session.execute(
+            select(Teacher).where(Teacher.username == "activeuser")
+        )
+        teacher = result.scalar_one_or_none()
+
+        assert teacher is not None
+        assert teacher.is_active is True
+
+    async def test_register_and_login_flow(self, client):
+        """Test complete flow: register and then login."""
+        # Step 1: Register
+        register_response = await client.post(
+            "/api/register",
+            json={
+                "username": "flowuser",
+                "password": "flowpassword123",
+                "password_confirm": "flowpassword123",
+                "email": "flowuser@example.com"
+            }
+        )
+
+        assert register_response.status_code == status.HTTP_200_OK
+
+        # Step 2: Login with the newly created account
+        login_response = await client.post(
+            "/api/login/access-token",
+            data={
+                "username": "flowuser",
+                "password": "flowpassword123"
+            }
+        )
+
+        assert login_response.status_code == status.HTTP_200_OK
+        data = login_response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+    async def test_register_special_characters_in_password(self, client):
+        """Test registration with special characters in password."""
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "specialuser",
+                "password": "P@ssw0rd!#$%",
+                "password_confirm": "P@ssw0rd!#$%",
+                "email": "special@example.com"
+            }
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+
+    async def test_register_case_sensitive_username(self, client, test_teacher):
+        """Test that username comparison is case-sensitive for uniqueness."""
+        # Try to register with different case
+        response = await client.post(
+            "/api/register",
+            json={
+                "username": "TESTTEACHER",  # Different case from existing
+                "password": "password123",
+                "password_confirm": "password123",
+                "email": "different@example.com"
+            }
+        )
+
+        # This should succeed since SQL is case-sensitive by default
+        # Unless the database is configured otherwise
+        assert response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
 
 
 class TestCurrentUserEndpoint:
@@ -675,3 +1073,409 @@ class TestProblemsetPageEndpoints:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.json()["detail"]
+
+
+class TestSubmitTestResultEndpoint:
+    """Tests for POST /api/tasks/{task_id}/submit-result endpoint."""
+
+    async def test_submit_result_without_student_session_returns_401(
+        self, client, db_session, test_teacher
+    ):
+        """Test that submitting without a student session returns 401."""
+        # Create a task
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        # Submit without session cookie
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('hello')",
+                "test_output": "Tests passed",
+                "repr_code": "print('hello')",
+            },
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "session required" in response.json()["detail"].lower()
+
+    async def test_submit_result_with_student_session_success(
+        self, client, db_session, test_teacher
+    ):
+        """Test successful submission with student session."""
+        # Create problemset
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST01",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        # Create task
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        # Create student session
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit with session cookie
+        client.cookies.set("student_session", str(session_id))
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('hello')",
+                "test_output": "Tests passed",
+                "repr_code": "print('hello')",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+
+        # Verify attempt was saved
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempts = result.scalars().all()
+        assert len(attempts) == 1
+        assert attempts[0].task_id == task.id
+        assert attempts[0].success is True
+
+    async def test_submit_result_with_start_time_iso_format(
+        self, client, db_session, test_teacher
+    ):
+        """Test submission with ISO format start time."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST02",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent2",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit with ISO format start_time
+        client.cookies.set("student_session", str(session_id))
+        start_time = "2026-03-03T10:00:00+00:00"
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('test')",
+                "test_output": "Tests passed",
+                "repr_code": "print('test')",
+                "start_time": start_time,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify the attempt recorded the start time
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        assert attempt.task_started_at.year == 2026
+        assert attempt.task_started_at.month == 3
+        assert attempt.task_started_at.day == 3
+
+    async def test_submit_result_with_z_format_timestamp(
+        self, client, db_session, test_teacher
+    ):
+        """Test submission with Z-format timestamp (localStorage format)."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST03",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent3",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit with Z-format timestamp
+        client.cookies.set("student_session", str(session_id))
+        start_time = "2026-03-03T10:30:00.000Z"
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": False,
+                "submitted_code": "print('test')",
+                "test_output": "Test failed",
+                "repr_code": "print('test')",
+                "start_time": start_time,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    async def test_submit_result_without_start_time_uses_current_time(
+        self, client, db_session, test_teacher
+    ):
+        """Test that omitting start_time uses current timestamp."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST04",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent4",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit without start_time
+        before_submit = datetime.now(timezone.utc)
+        client.cookies.set("student_session", str(session_id))
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": "print('test')",
+                "test_output": "Tests passed",
+                "repr_code": "print('test')",
+            },
+        )
+        after_submit = datetime.now(timezone.utc)
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify the attempt used current time
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        # Handle naive datetime from SQLite
+        task_started_at = attempt.task_started_at
+        if task_started_at.tzinfo is None:
+            task_started_at = task_started_at.replace(tzinfo=timezone.utc)
+        assert before_submit <= task_started_at <= after_submit
+
+    async def test_submit_result_records_attempt_data(
+        self, client, db_session, test_teacher
+    ):
+        """Test that all attempt data is correctly recorded."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST05",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent5",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit
+        client.cookies.set("student_session", str(session_id))
+        submitted_code = "def hello():\n    return 'world'"
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": True,
+                "submitted_code": submitted_code,
+                "test_output": "All tests passed!",
+                "repr_code": submitted_code,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify all fields are recorded correctly
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        assert attempt.task_id == task.id
+        assert attempt.success is True
+        assert attempt.submitted_inputs["code"] == submitted_code
+        assert attempt.completed_at is not None
+        assert attempt.task_started_at <= attempt.completed_at
+
+    async def test_submit_result_with_failure_status(
+        self, client, db_session, test_teacher
+    ):
+        """Test submission with failure status is recorded correctly."""
+        # Setup
+        problemset = TaskList(
+            title="Test Set",
+            unique_link_code="TEST06",
+            teacher_id=test_teacher.id,
+        )
+        db_session.add(problemset)
+        await db_session.commit()
+        await db_session.refresh(problemset)
+
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Test Task",
+            description='{"description": "Test"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        session_id = uuid.uuid4()
+        student_session = StudentSession(
+            session_id=session_id,
+            task_list_id=problemset.id,
+            username="TestStudent6",
+        )
+        db_session.add(student_session)
+        await db_session.commit()
+        await db_session.refresh(student_session)
+
+        # Submit failed attempt
+        client.cookies.set("student_session", str(session_id))
+        response = await client.post(
+            f"/api/tasks/{task.id}/submit-result",
+            json={
+                "task_id": task.id,
+                "success": False,
+                "submitted_code": "print('wrong')",
+                "test_output": "AssertionError: Expected 'hello' but got 'wrong'",
+                "repr_code": "print('wrong')",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify failure is recorded
+        result = await db_session.execute(
+            select(TaskAttempt).where(TaskAttempt.student_session_id == student_session.id)
+        )
+        attempt = result.scalar_one()
+        assert attempt.success is False

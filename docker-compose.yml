@@ -1,5 +1,5 @@
 # Local development configuration for Faded Parsons Problems
-# Usage: docker compose up --build
+# Usage: docker compose --profile web up --build
 # Tests: docker compose --profile test up --build --abort-on-container-exit
 # Note: Database is non-persistent - data is cleared when containers are stopped
 
@@ -35,6 +35,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    profiles: ["web"]
 
   # Web app instance for running tests against
   web-test:

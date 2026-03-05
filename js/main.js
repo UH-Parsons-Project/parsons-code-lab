@@ -104,6 +104,7 @@ export async function initWidget() {
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
 		probEl.setAttribute('description', problemStatementHTML);
+		probEl.setAttribute('taskInstructions', task.task_instructions || '');
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
