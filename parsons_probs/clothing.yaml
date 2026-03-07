@@ -1,5 +1,8 @@
 problem_name: Clothing
 
+task_instructions: |
+  In this exercise you will practice working with simple Python classes.
+
 problem_description: |
   <p>The <code>Clothing</code> class represents pieces of clothing in a closet.
   tracking the color, category, and clean/dirty state.

@@ -27,9 +27,9 @@
   </nav>
   <main class="container main-nickname">
     <div class="p-4">
-		<h2 class="section-title mb-3">
-			In this task you will learn to make a simple loop function.
-		</h2>
+    <h2 id="task-instructions" class="section-title mb-3">
+
+    </h2>
 		<div class="text-center">
 			<button id="start-btn" class="btn btn-primary btn-lg">Start</button>
 		</div>
@@ -42,6 +42,7 @@
     const pathParts = window.location.pathname.split('/').filter(p => p);
     const uniqueLinkCode = pathParts[1]; // set/starter-list/tasks/1/start -> starter-list
     const taskId = pathParts[3]; // set/starter-list/tasks/1/start -> 1
+    const instructionsEl = document.getElementById('task-instructions');
 
     // Set the back button to return to the task list
     const backButton = document.getElementById('back-to-list');
@@ -70,9 +71,8 @@
         return response.json();
       })
       .then((task) => {
-        const instructionsEl = document.getElementById('task-instructions');
-        if (instructionsEl && task.task_instructions) {
-          instructionsEl.innerHTML = task.task_instructions;
+        if (instructionsEl) {
+          instructionsEl.textContent = task.task_instructions || 'No instructions available for this task.';
         }
       })
       .catch((error) => {

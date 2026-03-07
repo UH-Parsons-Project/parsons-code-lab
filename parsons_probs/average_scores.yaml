@@ -1,5 +1,8 @@
 problem_name: average_scores
 
+task_instructions: |
+  In this exercise you will practice making a simple for-loop.
+
 problem_description: |
   <code>average_scores</code>
     returns the average of the provided scores.

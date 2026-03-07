@@ -1,5 +1,8 @@
 problem_name: can_be_president
 
+task_instructions: |
+  In this exercise you will practice working with boolean values.
+
 problem_description: |
   <code>can_be_president</code>
     returns whether someone can be US president based on age and residency.

@@ -1,5 +1,8 @@
 problem_name: assign_grade
 
+task_instructions: |
+  In this exercise you will practice creating if-elif-else statements.
+
 problem_description: |
   <code>assign_grade</code>
     returns a letter grade for the numeric score based on the grade bins of:
