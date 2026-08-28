@@ -114,7 +114,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .task-tags-title {
@@ -155,9 +155,14 @@
 }
 
 .task-tags-feedback {
-  min-height: 1.25rem;
+  min-height: 0;
+  margin-bottom: 0.75rem;
   color: var(--text-muted);
   font-size: 0.82rem;
+}
+
+.task-tags-feedback:empty {
+  display: none;
 }
 
 .task-tags-feedback.is-success {
@@ -165,152 +170,78 @@
 }
 
 .task-tags-feedback.is-error,
-.task-tags-table-message.is-error {
+.task-tags-message.is-error {
   color: #b91c1c;
 }
 
-.task-tags-table-wrapper {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: var(--shadow);
+.task-tags-overview {
+  max-width: 100%;
 }
 
-.task-tags-table {
-  width: 100%;
-  min-width: 540px;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.task-tags-table th,
-.task-tags-table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-.task-tags-table th {
-  background: #f8fafc;
+.task-tags-group-title {
+  margin: 0 0 0.65rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-align: left;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.task-tags-table tbody tr:last-child td {
-  border-bottom: 0;
+.task-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-.task-tags-count-column {
-  text-align: right !important;
-  white-space: nowrap;
-}
-
-.task-tag-name {
-  color: var(--text);
-  font-weight: 700;
-}
-
-.task-tag-row.is-inactive .task-tag-name {
+.task-tags-message {
+  margin: 0;
   color: var(--text-muted);
-}
-
-.task-tag-count {
-  color: var(--text);
-  font-family: var(--mono);
   font-size: 0.85rem;
 }
 
-.task-tag-status-badge {
+.task-tag-chip {
   display: inline-flex;
   align-items: center;
-  min-width: 4.6rem;
-  justify-content: center;
-  padding: 0.2rem 0.55rem;
+  max-width: 100%;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #c7d2fe;
   border-radius: 999px;
-  font-size: 0.75rem;
+  background: #eef2ff;
+  color: var(--brand-text);
+  font-size: 0.82rem;
   font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
-.task-tag-status-badge.is-active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.task-tag-status-badge.is-inactive {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.task-tags-actions-column,
-.task-tag-actions-cell {
-  width: 4.5rem;
-  text-align: right;
-}
-
-.task-tags-table-message {
-  padding: 2rem 1rem !important;
+.task-tag-chip--inactive {
+  border-color: #cbd5e1;
+  background: #f8fafc;
   color: var(--text-muted);
-  text-align: center;
+  font-weight: 600;
 }
 
-.task-tag-menu {
-  position: relative;
-  display: inline-block;
+.task-tags-inactive {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
 
-.task-tag-menu-button {
-  display: inline-flex;
-  width: 2rem;
-  height: 2rem;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 0.35rem;
-  background: transparent;
+.task-tags-inactive summary {
   color: var(--text-muted);
-  font-size: 1.35rem;
-  line-height: 1;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.task-tag-menu-button:hover,
-.task-tag-menu-button:focus,
-.task-tag-menu-button[aria-expanded="true"] {
-  border-color: var(--border);
-  background: #f8fafc;
+.task-tags-inactive summary:hover,
+.task-tags-inactive summary:focus {
   color: var(--brand-text);
 }
 
-.task-tag-menu-dropdown {
-  top: calc(100% + 0.25rem);
-  right: 0;
-  min-width: 160px;
-  margin-top: 0;
-}
-
-.task-tag-menu-item {
-  display: block;
-  width: 100%;
-  padding: 0.65rem 0.85rem;
-  border: 0;
-  background: #fff;
-  color: #333;
-  font: inherit;
-  font-size: 0.85rem;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.task-tag-menu-item:hover,
-.task-tag-menu-item:focus {
-  background: #f8f9fa;
-  color: #0056b3;
+.task-tags-inactive[open] summary {
+  margin-bottom: 0.65rem;
 }
 
 @media (max-width: 576px) {
@@ -321,6 +252,10 @@
 
   .task-tags-add-button {
     align-self: flex-start;
+  }
+
+  .task-tag-chip {
+    font-size: 0.8rem;
   }
 }
 

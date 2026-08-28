@@ -168,34 +168,30 @@
 
     </div>
 
-    <!-- Task Tags Management Section -->
+    <!-- Task Tags Overview Section -->
     <section class="task-tags-section border-top pt-4 mt-4" aria-labelledby="task-tags-title">
       <div class="task-tags-header">
         <div>
           <h2 id="task-tags-title" class="task-tags-title">Task tags</h2>
-          <p class="task-tags-description">Manage the tags teachers can assign to tasks.</p>
+          <p class="task-tags-description">Add and view tags teachers can assign to tasks.</p>
         </div>
         <button type="button" class="task-tags-add-button" id="add-task-type-btn">+ Add tag</button>
       </div>
 
       <div id="task-type-status" class="task-tags-feedback" role="status" aria-live="polite"></div>
 
-      <div class="task-tags-table-wrapper">
-        <table class="task-tags-table">
-          <thead>
-            <tr>
-              <th scope="col">Tag</th>
-              <th scope="col" class="task-tags-count-column">Used in tasks</th>
-              <th scope="col">Status</th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody id="task-types-list">
-            <tr>
-              <td colspan="4" class="task-tags-table-message">Loading tags...</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="task-tags-overview">
+        <div class="task-tags-group">
+          <h3 class="task-tags-group-title">Existing tags</h3>
+          <div id="task-types-list" class="task-tags-list" aria-live="polite">
+            <p class="task-tags-message">Loading tags...</p>
+          </div>
+        </div>
+
+        <details id="inactive-task-tags" class="task-tags-inactive" hidden>
+          <summary>Inactive tags (<span id="inactive-task-tags-count">0</span>)</summary>
+          <div id="inactive-task-types-list" class="task-tags-list task-tags-list--inactive"></div>
+        </details>
       </div>
     </section>
 
@@ -263,21 +259,23 @@
   </div>
 
   <div id="task-tag-modal" class="admin-modal-overlay" hidden>
-    <div class="admin-modal task-tag-modal" role="dialog" aria-modal="true" aria-labelledby="task-tag-modal-title">
+    <div class="admin-modal task-tag-modal" role="dialog" aria-modal="true" aria-labelledby="task-tag-modal-title" aria-describedby="task-tag-modal-description">
       <div class="task-tag-modal-header">
         <h5 id="task-tag-modal-title">Add tag</h5>
         <button type="button" class="task-tag-modal-close" id="task-tag-modal-close" aria-label="Close">&times;</button>
       </div>
       <p id="task-tag-modal-description">Add a tag teachers can assign to tasks.</p>
-      <div class="form-group mb-3">
-        <label for="task-tag-name">Tag name</label>
-        <input type="text" class="form-control" id="task-tag-name" maxlength="100" autocomplete="off">
-      </div>
-      <div id="task-tag-modal-status" class="task-tags-feedback mb-3" role="alert" aria-live="polite"></div>
-      <div class="admin-modal-actions">
-        <button type="button" class="btn btn-outline-secondary" id="task-tag-cancel">Cancel</button>
-        <button type="button" class="btn btn-primary" id="task-tag-save">Add tag</button>
-      </div>
+      <form id="task-tag-form">
+        <div class="form-group mb-3">
+          <label for="task-tag-name">Tag name</label>
+          <input type="text" class="form-control" id="task-tag-name" maxlength="100" autocomplete="off" aria-required="true" aria-describedby="task-tag-modal-status">
+        </div>
+        <div id="task-tag-modal-status" class="task-tags-feedback mb-3" role="alert" aria-live="polite"></div>
+        <div class="admin-modal-actions">
+          <button type="button" class="btn btn-outline-secondary" id="task-tag-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="task-tag-save">Add tag</button>
+        </div>
+      </form>
     </div>
   </div>
 

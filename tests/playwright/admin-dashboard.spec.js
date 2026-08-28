@@ -71,9 +71,26 @@ test('admin dashboard shows stats and can create a registration token', async ({
   expect(parseNumber(listsText)).toBeGreaterThan(0);
 });
 
-test('admin can add, edit and deactivate a task type tag', async ({ page }) => {
+test('admin can view and add task type tags', async ({ page }) => {
   await page.goto('/admin-dashboard');
-  await page.waitForSelector('#task-types-list .task-tag-row', { timeout: 10000 });
+  await page.waitForSelector('#task-types-list .task-tag-chip', { timeout: 10000 });
+
+  await expect(page.locator('#task-tags-title')).toHaveText('Task tags');
+  await expect(page.locator('.task-tags-description')).toHaveText('Add and view tags teachers can assign to tasks.');
+  await expect(page.locator('.task-tags-group-title')).toHaveText('Existing tags');
+  await expect(page.locator('.task-tags-table')).toHaveCount(0);
+  await expect(page.getByText('Used in tasks', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Status', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.task-tag-menu-button')).toHaveCount(0);
+
+  const inactiveTags = page.locator('#inactive-task-tags');
+  await expect(inactiveTags).toBeVisible();
+  await expect(inactiveTags).not.toHaveAttribute('open', '');
+  const inactiveSummary = inactiveTags.locator('summary');
+  await expect(inactiveSummary).toHaveText(/Inactive tags \(\d+\)/);
+  await inactiveSummary.click();
+  await expect(inactiveTags).toHaveAttribute('open', '');
+  await expect(inactiveTags.locator('.task-tag-chip--inactive').first()).toBeVisible();
 
   const unique = Date.now();
   const label = `E2E Task Tag ${unique}`;
@@ -83,21 +100,9 @@ test('admin can add, edit and deactivate a task type tag', async ({ page }) => {
   await page.locator('#task-tag-name').fill(label);
   await page.getByRole('button', { name: 'Add tag', exact: true }).last().click();
 
-  const row = page.locator('.task-tag-row').filter({ hasText: label });
-  await expect(row).toBeVisible();
-  await expect(row.locator('input')).toHaveCount(0);
-  await expect(row.locator('.task-tag-status-badge')).toHaveText('Active');
-
-  const updatedLabel = `${label} Updated`;
-  await row.getByRole('button', { name: `More actions for ${label}` }).click();
-  await page.getByRole('menuitem', { name: 'Edit tag' }).click();
-  await expect(page.getByRole('dialog', { name: 'Edit tag' })).toBeVisible();
-  await page.locator('#task-tag-name').fill(updatedLabel);
-  await page.getByRole('button', { name: 'Save change' }).click();
-
-  const updatedRow = page.locator('.task-tag-row').filter({ hasText: updatedLabel });
-  await expect(updatedRow).toBeVisible();
-  await updatedRow.getByRole('button', { name: `More actions for ${updatedLabel}` }).click();
-  await page.getByRole('menuitem', { name: 'Deactivate tag' }).click();
-  await expect(updatedRow.locator('.task-tag-status-badge')).toHaveText('Inactive');
+  const chip = page.locator('.task-tag-chip').filter({ hasText: label });
+  await expect(chip).toBeVisible();
+  await expect(chip).toHaveCount(1);
+  await expect(chip.locator('button')).toHaveCount(0);
+  await expect(page.locator('#task-tag-modal')).toBeHidden();
 });

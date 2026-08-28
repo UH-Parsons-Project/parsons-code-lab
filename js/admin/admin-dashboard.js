@@ -289,10 +289,8 @@ function loadStatistics() {
 		});
 }
 
-// ==================== Task Tag Management ====================
+// ==================== Task Tags ====================
 
-let taskTagModalMode = 'add';
-let editingTaskTagId = null;
 let taskTagPreviousFocus = null;
 
 function setTaskTypeStatus(message, isError = false) {
@@ -309,161 +307,88 @@ function setTaskTagModalStatus(message, isError = false) {
 	status.className = `task-tags-feedback mb-3 ${isError ? 'is-error' : 'is-success'}`;
 }
 
-function setTaskTagsTableMessage(message, isError = false) {
-	const list = document.getElementById('task-types-list');
-	if (!list) return;
-	list.innerHTML = '';
-	const row = document.createElement('tr');
-	const cell = document.createElement('td');
-	cell.colSpan = 4;
-	cell.className = `task-tags-table-message${isError ? ' is-error' : ''}`;
-	cell.textContent = message;
-	row.appendChild(cell);
-	list.appendChild(row);
+function setTaskTagsMessage(containerId, message, isError = false) {
+ const container = document.getElementById(containerId);
+ if (!container) return;
+ container.innerHTML = '';
+ const messageElement = document.createElement('p');
+ messageElement.className = `task-tags-message${isError ? ' is-error' : ''}`;
+ messageElement.textContent = message;
+ container.appendChild(messageElement);
 }
 
 async function loadTaskTypes() {
-	if (!document.getElementById('task-types-list')) return;
+ if (!document.getElementById('task-types-list')) return;
 
-	setTaskTagsTableMessage('Loading tags...');
-	try {
-		const response = await fetch('/api/admin/task-types', { credentials: 'include' });
-		if (!response.ok) throw new Error('Failed to load tags');
-		renderTaskTypes(await response.json());
-	} catch (error) {
-		console.error('Error loading tags:', error);
-		setTaskTagsTableMessage('Failed to load tags', true);
-	}
+ setTaskTagsMessage('task-types-list', 'Loading tags...');
+ try {
+  const response = await fetch('/api/admin/task-types', { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to load tags');
+  renderTaskTypes(await response.json());
+ } catch (error) {
+  console.error('Error loading tags:', error);
+  setTaskTagsMessage('task-types-list', 'Failed to load tags', true);
+ }
 }
 
-function closeTaskTagMenus(except = null) {
-	document.querySelectorAll('.task-tag-menu-dropdown.show').forEach((menu) => {
-		if (menu === except) return;
-		menu.classList.remove('show');
-		menu.setAttribute('aria-hidden', 'true');
-		menu.parentElement?.querySelector('.task-tag-menu-button')?.setAttribute('aria-expanded', 'false');
-	});
-}
+function renderTaskTagChips(container, taskTypes, isInactive = false) {
+ container.innerHTML = '';
+ if (!taskTypes.length) {
+  setTaskTagsMessage(container.id, isInactive ? 'No inactive tags.' : 'No tags configured.');
+  return;
+ }
 
-function createTaskTagMenuItem(label, onClick) {
-	const item = document.createElement('button');
-	item.type = 'button';
-	item.className = 'task-tag-menu-item';
-	item.setAttribute('role', 'menuitem');
-	item.textContent = label;
-	item.addEventListener('click', (event) => {
-		event.stopPropagation();
-		closeTaskTagMenus();
-		onClick();
-	});
-	return item;
+ taskTypes.forEach((taskType) => {
+  const chip = document.createElement('span');
+  chip.className = `task-tag-chip${isInactive ? ' task-tag-chip--inactive' : ''}`;
+  chip.dataset.taskTypeId = String(taskType.id);
+  chip.textContent = taskType.label;
+  container.appendChild(chip);
+ });
 }
 
 function renderTaskTypes(taskTypes) {
-	const list = document.getElementById('task-types-list');
-	if (!list) return;
+ const activeList = document.getElementById('task-types-list');
+ const inactiveList = document.getElementById('inactive-task-types-list');
+ const inactiveSection = document.getElementById('inactive-task-tags');
+ const inactiveCount = document.getElementById('inactive-task-tags-count');
+ if (!activeList || !inactiveList || !inactiveSection || !inactiveCount) return;
 
-	list.innerHTML = '';
-	if (!Array.isArray(taskTypes) || taskTypes.length === 0) {
-		setTaskTagsTableMessage('No tags configured.');
-		return;
-	}
+ const configuredTaskTypes = Array.isArray(taskTypes) ? taskTypes : [];
+ const activeTaskTypes = configuredTaskTypes.filter(taskType => taskType.is_active);
+ const inactiveTaskTypes = configuredTaskTypes.filter(taskType => !taskType.is_active);
 
-	taskTypes.forEach((taskType) => {
-		const row = document.createElement('tr');
-		row.className = `task-tag-row${taskType.is_active ? '' : ' is-inactive'}`;
-		row.dataset.taskTypeId = String(taskType.id);
-
-		const nameCell = document.createElement('td');
-		const name = document.createElement('span');
-		name.className = 'task-tag-name';
-		name.textContent = taskType.label;
-		nameCell.appendChild(name);
-
-		const countCell = document.createElement('td');
-		countCell.className = 'task-tags-count-column task-tag-count';
-		countCell.textContent = typeof taskType.task_count === 'number' ? String(taskType.task_count) : '—';
-
-		const statusCell = document.createElement('td');
-		const statusBadge = document.createElement('span');
-		statusBadge.className = `task-tag-status-badge ${taskType.is_active ? 'is-active' : 'is-inactive'}`;
-		statusBadge.textContent = taskType.is_active ? 'Active' : 'Inactive';
-		statusCell.appendChild(statusBadge);
-
-		const actionsCell = document.createElement('td');
-		actionsCell.className = 'task-tag-actions-cell';
-		const menu = document.createElement('div');
-		menu.className = 'task-tag-menu';
-		const menuButton = document.createElement('button');
-		menuButton.type = 'button';
-		menuButton.className = 'task-tag-menu-button';
-		menuButton.setAttribute('aria-label', `More actions for ${taskType.label}`);
-		menuButton.setAttribute('aria-haspopup', 'menu');
-		menuButton.setAttribute('aria-expanded', 'false');
-		menuButton.textContent = '⋯';
-
-		const menuDropdown = document.createElement('div');
-		menuDropdown.className = 'navbar-burger-dropdown task-tag-menu-dropdown';
-		menuDropdown.setAttribute('role', 'menu');
-		menuDropdown.setAttribute('aria-hidden', 'true');
-		menuDropdown.appendChild(createTaskTagMenuItem('Edit tag', () => openTaskTagModal('edit', taskType)));
-		menuDropdown.appendChild(createTaskTagMenuItem(
-			taskType.is_active ? 'Deactivate tag' : 'Activate tag',
-			() => updateTaskTagStatus(taskType),
-		));
-
-		menuButton.addEventListener('click', (event) => {
-			event.stopPropagation();
-			const isOpen = menuDropdown.classList.contains('show');
-			closeTaskTagMenus(menuDropdown);
-			menuDropdown.classList.toggle('show', !isOpen);
-			menuDropdown.setAttribute('aria-hidden', String(isOpen));
-			menuButton.setAttribute('aria-expanded', String(!isOpen));
-		});
-
-		menu.appendChild(menuButton);
-		menu.appendChild(menuDropdown);
-		actionsCell.appendChild(menu);
-
-		row.appendChild(nameCell);
-		row.appendChild(countCell);
-		row.appendChild(statusCell);
-		row.appendChild(actionsCell);
-		list.appendChild(row);
-	});
+ renderTaskTagChips(activeList, activeTaskTypes);
+ renderTaskTagChips(inactiveList, inactiveTaskTypes, true);
+ inactiveCount.textContent = String(inactiveTaskTypes.length);
+ inactiveSection.hidden = inactiveTaskTypes.length === 0;
 }
 
-function openTaskTagModal(mode, taskType = null) {
-	const modal = document.getElementById('task-tag-modal');
-	const title = document.getElementById('task-tag-modal-title');
-	const description = document.getElementById('task-tag-modal-description');
-	const input = document.getElementById('task-tag-name');
+function openTaskTagModal() {
+ const modal = document.getElementById('task-tag-modal');
+ const title = document.getElementById('task-tag-modal-title');
+ const description = document.getElementById('task-tag-modal-description');
+ const input = document.getElementById('task-tag-name');
 	const saveButton = document.getElementById('task-tag-save');
 	if (!modal || !title || !description || !input || !saveButton) return;
 
-	taskTagModalMode = mode;
-	editingTaskTagId = taskType?.id ?? null;
-	taskTagPreviousFocus = document.activeElement;
-	title.textContent = mode === 'edit' ? 'Edit tag' : 'Add tag';
-	description.textContent = mode === 'edit'
-		? 'Change the visible name for this tag.'
-		: 'Add a tag teachers can assign to tasks.';
-	saveButton.textContent = mode === 'edit' ? 'Save change' : 'Add tag';
-	input.value = taskType?.label || '';
-	setTaskTagModalStatus('');
-	modal.hidden = false;
-	input.focus();
-	if (mode === 'edit') input.select();
+ taskTagPreviousFocus = document.activeElement;
+ title.textContent = 'Add tag';
+ description.textContent = 'Add a tag teachers can assign to tasks.';
+ saveButton.textContent = 'Add tag';
+ input.value = '';
+ setTaskTagModalStatus('');
+ modal.hidden = false;
+ input.focus();
 }
 
 function closeTaskTagModal() {
 	const modal = document.getElementById('task-tag-modal');
 	const input = document.getElementById('task-tag-name');
-	if (!modal) return;
+ if (!modal) return;
 
-	modal.hidden = true;
-	editingTaskTagId = null;
-	if (input) input.value = '';
+ modal.hidden = true;
+ if (input) input.value = '';
 	setTaskTagModalStatus('');
 	if (taskTagPreviousFocus instanceof HTMLElement) taskTagPreviousFocus.focus();
 	taskTagPreviousFocus = null;
@@ -472,34 +397,30 @@ function closeTaskTagModal() {
 async function saveTaskTag() {
 	const input = document.getElementById('task-tag-name');
 	const saveButton = document.getElementById('task-tag-save');
-	const label = input?.value.trim() || '';
-	if (!input || !saveButton) return;
+ const label = input?.value.trim() || '';
+ if (!input || !saveButton) return;
 	if (!label) {
 		setTaskTagModalStatus('Enter a tag name.', true);
 		input.focus();
 		return;
 	}
 
-	saveButton.disabled = true;
-	try {
-		const isEditing = taskTagModalMode === 'edit';
-		const response = await fetch(
-			isEditing ? `/api/admin/task-types/${editingTaskTagId}` : '/api/admin/task-types',
-			{
-				method: isEditing ? 'PATCH' : 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({ label }),
-			},
-		);
-		if (!response.ok) {
-			const payload = await response.json().catch(() => ({}));
-			throw new Error(payload.detail || `Failed to ${isEditing ? 'update' : 'add'} tag`);
-		}
+ saveButton.disabled = true;
+ try {
+  const response = await fetch('/api/admin/task-types', {
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   credentials: 'include',
+   body: JSON.stringify({ label }),
+  });
+  if (!response.ok) {
+   const payload = await response.json().catch(() => ({}));
+   throw new Error(payload.detail || 'Failed to add tag');
+  }
 
-		closeTaskTagModal();
-		setTaskTypeStatus(`${isEditing ? 'Updated' : 'Added'} “${label}”.`);
-		await loadTaskTypes();
+  closeTaskTagModal();
+  setTaskTypeStatus(`Added “${label}”.`);
+  await loadTaskTypes();
 	} catch (error) {
 		console.error('Error saving tag:', error);
 		setTaskTagModalStatus(error.message, true);
@@ -508,54 +429,31 @@ async function saveTaskTag() {
 	}
 }
 
-async function updateTaskTagStatus(taskType) {
-	try {
-		const response = await fetch(`/api/admin/task-types/${taskType.id}`, {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({ is_active: !taskType.is_active }),
-		});
-		if (!response.ok) {
-			const payload = await response.json().catch(() => ({}));
-			throw new Error(payload.detail || 'Failed to update tag status');
-		}
-
-		setTaskTypeStatus(`${taskType.is_active ? 'Deactivated' : 'Activated'} “${taskType.label}”.`);
-		await loadTaskTypes();
-	} catch (error) {
-		console.error('Error updating tag status:', error);
-		setTaskTypeStatus(error.message, true);
-	}
-}
-
 function initTaskTypeManagement() {
 	const addButton = document.getElementById('add-task-type-btn');
 	const modal = document.getElementById('task-tag-modal');
 	const cancelButton = document.getElementById('task-tag-cancel');
-	const closeButton = document.getElementById('task-tag-modal-close');
-	const saveButton = document.getElementById('task-tag-save');
-	const input = document.getElementById('task-tag-name');
-	if (!addButton || !modal || !cancelButton || !closeButton || !saveButton || !input) return;
+ const closeButton = document.getElementById('task-tag-modal-close');
+ const form = document.getElementById('task-tag-form');
+ const saveButton = document.getElementById('task-tag-save');
+ const input = document.getElementById('task-tag-name');
+ if (!addButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
 
-	addButton.addEventListener('click', () => openTaskTagModal('add'));
-	cancelButton.addEventListener('click', closeTaskTagModal);
-	closeButton.addEventListener('click', closeTaskTagModal);
-	saveButton.addEventListener('click', saveTaskTag);
-	input.addEventListener('keydown', (event) => {
-		if (event.key === 'Enter') saveTaskTag();
-		if (event.key === 'Escape') closeTaskTagModal();
-	});
-	modal.addEventListener('click', (event) => {
-		if (event.target === modal) closeTaskTagModal();
-	});
-	document.addEventListener('click', () => closeTaskTagMenus());
-	document.addEventListener('keydown', (event) => {
-		if (event.key === 'Escape') {
-			if (!modal.hidden) closeTaskTagModal();
-			closeTaskTagMenus();
-		}
-	});
+ addButton.addEventListener('click', openTaskTagModal);
+ cancelButton.addEventListener('click', closeTaskTagModal);
+ closeButton.addEventListener('click', closeTaskTagModal);
+ form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  saveTaskTag();
+ });
+ modal.addEventListener('click', (event) => {
+  if (event.target === modal) closeTaskTagModal();
+ });
+ document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+   if (!modal.hidden) closeTaskTagModal();
+  }
+ });
 
 	loadTaskTypes();
 }
