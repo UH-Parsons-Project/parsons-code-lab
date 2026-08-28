@@ -292,6 +292,7 @@ function loadStatistics() {
 // ==================== Task Tags ====================
 
 let taskTagPreviousFocus = null;
+const finnishTaskTagCollator = new Intl.Collator('fi-FI');
 
 function setTaskTypeStatus(message, isError = false) {
 	const status = document.getElementById('task-type-status');
@@ -355,8 +356,12 @@ function renderTaskTypes(taskTypes) {
  if (!activeList || !inactiveList || !inactiveSection || !inactiveCount) return;
 
  const configuredTaskTypes = Array.isArray(taskTypes) ? taskTypes : [];
- const activeTaskTypes = configuredTaskTypes.filter(taskType => taskType.is_active);
- const inactiveTaskTypes = configuredTaskTypes.filter(taskType => !taskType.is_active);
+ const activeTaskTypes = configuredTaskTypes
+  .filter(taskType => taskType.is_active)
+  .sort((first, second) => finnishTaskTagCollator.compare(first.label, second.label));
+ const inactiveTaskTypes = configuredTaskTypes
+  .filter(taskType => !taskType.is_active)
+  .sort((first, second) => finnishTaskTagCollator.compare(first.label, second.label));
 
  renderTaskTagChips(activeList, activeTaskTypes);
  renderTaskTagChips(inactiveList, inactiveTaskTypes, true);
