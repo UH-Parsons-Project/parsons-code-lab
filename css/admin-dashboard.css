@@ -106,7 +106,14 @@
 }
 
 .task-tags-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
 }
 
 .task-tags-header {
@@ -120,9 +127,9 @@
 .task-tags-title {
   margin: 0;
   color: var(--text);
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 
 .task-tags-description {
