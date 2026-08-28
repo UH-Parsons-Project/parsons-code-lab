@@ -137,21 +137,9 @@
   justify-content: center;
   flex: 0 0 auto;
   padding: 0.55rem 0.9rem;
-  border: 1px solid var(--brand-text);
-  border-radius: 0.45rem;
-  background: var(--brand-text);
-  color: #fff;
+  padding-right: 1.1rem;
   font-size: 0.85rem;
   font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.task-tags-add-button:hover,
-.task-tags-add-button:focus {
-  border-color: #253080;
-  background: #253080;
-  color: #fff;
 }
 
 .task-tags-feedback {
