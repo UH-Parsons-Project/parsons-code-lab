@@ -122,7 +122,7 @@ test('admin can select and deactivate multiple task type tags', async ({ page })
   }
 
   await page.getByRole('button', { name: 'Deactivate tag', exact: true }).click();
-  await expect(page.locator('#task-tag-deactivate-help')).toHaveText('Select one or more tags to deactivate. Selected tags turn red.');
+  await expect(page.locator('#task-tag-action-help')).toHaveText('Select one or more tags to deactivate. Selected tags turn red.');
 
   for (const label of labels) {
     const chip = page.locator('#task-types-list .task-tag-chip').filter({ hasText: label });
@@ -146,9 +146,22 @@ test('admin can select and deactivate multiple task type tags', async ({ page })
   }
 
   await page.locator('#inactive-task-tags summary').click();
-  const tagToReactivate = page.locator('.task-tag-inactive-item').filter({ hasText: labels[0] });
-  await expect(tagToReactivate).toBeVisible();
-  await tagToReactivate.getByRole('button', { name: `Reactivate ${labels[0]}` }).click();
+  await page.getByRole('button', { name: 'Restore tag', exact: true }).click();
+  await expect(page.locator('#task-tag-action-help')).toHaveText('Select one or more inactive tags to restore. Selected tags turn red.');
+
+  const tagToRestore = page.locator('#inactive-task-types-list .task-tag-chip').filter({ hasText: labels[0] });
+  await tagToRestore.click();
+  await expect(tagToRestore).toHaveClass(/task-tag-chip--selected/);
+
+  const restoreConfirmMessage = [];
+  page.once('dialog', async dialog => {
+    expect(dialog.type()).toBe('confirm');
+    restoreConfirmMessage.push(dialog.message());
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: /Restore selected tags \(1\)/ }).click();
+
+  await expect.poll(() => restoreConfirmMessage[0] || '').toContain(labels[0]);
   await expect(page.locator('#task-types-list .task-tag-chip').filter({ hasText: labels[0] })).toHaveCount(1);
   await expect(page.locator('#inactive-task-types-list .task-tag-chip--inactive').filter({ hasText: labels[0] })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Deactivate tag', exact: true })).toBeVisible();

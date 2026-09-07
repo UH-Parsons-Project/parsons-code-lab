@@ -94,6 +94,23 @@ async def test_admin_can_create_update_and_deactivate_task_type(
     )
     assert any(item["slug"] == created["slug"] for item in reactivated_active_response.json())
 
+    restored_task_response = await client.post(
+        "/api/problems",
+        headers=_auth(test_teacher.username),
+        json={
+            "taskTitle": "Restored tag task",
+            "description": "This task can use the restored tag.",
+            "startDescription": "Start here.",
+            "tests": "assert restored_value() == 1",
+            "solutionCode": "def restored_value():\n    return 1",
+            "task_type": created["slug"],
+        },
+    )
+
+    assert restored_task_response.status_code == 200
+    restored_task = await db_session.get(Parsons, restored_task_response.json()["id"])
+    assert restored_task.task_type == created["slug"]
+
 
 @pytest.mark.asyncio
 async def test_admin_task_type_list_includes_real_usage_counts(

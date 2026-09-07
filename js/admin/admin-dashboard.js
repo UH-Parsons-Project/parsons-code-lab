@@ -293,8 +293,8 @@ function loadStatistics() {
 
 let taskTagPreviousFocus = null;
 const finnishTaskTagCollator = new Intl.Collator('fi-FI');
-let taskTagDeactivationMode = false;
-let taskTagDeactivationBusy = false;
+let taskTagActionMode = null;
+let taskTagActionBusy = false;
 const selectedTaskTagIds = new Set();
 
 function setTaskTypeStatus(message, isError = false) {
@@ -321,31 +321,47 @@ function setTaskTagsMessage(containerId, message, isError = false) {
  container.appendChild(messageElement);
 }
 
-function updateTaskTagDeactivationControls() {
+function updateTaskTagActionControls() {
  const addButton = document.getElementById('add-task-type-btn');
  const deactivateButton = document.getElementById('deactivate-task-type-btn');
- const controls = document.getElementById('task-tag-deactivate-controls');
- const cancelButton = document.getElementById('cancel-task-tag-deactivation');
- const confirmButton = document.getElementById('confirm-task-tag-deactivation');
- if (!addButton || !deactivateButton || !controls || !cancelButton || !confirmButton) return;
+ const restoreButton = document.getElementById('restore-task-type-btn');
+ const controls = document.getElementById('task-tag-action-controls');
+ const help = document.getElementById('task-tag-action-help');
+ const cancelButton = document.getElementById('cancel-task-tag-action');
+ const confirmButton = document.getElementById('confirm-task-tag-action');
+ if (!addButton || !deactivateButton || !restoreButton || !controls || !help || !cancelButton || !confirmButton) return;
 
  const selectedCount = selectedTaskTagIds.size;
- addButton.disabled = taskTagDeactivationMode || taskTagDeactivationBusy;
- deactivateButton.disabled = taskTagDeactivationBusy;
- deactivateButton.textContent = taskTagDeactivationMode ? 'Cancel deactivation' : 'Deactivate tag';
- deactivateButton.classList.toggle('btn-outline-danger', !taskTagDeactivationMode);
- deactivateButton.classList.toggle('btn-outline-secondary', taskTagDeactivationMode);
- controls.hidden = !taskTagDeactivationMode;
- cancelButton.disabled = taskTagDeactivationBusy;
- confirmButton.disabled = taskTagDeactivationBusy || selectedCount === 0;
+ const isDeactivationMode = taskTagActionMode === 'deactivate';
+ const isRestoreMode = taskTagActionMode === 'restore';
+ addButton.disabled = taskTagActionMode !== null || taskTagActionBusy;
+ deactivateButton.disabled = taskTagActionBusy || isRestoreMode;
+ deactivateButton.textContent = isDeactivationMode ? 'Cancel deactivation' : 'Deactivate tag';
+ deactivateButton.classList.toggle('btn-outline-danger', !isDeactivationMode);
+ deactivateButton.classList.toggle('btn-outline-secondary', isDeactivationMode);
+ restoreButton.disabled = taskTagActionBusy || isDeactivationMode;
+ restoreButton.textContent = isRestoreMode ? 'Cancel restoration' : 'Restore tag';
+ restoreButton.classList.toggle('btn-outline-success', !isRestoreMode);
+ restoreButton.classList.toggle('btn-outline-secondary', isRestoreMode);
+ controls.hidden = taskTagActionMode === null;
+ help.textContent = isDeactivationMode
+  ? 'Select one or more tags to deactivate. Selected tags turn red.'
+  : isRestoreMode
+   ? 'Select one or more inactive tags to restore. Selected tags turn red.'
+   : '';
+ cancelButton.disabled = taskTagActionBusy;
+ confirmButton.disabled = taskTagActionBusy || selectedCount === 0;
+ confirmButton.classList.toggle('btn-danger', isDeactivationMode);
+ confirmButton.classList.toggle('btn-success', isRestoreMode);
  confirmButton.textContent = selectedCount
-  ? `Deactivate selected tags (${selectedCount})`
-  : 'Deactivate selected tags';
+  ? `${isRestoreMode ? 'Restore' : 'Deactivate'} selected tags (${selectedCount})`
+  : `${isRestoreMode ? 'Restore' : 'Deactivate'} selected tags`;
 }
 
 function updateTaskTagChipState(chip) {
  const taskTypeId = Number(chip.dataset.taskTypeId);
- const isSelectable = taskTagDeactivationMode && !chip.classList.contains('task-tag-chip--inactive');
+ const isInactive = chip.classList.contains('task-tag-chip--inactive');
+ const isSelectable = taskTagActionMode === (isInactive ? 'restore' : 'deactivate');
  const isSelected = isSelectable && selectedTaskTagIds.has(taskTypeId);
 
  chip.classList.toggle('task-tag-chip--selectable', isSelectable);
@@ -364,14 +380,17 @@ function updateTaskTagChipState(chip) {
 }
 
 function updateTaskTagChips() {
- document.querySelectorAll('#task-types-list .task-tag-chip').forEach(updateTaskTagChipState);
+ document.querySelectorAll('#task-types-list .task-tag-chip, #inactive-task-types-list .task-tag-chip').forEach(updateTaskTagChipState);
 }
 
 function toggleTaskTagSelection(chip) {
- if (!taskTagDeactivationMode) return;
+ if (!taskTagActionMode) return;
 
  const taskTypeId = Number(chip.dataset.taskTypeId);
  if (!Number.isInteger(taskTypeId)) return;
+ const isInactive = chip.classList.contains('task-tag-chip--inactive');
+ const isSelectable = taskTagActionMode === (isInactive ? 'restore' : 'deactivate');
+ if (!isSelectable) return;
 
  if (selectedTaskTagIds.has(taskTypeId)) {
   selectedTaskTagIds.delete(taskTypeId);
@@ -379,30 +398,30 @@ function toggleTaskTagSelection(chip) {
   selectedTaskTagIds.add(taskTypeId);
  }
  updateTaskTagChipState(chip);
- updateTaskTagDeactivationControls();
+ updateTaskTagActionControls();
 }
 
-function startTaskTagDeactivationMode() {
- taskTagDeactivationMode = true;
+function startTaskTagActionMode(mode) {
+ taskTagActionMode = mode;
  selectedTaskTagIds.clear();
  updateTaskTagChips();
- updateTaskTagDeactivationControls();
- setTaskTypeStatus('Select one or more tags to deactivate. Selected tags turn red.');
-}
-
-function cancelTaskTagDeactivationMode() {
- taskTagDeactivationMode = false;
- taskTagDeactivationBusy = false;
- selectedTaskTagIds.clear();
- updateTaskTagChips();
- updateTaskTagDeactivationControls();
+ updateTaskTagActionControls();
  setTaskTypeStatus('');
 }
 
-async function deactivateSelectedTaskTags() {
- if (!taskTagDeactivationMode || selectedTaskTagIds.size === 0) return;
+function cancelTaskTagActionMode() {
+ taskTagActionMode = null;
+ taskTagActionBusy = false;
+ selectedTaskTagIds.clear();
+ updateTaskTagChips();
+ updateTaskTagActionControls();
+ setTaskTypeStatus('');
+}
 
- const selectedChips = [...document.querySelectorAll('#task-types-list .task-tag-chip--selected')];
+async function applySelectedTaskTagAction() {
+ if (!taskTagActionMode || selectedTaskTagIds.size === 0) return;
+
+ const selectedChips = [...document.querySelectorAll('.task-tag-chip--selected')];
  const selectedTags = selectedChips.map(chip => ({
   id: Number(chip.dataset.taskTypeId),
   label: chip.textContent.trim(),
@@ -410,54 +429,41 @@ async function deactivateSelectedTaskTags() {
  if (!selectedTags.length) return;
 
  const tagNames = selectedTags.map(tag => `“${tag.label}”`).join(', ');
- const confirmed = window.confirm(`Are you sure you want to deactivate tags ${tagNames}? They will no longer be available for new tasks.`);
+ const isRestoreMode = taskTagActionMode === 'restore';
+ const actionLabel = isRestoreMode ? 'restore' : 'deactivate';
+ const confirmed = window.confirm(
+  isRestoreMode
+   ? `Are you sure you want to restore tags ${tagNames}? They will be available for new tasks again.`
+   : `Are you sure you want to deactivate tags ${tagNames}? They will no longer be available for new tasks.`,
+ );
  if (!confirmed) return;
 
- taskTagDeactivationBusy = true;
- updateTaskTagDeactivationControls();
+ taskTagActionBusy = true;
+ updateTaskTagActionControls();
  try {
   await Promise.all(selectedTags.map(async (tag) => {
    const response = await fetch(`/api/admin/task-types/${encodeURIComponent(tag.id)}`, {
-    method: 'DELETE',
+    method: isRestoreMode ? 'PATCH' : 'DELETE',
+    ...(isRestoreMode ? {
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ is_active: true }),
+    } : {}),
     credentials: 'include',
    });
    if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.detail || `Failed to deactivate tag “${tag.label}”`);
+    throw new Error(payload.detail || `Failed to ${actionLabel} tag “${tag.label}”`);
    }
   }));
 
-  cancelTaskTagDeactivationMode();
-  setTaskTypeStatus(`Deactivated tags ${tagNames}.`);
+  cancelTaskTagActionMode();
+  setTaskTypeStatus(`${isRestoreMode ? 'Restored' : 'Deactivated'} tags ${tagNames}.`);
   await loadTaskTypes();
  } catch (error) {
-  console.error('Error deactivating tags:', error);
-  taskTagDeactivationBusy = false;
-  updateTaskTagDeactivationControls();
-  setTaskTypeStatus(error.message || 'Failed to deactivate selected tags.', true);
- }
-}
-
-async function reactivateTaskTag(taskType, button) {
- button.disabled = true;
- try {
-  const response = await fetch(`/api/admin/task-types/${encodeURIComponent(taskType.id)}`, {
-   method: 'PATCH',
-   headers: { 'Content-Type': 'application/json' },
-   credentials: 'include',
-   body: JSON.stringify({ is_active: true }),
-  });
-  if (!response.ok) {
-   const payload = await response.json().catch(() => ({}));
-   throw new Error(payload.detail || `Failed to reactivate tag “${taskType.label}”`);
-  }
-
-  setTaskTypeStatus(`Reactivated “${taskType.label}”.`);
-  await loadTaskTypes();
- } catch (error) {
-  console.error('Error reactivating tag:', error);
-  button.disabled = false;
-  setTaskTypeStatus(error.message || 'Failed to reactivate tag.', true);
+  console.error(`Error trying to ${actionLabel} tags:`, error);
+  taskTagActionBusy = false;
+  updateTaskTagActionControls();
+  setTaskTypeStatus(error.message || `Failed to ${actionLabel} selected tags.`, true);
  }
 }
 
@@ -487,32 +493,15 @@ function renderTaskTagChips(container, taskTypes, isInactive = false) {
   chip.className = `task-tag-chip${isInactive ? ' task-tag-chip--inactive' : ''}`;
   chip.dataset.taskTypeId = String(taskType.id);
   chip.textContent = taskType.label;
-  if (!isInactive) {
-   chip.addEventListener('click', () => toggleTaskTagSelection(chip));
-   chip.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-     event.preventDefault();
-     toggleTaskTagSelection(chip);
-    }
-   });
-  }
+  chip.addEventListener('click', () => toggleTaskTagSelection(chip));
+  chip.addEventListener('keydown', (event) => {
+   if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    toggleTaskTagSelection(chip);
+   }
+  });
   updateTaskTagChipState(chip);
-  if (isInactive) {
-   const tagItem = document.createElement('div');
-   tagItem.className = 'task-tag-inactive-item';
-   tagItem.appendChild(chip);
-
-   const reactivateButton = document.createElement('button');
-   reactivateButton.type = 'button';
-   reactivateButton.className = 'btn btn-sm btn-outline-success task-tag-reactivate-button';
-   reactivateButton.textContent = 'Reactivate';
-   reactivateButton.setAttribute('aria-label', `Reactivate ${taskType.label}`);
-   reactivateButton.addEventListener('click', () => reactivateTaskTag(taskType, reactivateButton));
-   tagItem.appendChild(reactivateButton);
-   container.appendChild(tagItem);
-  } else {
-   container.appendChild(chip);
-  }
+  container.appendChild(chip);
  });
 }
 
@@ -605,25 +594,36 @@ async function saveTaskTag() {
 function initTaskTypeManagement() {
 	const addButton = document.getElementById('add-task-type-btn');
  const deactivateButton = document.getElementById('deactivate-task-type-btn');
+	const restoreButton = document.getElementById('restore-task-type-btn');
 	const modal = document.getElementById('task-tag-modal');
 	const cancelButton = document.getElementById('task-tag-cancel');
  const closeButton = document.getElementById('task-tag-modal-close');
  const form = document.getElementById('task-tag-form');
  const saveButton = document.getElementById('task-tag-save');
  const input = document.getElementById('task-tag-name');
- if (!addButton || !deactivateButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
+ if (!addButton || !deactivateButton || !restoreButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
 
  addButton.addEventListener('click', openTaskTagModal);
  deactivateButton.addEventListener('click', () => {
-  if (taskTagDeactivationMode) {
-   cancelTaskTagDeactivationMode();
+  if (taskTagActionMode === 'deactivate') {
+   cancelTaskTagActionMode();
   } else {
-   startTaskTagDeactivationMode();
+   startTaskTagActionMode('deactivate');
   }
  });
 
- document.getElementById('cancel-task-tag-deactivation')?.addEventListener('click', cancelTaskTagDeactivationMode);
- document.getElementById('confirm-task-tag-deactivation')?.addEventListener('click', deactivateSelectedTaskTags);
+ restoreButton.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (taskTagActionMode === 'restore') {
+   cancelTaskTagActionMode();
+  } else {
+   startTaskTagActionMode('restore');
+  }
+ });
+
+ document.getElementById('cancel-task-tag-action')?.addEventListener('click', cancelTaskTagActionMode);
+ document.getElementById('confirm-task-tag-action')?.addEventListener('click', applySelectedTaskTagAction);
  cancelButton.addEventListener('click', closeTaskTagModal);
  closeButton.addEventListener('click', closeTaskTagModal);
  form.addEventListener('submit', (event) => {
@@ -637,13 +637,13 @@ function initTaskTypeManagement() {
   if (event.key === 'Escape') {
    if (!modal.hidden) {
     closeTaskTagModal();
-   } else if (taskTagDeactivationMode) {
-    cancelTaskTagDeactivationMode();
+   } else if (taskTagActionMode) {
+    cancelTaskTagActionMode();
    }
   }
  });
 
-	updateTaskTagDeactivationControls();
+	updateTaskTagActionControls();
 	loadTaskTypes();
 }
 

@@ -183,11 +183,11 @@
 
       <div id="task-type-status" class="task-tags-feedback" role="status" aria-live="polite"></div>
 
-      <div id="task-tag-deactivate-controls" class="task-tag-deactivate-controls" hidden>
-        <p id="task-tag-deactivate-help" class="task-tag-deactivate-help">Select one or more tags to deactivate. Selected tags turn red.</p>
-        <div class="task-tag-deactivate-actions">
-          <button type="button" class="btn btn-outline-secondary" id="cancel-task-tag-deactivation">Cancel</button>
-          <button type="button" class="btn btn-danger" id="confirm-task-tag-deactivation" disabled>Deactivate selected tags</button>
+      <div id="task-tag-action-controls" class="task-tag-action-controls" hidden>
+        <p id="task-tag-action-help" class="task-tag-action-help"></p>
+        <div class="task-tag-action-buttons">
+          <button type="button" class="btn btn-outline-secondary" id="cancel-task-tag-action">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-task-tag-action" disabled></button>
         </div>
       </div>
 
@@ -200,7 +200,10 @@
         </div>
 
         <details id="inactive-task-tags" class="task-tags-inactive" hidden>
-          <summary>Inactive tags (<span id="inactive-task-tags-count">0</span>)</summary>
+          <summary>
+            <span>Inactive tags (<span id="inactive-task-tags-count">0</span>)</span>
+            <button type="button" class="btn btn-outline-success task-tags-restore-button" id="restore-task-type-btn">Restore tag</button>
+          </summary>
           <div id="inactive-task-types-list" class="task-tags-list task-tags-list--inactive"></div>
         </details>
       </div>
