@@ -154,6 +154,30 @@ async def test_new_task_type_is_accepted_when_creating_task(
 
 
 @pytest.mark.asyncio
+async def test_deactivated_task_type_is_rejected_when_creating_task(
+    client, db_session, test_teacher
+):
+    db_session.add(TaskType(slug="deactivated", label="Deactivated", is_active=False))
+    await db_session.commit()
+
+    response = await client.post(
+        "/api/problems",
+        headers=_auth(test_teacher.username),
+        json={
+            "taskTitle": "Deactivated tag task",
+            "description": "This task should not be created.",
+            "startDescription": "Start here.",
+            "tests": "assert value() == 1",
+            "solutionCode": "def value():\n    return 1",
+            "task_type": "deactivated",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "task_type must be one of" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_editing_legacy_task_without_tag_keeps_existing_value(
     client, db_session, test_teacher, task
 ):

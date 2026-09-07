@@ -125,7 +125,7 @@
 }
 
 .task-tags-actions,
-.task-tag-delete-actions {
+.task-tag-deactivate-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -157,7 +157,7 @@
   font-weight: 700;
 }
 
-.task-tags-delete-button {
+.task-tags-deactivate-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -187,7 +187,7 @@
   color: #b91c1c;
 }
 
-.task-tag-delete-controls {
+.task-tag-deactivate-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -199,7 +199,7 @@
   background: #fff7f7;
 }
 
-.task-tag-delete-help {
+.task-tag-deactivate-help {
   margin: 0;
   color: #991b1b;
   font-size: 0.85rem;
@@ -313,7 +313,7 @@
     align-items: flex-start;
   }
 
-  .task-tag-delete-controls {
+  .task-tag-deactivate-controls {
     align-items: flex-start;
     flex-direction: column;
   }

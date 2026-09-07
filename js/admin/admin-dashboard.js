@@ -293,8 +293,8 @@ function loadStatistics() {
 
 let taskTagPreviousFocus = null;
 const finnishTaskTagCollator = new Intl.Collator('fi-FI');
-let taskTagDeleteMode = false;
-let taskTagDeleteBusy = false;
+let taskTagDeactivationMode = false;
+let taskTagDeactivationBusy = false;
 const selectedTaskTagIds = new Set();
 
 function setTaskTypeStatus(message, isError = false) {
@@ -321,31 +321,31 @@ function setTaskTagsMessage(containerId, message, isError = false) {
  container.appendChild(messageElement);
 }
 
-function updateTaskTagDeleteControls() {
+function updateTaskTagDeactivationControls() {
  const addButton = document.getElementById('add-task-type-btn');
- const deleteButton = document.getElementById('delete-task-type-btn');
- const controls = document.getElementById('task-tag-delete-controls');
- const cancelButton = document.getElementById('cancel-task-tag-delete');
- const confirmButton = document.getElementById('confirm-task-tag-delete');
- if (!addButton || !deleteButton || !controls || !cancelButton || !confirmButton) return;
+ const deactivateButton = document.getElementById('deactivate-task-type-btn');
+ const controls = document.getElementById('task-tag-deactivate-controls');
+ const cancelButton = document.getElementById('cancel-task-tag-deactivation');
+ const confirmButton = document.getElementById('confirm-task-tag-deactivation');
+ if (!addButton || !deactivateButton || !controls || !cancelButton || !confirmButton) return;
 
  const selectedCount = selectedTaskTagIds.size;
- addButton.disabled = taskTagDeleteMode || taskTagDeleteBusy;
- deleteButton.disabled = taskTagDeleteBusy;
- deleteButton.textContent = taskTagDeleteMode ? 'Cancel delete' : 'Delete tag';
- deleteButton.classList.toggle('btn-outline-danger', !taskTagDeleteMode);
- deleteButton.classList.toggle('btn-outline-secondary', taskTagDeleteMode);
- controls.hidden = !taskTagDeleteMode;
- cancelButton.disabled = taskTagDeleteBusy;
- confirmButton.disabled = taskTagDeleteBusy || selectedCount === 0;
+ addButton.disabled = taskTagDeactivationMode || taskTagDeactivationBusy;
+ deactivateButton.disabled = taskTagDeactivationBusy;
+ deactivateButton.textContent = taskTagDeactivationMode ? 'Cancel deactivation' : 'Deactivate tag';
+ deactivateButton.classList.toggle('btn-outline-danger', !taskTagDeactivationMode);
+ deactivateButton.classList.toggle('btn-outline-secondary', taskTagDeactivationMode);
+ controls.hidden = !taskTagDeactivationMode;
+ cancelButton.disabled = taskTagDeactivationBusy;
+ confirmButton.disabled = taskTagDeactivationBusy || selectedCount === 0;
  confirmButton.textContent = selectedCount
-  ? `Delete selected tags (${selectedCount})`
-  : 'Delete selected tags';
+  ? `Deactivate selected tags (${selectedCount})`
+  : 'Deactivate selected tags';
 }
 
 function updateTaskTagChipState(chip) {
  const taskTypeId = Number(chip.dataset.taskTypeId);
- const isSelectable = taskTagDeleteMode && !chip.classList.contains('task-tag-chip--inactive');
+ const isSelectable = taskTagDeactivationMode && !chip.classList.contains('task-tag-chip--inactive');
  const isSelected = isSelectable && selectedTaskTagIds.has(taskTypeId);
 
  chip.classList.toggle('task-tag-chip--selectable', isSelectable);
@@ -368,7 +368,7 @@ function updateTaskTagChips() {
 }
 
 function toggleTaskTagSelection(chip) {
- if (!taskTagDeleteMode) return;
+ if (!taskTagDeactivationMode) return;
 
  const taskTypeId = Number(chip.dataset.taskTypeId);
  if (!Number.isInteger(taskTypeId)) return;
@@ -379,28 +379,28 @@ function toggleTaskTagSelection(chip) {
   selectedTaskTagIds.add(taskTypeId);
  }
  updateTaskTagChipState(chip);
- updateTaskTagDeleteControls();
+ updateTaskTagDeactivationControls();
 }
 
-function startTaskTagDeleteMode() {
- taskTagDeleteMode = true;
+function startTaskTagDeactivationMode() {
+ taskTagDeactivationMode = true;
  selectedTaskTagIds.clear();
  updateTaskTagChips();
- updateTaskTagDeleteControls();
- setTaskTypeStatus('Select one or more tags to delete. Selected tags turn red.');
+ updateTaskTagDeactivationControls();
+ setTaskTypeStatus('Select one or more tags to deactivate. Selected tags turn red.');
 }
 
-function cancelTaskTagDeleteMode() {
- taskTagDeleteMode = false;
- taskTagDeleteBusy = false;
+function cancelTaskTagDeactivationMode() {
+ taskTagDeactivationMode = false;
+ taskTagDeactivationBusy = false;
  selectedTaskTagIds.clear();
  updateTaskTagChips();
- updateTaskTagDeleteControls();
+ updateTaskTagDeactivationControls();
  setTaskTypeStatus('');
 }
 
-async function deleteSelectedTaskTags() {
- if (!taskTagDeleteMode || selectedTaskTagIds.size === 0) return;
+async function deactivateSelectedTaskTags() {
+ if (!taskTagDeactivationMode || selectedTaskTagIds.size === 0) return;
 
  const selectedChips = [...document.querySelectorAll('#task-types-list .task-tag-chip--selected')];
  const selectedTags = selectedChips.map(chip => ({
@@ -410,11 +410,11 @@ async function deleteSelectedTaskTags() {
  if (!selectedTags.length) return;
 
  const tagNames = selectedTags.map(tag => `“${tag.label}”`).join(', ');
- const confirmed = window.confirm(`Are you sure you want to delete tags ${tagNames}?`);
+ const confirmed = window.confirm(`Are you sure you want to deactivate tags ${tagNames}? They will no longer be available for new tasks.`);
  if (!confirmed) return;
 
- taskTagDeleteBusy = true;
- updateTaskTagDeleteControls();
+ taskTagDeactivationBusy = true;
+ updateTaskTagDeactivationControls();
  try {
   await Promise.all(selectedTags.map(async (tag) => {
    const response = await fetch(`/api/admin/task-types/${encodeURIComponent(tag.id)}`, {
@@ -423,18 +423,18 @@ async function deleteSelectedTaskTags() {
    });
    if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.detail || `Failed to delete tag “${tag.label}”`);
+    throw new Error(payload.detail || `Failed to deactivate tag “${tag.label}”`);
    }
   }));
 
-  cancelTaskTagDeleteMode();
-  setTaskTypeStatus(`Deleted tags ${tagNames}.`);
+  cancelTaskTagDeactivationMode();
+  setTaskTypeStatus(`Deactivated tags ${tagNames}.`);
   await loadTaskTypes();
  } catch (error) {
-  console.error('Error deleting tags:', error);
-  taskTagDeleteBusy = false;
-  updateTaskTagDeleteControls();
-  setTaskTypeStatus(error.message || 'Failed to delete selected tags.', true);
+  console.error('Error deactivating tags:', error);
+  taskTagDeactivationBusy = false;
+  updateTaskTagDeactivationControls();
+  setTaskTypeStatus(error.message || 'Failed to deactivate selected tags.', true);
  }
 }
 
@@ -566,26 +566,26 @@ async function saveTaskTag() {
 
 function initTaskTypeManagement() {
 	const addButton = document.getElementById('add-task-type-btn');
-	const deleteButton = document.getElementById('delete-task-type-btn');
+ const deactivateButton = document.getElementById('deactivate-task-type-btn');
 	const modal = document.getElementById('task-tag-modal');
 	const cancelButton = document.getElementById('task-tag-cancel');
  const closeButton = document.getElementById('task-tag-modal-close');
  const form = document.getElementById('task-tag-form');
  const saveButton = document.getElementById('task-tag-save');
  const input = document.getElementById('task-tag-name');
- if (!addButton || !deleteButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
+ if (!addButton || !deactivateButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
 
  addButton.addEventListener('click', openTaskTagModal);
- deleteButton.addEventListener('click', () => {
-  if (taskTagDeleteMode) {
-   cancelTaskTagDeleteMode();
+ deactivateButton.addEventListener('click', () => {
+  if (taskTagDeactivationMode) {
+   cancelTaskTagDeactivationMode();
   } else {
-   startTaskTagDeleteMode();
+   startTaskTagDeactivationMode();
   }
  });
 
- document.getElementById('cancel-task-tag-delete')?.addEventListener('click', cancelTaskTagDeleteMode);
- document.getElementById('confirm-task-tag-delete')?.addEventListener('click', deleteSelectedTaskTags);
+ document.getElementById('cancel-task-tag-deactivation')?.addEventListener('click', cancelTaskTagDeactivationMode);
+ document.getElementById('confirm-task-tag-deactivation')?.addEventListener('click', deactivateSelectedTaskTags);
  cancelButton.addEventListener('click', closeTaskTagModal);
  closeButton.addEventListener('click', closeTaskTagModal);
  form.addEventListener('submit', (event) => {
@@ -599,13 +599,13 @@ function initTaskTypeManagement() {
   if (event.key === 'Escape') {
    if (!modal.hidden) {
     closeTaskTagModal();
-   } else if (taskTagDeleteMode) {
-    cancelTaskTagDeleteMode();
+   } else if (taskTagDeactivationMode) {
+    cancelTaskTagDeactivationMode();
    }
   }
  });
 
-	updateTaskTagDeleteControls();
+	updateTaskTagDeactivationControls();
 	loadTaskTypes();
 }
 
