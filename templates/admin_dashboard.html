@@ -175,10 +175,21 @@
           <h2 id="task-tags-title" class="task-tags-title">Task tags</h2>
           <p class="task-tags-description">Add and view tags teachers can assign to tasks.</p>
         </div>
-        <button type="button" class="btn btn-primary task-tags-add-button" id="add-task-type-btn">+ Add tag</button>
+        <div class="task-tags-actions">
+          <button type="button" class="btn btn-primary task-tags-add-button" id="add-task-type-btn">+ Add tag</button>
+          <button type="button" class="btn btn-outline-danger task-tags-delete-button" id="delete-task-type-btn">Delete tag</button>
+        </div>
       </div>
 
       <div id="task-type-status" class="task-tags-feedback" role="status" aria-live="polite"></div>
+
+      <div id="task-tag-delete-controls" class="task-tag-delete-controls" hidden>
+        <p id="task-tag-delete-help" class="task-tag-delete-help">Select one or more tags to delete. Selected tags turn red.</p>
+        <div class="task-tag-delete-actions">
+          <button type="button" class="btn btn-outline-secondary" id="cancel-task-tag-delete">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-task-tag-delete" disabled>Delete selected tags</button>
+        </div>
+      </div>
 
       <div class="task-tags-overview">
         <div class="task-tags-group">

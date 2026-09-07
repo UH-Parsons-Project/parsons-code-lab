@@ -293,6 +293,9 @@ function loadStatistics() {
 
 let taskTagPreviousFocus = null;
 const finnishTaskTagCollator = new Intl.Collator('fi-FI');
+let taskTagDeleteMode = false;
+let taskTagDeleteBusy = false;
+const selectedTaskTagIds = new Set();
 
 function setTaskTypeStatus(message, isError = false) {
 	const status = document.getElementById('task-type-status');
@@ -316,6 +319,123 @@ function setTaskTagsMessage(containerId, message, isError = false) {
  messageElement.className = `task-tags-message${isError ? ' is-error' : ''}`;
  messageElement.textContent = message;
  container.appendChild(messageElement);
+}
+
+function updateTaskTagDeleteControls() {
+ const addButton = document.getElementById('add-task-type-btn');
+ const deleteButton = document.getElementById('delete-task-type-btn');
+ const controls = document.getElementById('task-tag-delete-controls');
+ const cancelButton = document.getElementById('cancel-task-tag-delete');
+ const confirmButton = document.getElementById('confirm-task-tag-delete');
+ if (!addButton || !deleteButton || !controls || !cancelButton || !confirmButton) return;
+
+ const selectedCount = selectedTaskTagIds.size;
+ addButton.disabled = taskTagDeleteMode || taskTagDeleteBusy;
+ deleteButton.disabled = taskTagDeleteBusy;
+ deleteButton.textContent = taskTagDeleteMode ? 'Cancel delete' : 'Delete tag';
+ deleteButton.classList.toggle('btn-outline-danger', !taskTagDeleteMode);
+ deleteButton.classList.toggle('btn-outline-secondary', taskTagDeleteMode);
+ controls.hidden = !taskTagDeleteMode;
+ cancelButton.disabled = taskTagDeleteBusy;
+ confirmButton.disabled = taskTagDeleteBusy || selectedCount === 0;
+ confirmButton.textContent = selectedCount
+  ? `Delete selected tags (${selectedCount})`
+  : 'Delete selected tags';
+}
+
+function updateTaskTagChipState(chip) {
+ const taskTypeId = Number(chip.dataset.taskTypeId);
+ const isSelectable = taskTagDeleteMode && !chip.classList.contains('task-tag-chip--inactive');
+ const isSelected = isSelectable && selectedTaskTagIds.has(taskTypeId);
+
+ chip.classList.toggle('task-tag-chip--selectable', isSelectable);
+ chip.classList.toggle('task-tag-chip--selected', isSelected);
+ if (isSelectable) {
+  chip.setAttribute('role', 'button');
+  chip.tabIndex = 0;
+  chip.setAttribute('aria-pressed', String(isSelected));
+  chip.setAttribute('aria-label', `${isSelected ? 'Deselect' : 'Select'} tag ${chip.textContent}`);
+ } else {
+  chip.removeAttribute('role');
+  chip.removeAttribute('tabindex');
+  chip.removeAttribute('aria-pressed');
+  chip.removeAttribute('aria-label');
+ }
+}
+
+function updateTaskTagChips() {
+ document.querySelectorAll('#task-types-list .task-tag-chip').forEach(updateTaskTagChipState);
+}
+
+function toggleTaskTagSelection(chip) {
+ if (!taskTagDeleteMode) return;
+
+ const taskTypeId = Number(chip.dataset.taskTypeId);
+ if (!Number.isInteger(taskTypeId)) return;
+
+ if (selectedTaskTagIds.has(taskTypeId)) {
+  selectedTaskTagIds.delete(taskTypeId);
+ } else {
+  selectedTaskTagIds.add(taskTypeId);
+ }
+ updateTaskTagChipState(chip);
+ updateTaskTagDeleteControls();
+}
+
+function startTaskTagDeleteMode() {
+ taskTagDeleteMode = true;
+ selectedTaskTagIds.clear();
+ updateTaskTagChips();
+ updateTaskTagDeleteControls();
+ setTaskTypeStatus('Select one or more tags to delete. Selected tags turn red.');
+}
+
+function cancelTaskTagDeleteMode() {
+ taskTagDeleteMode = false;
+ taskTagDeleteBusy = false;
+ selectedTaskTagIds.clear();
+ updateTaskTagChips();
+ updateTaskTagDeleteControls();
+ setTaskTypeStatus('');
+}
+
+async function deleteSelectedTaskTags() {
+ if (!taskTagDeleteMode || selectedTaskTagIds.size === 0) return;
+
+ const selectedChips = [...document.querySelectorAll('#task-types-list .task-tag-chip--selected')];
+ const selectedTags = selectedChips.map(chip => ({
+  id: Number(chip.dataset.taskTypeId),
+  label: chip.textContent.trim(),
+ }));
+ if (!selectedTags.length) return;
+
+ const tagNames = selectedTags.map(tag => `“${tag.label}”`).join(', ');
+ const confirmed = window.confirm(`Are you sure you want to delete tags ${tagNames}?`);
+ if (!confirmed) return;
+
+ taskTagDeleteBusy = true;
+ updateTaskTagDeleteControls();
+ try {
+  await Promise.all(selectedTags.map(async (tag) => {
+   const response = await fetch(`/api/admin/task-types/${encodeURIComponent(tag.id)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+   });
+   if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || `Failed to delete tag “${tag.label}”`);
+   }
+  }));
+
+  cancelTaskTagDeleteMode();
+  setTaskTypeStatus(`Deleted tags ${tagNames}.`);
+  await loadTaskTypes();
+ } catch (error) {
+  console.error('Error deleting tags:', error);
+  taskTagDeleteBusy = false;
+  updateTaskTagDeleteControls();
+  setTaskTypeStatus(error.message || 'Failed to delete selected tags.', true);
+ }
 }
 
 async function loadTaskTypes() {
@@ -344,6 +464,16 @@ function renderTaskTagChips(container, taskTypes, isInactive = false) {
   chip.className = `task-tag-chip${isInactive ? ' task-tag-chip--inactive' : ''}`;
   chip.dataset.taskTypeId = String(taskType.id);
   chip.textContent = taskType.label;
+  if (!isInactive) {
+   chip.addEventListener('click', () => toggleTaskTagSelection(chip));
+   chip.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+     event.preventDefault();
+     toggleTaskTagSelection(chip);
+    }
+   });
+  }
+  updateTaskTagChipState(chip);
   container.appendChild(chip);
  });
 }
@@ -436,15 +566,26 @@ async function saveTaskTag() {
 
 function initTaskTypeManagement() {
 	const addButton = document.getElementById('add-task-type-btn');
+	const deleteButton = document.getElementById('delete-task-type-btn');
 	const modal = document.getElementById('task-tag-modal');
 	const cancelButton = document.getElementById('task-tag-cancel');
  const closeButton = document.getElementById('task-tag-modal-close');
  const form = document.getElementById('task-tag-form');
  const saveButton = document.getElementById('task-tag-save');
  const input = document.getElementById('task-tag-name');
- if (!addButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
+ if (!addButton || !deleteButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
 
  addButton.addEventListener('click', openTaskTagModal);
+ deleteButton.addEventListener('click', () => {
+  if (taskTagDeleteMode) {
+   cancelTaskTagDeleteMode();
+  } else {
+   startTaskTagDeleteMode();
+  }
+ });
+
+ document.getElementById('cancel-task-tag-delete')?.addEventListener('click', cancelTaskTagDeleteMode);
+ document.getElementById('confirm-task-tag-delete')?.addEventListener('click', deleteSelectedTaskTags);
  cancelButton.addEventListener('click', closeTaskTagModal);
  closeButton.addEventListener('click', closeTaskTagModal);
  form.addEventListener('submit', (event) => {
@@ -456,10 +597,15 @@ function initTaskTypeManagement() {
  });
  document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
-   if (!modal.hidden) closeTaskTagModal();
+   if (!modal.hidden) {
+    closeTaskTagModal();
+   } else if (taskTagDeleteMode) {
+    cancelTaskTagDeleteMode();
+   }
   }
  });
 
+	updateTaskTagDeleteControls();
 	loadTaskTypes();
 }
 

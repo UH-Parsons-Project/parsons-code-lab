@@ -106,3 +106,43 @@ test('admin can view and add task type tags', async ({ page }) => {
   await expect(chip.locator('button')).toHaveCount(0);
   await expect(page.locator('#task-tag-modal')).toBeHidden();
 });
+
+test('admin can select and delete multiple task type tags', async ({ page }) => {
+  await page.goto('/admin-dashboard');
+  await page.waitForSelector('#task-types-list .task-tag-chip', { timeout: 10000 });
+
+  const unique = Date.now();
+  const labels = [`E2E Delete Tag A ${unique}`, `E2E Delete Tag B ${unique}`];
+
+  for (const label of labels) {
+    await page.getByRole('button', { name: '+ Add tag' }).click();
+    await page.locator('#task-tag-name').fill(label);
+    await page.getByRole('button', { name: 'Add tag', exact: true }).last().click();
+    await expect(page.locator('#task-types-list .task-tag-chip').filter({ hasText: label })).toHaveCount(1);
+  }
+
+  await page.getByRole('button', { name: 'Delete tag', exact: true }).click();
+  await expect(page.locator('#task-tag-delete-help')).toHaveText('Select one or more tags to delete. Selected tags turn red.');
+
+  for (const label of labels) {
+    const chip = page.locator('#task-types-list .task-tag-chip').filter({ hasText: label });
+    await chip.click();
+    await expect(chip).toHaveClass(/task-tag-chip--selected/);
+  }
+
+  const confirmMessage = [];
+  page.once('dialog', async dialog => {
+    expect(dialog.type()).toBe('confirm');
+    confirmMessage.push(dialog.message());
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: /Delete selected tags \(2\)/ }).click();
+
+  await expect.poll(() => confirmMessage[0] || '').toContain(labels[0]);
+  await expect.poll(() => confirmMessage[0] || '').toContain(labels[1]);
+  for (const label of labels) {
+    await expect(page.locator('#task-types-list .task-tag-chip').filter({ hasText: label })).toHaveCount(0);
+    await expect(page.locator('#inactive-task-types-list .task-tag-chip--inactive').filter({ hasText: label })).toHaveCount(1);
+  }
+  await expect(page.getByRole('button', { name: 'Delete tag', exact: true })).toBeVisible();
+});
