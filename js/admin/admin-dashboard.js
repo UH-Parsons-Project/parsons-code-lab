@@ -438,6 +438,29 @@ async function deactivateSelectedTaskTags() {
  }
 }
 
+async function reactivateTaskTag(taskType, button) {
+ button.disabled = true;
+ try {
+  const response = await fetch(`/api/admin/task-types/${encodeURIComponent(taskType.id)}`, {
+   method: 'PATCH',
+   headers: { 'Content-Type': 'application/json' },
+   credentials: 'include',
+   body: JSON.stringify({ is_active: true }),
+  });
+  if (!response.ok) {
+   const payload = await response.json().catch(() => ({}));
+   throw new Error(payload.detail || `Failed to reactivate tag “${taskType.label}”`);
+  }
+
+  setTaskTypeStatus(`Reactivated “${taskType.label}”.`);
+  await loadTaskTypes();
+ } catch (error) {
+  console.error('Error reactivating tag:', error);
+  button.disabled = false;
+  setTaskTypeStatus(error.message || 'Failed to reactivate tag.', true);
+ }
+}
+
 async function loadTaskTypes() {
  if (!document.getElementById('task-types-list')) return;
 
@@ -474,7 +497,22 @@ function renderTaskTagChips(container, taskTypes, isInactive = false) {
    });
   }
   updateTaskTagChipState(chip);
-  container.appendChild(chip);
+  if (isInactive) {
+   const tagItem = document.createElement('div');
+   tagItem.className = 'task-tag-inactive-item';
+   tagItem.appendChild(chip);
+
+   const reactivateButton = document.createElement('button');
+   reactivateButton.type = 'button';
+   reactivateButton.className = 'btn btn-sm btn-outline-success task-tag-reactivate-button';
+   reactivateButton.textContent = 'Reactivate';
+   reactivateButton.setAttribute('aria-label', `Reactivate ${taskType.label}`);
+   reactivateButton.addEventListener('click', () => reactivateTaskTag(taskType, reactivateButton));
+   tagItem.appendChild(reactivateButton);
+   container.appendChild(tagItem);
+  } else {
+   container.appendChild(chip);
+  }
  });
 }
 

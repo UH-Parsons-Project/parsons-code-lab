@@ -277,6 +277,19 @@
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
 }
 
+.task-tag-inactive-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+}
+
+.task-tag-reactivate-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .task-tags-inactive {
   margin-top: 1rem;
   padding-top: 0.75rem;

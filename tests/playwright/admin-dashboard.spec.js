@@ -144,5 +144,12 @@ test('admin can select and deactivate multiple task type tags', async ({ page })
     await expect(page.locator('#task-types-list .task-tag-chip').filter({ hasText: label })).toHaveCount(0);
     await expect(page.locator('#inactive-task-types-list .task-tag-chip--inactive').filter({ hasText: label })).toHaveCount(1);
   }
+
+  await page.locator('#inactive-task-tags summary').click();
+  const tagToReactivate = page.locator('.task-tag-inactive-item').filter({ hasText: labels[0] });
+  await expect(tagToReactivate).toBeVisible();
+  await tagToReactivate.getByRole('button', { name: `Reactivate ${labels[0]}` }).click();
+  await expect(page.locator('#task-types-list .task-tag-chip').filter({ hasText: labels[0] })).toHaveCount(1);
+  await expect(page.locator('#inactive-task-types-list .task-tag-chip--inactive').filter({ hasText: labels[0] })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Deactivate tag', exact: true })).toBeVisible();
 });

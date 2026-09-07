@@ -81,6 +81,19 @@ async def test_admin_can_create_update_and_deactivate_task_type(
     assert delete_response.status_code == 200
     assert delete_response.json()["is_active"] is False
 
+    reactivate_response = await client.patch(
+        f"/api/admin/task-types/{created['id']}",
+        headers=_auth(test_teacher.username),
+        json={"is_active": True},
+    )
+    assert reactivate_response.status_code == 200
+    assert reactivate_response.json()["is_active"] is True
+
+    reactivated_active_response = await client.get(
+        "/api/task-types", headers=_auth(test_teacher.username)
+    )
+    assert any(item["slug"] == created["slug"] for item in reactivated_active_response.json())
+
 
 @pytest.mark.asyncio
 async def test_admin_task_type_list_includes_real_usage_counts(
