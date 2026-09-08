@@ -4,10 +4,11 @@
  */
 import { FiniteWorker } from '../core/worker-manager.js';
 import { processTestError } from '../core/doctest-grader.js';
-import { initProtectedPage, initBurgerMenu } from "../core/auth-ui.js";
+import { initProtectedPage, initBurgerMenu, initSignedInAs } from "../core/auth-ui.js";
 import { escapeHtml } from '../utils/ui-utils.js';
 import { buildReprFromBlocks, buildCustomRepr, renderParsonsBoard } from '../utils/parsons-editor-utils.js';
 
+initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
 
