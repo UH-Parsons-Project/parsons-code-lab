@@ -13,7 +13,7 @@
         lifetime="28800"
         timeout="3600"
         relayState="ss:mem"
-        handlerURL="/Shibboleth.sso"
+        handlerURL="https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso"
         checkAddress="false"
         handlerSSL="true"
         cookieProps="https">
