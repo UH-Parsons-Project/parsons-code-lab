@@ -72,10 +72,16 @@ the page, start HY login, and verify the redirect to `/teacher-dashboard`.
 Before that, open `/Shibboleth.sso/Metadata` and verify that the XML contains
 the registered SP entity ID and certificate, and that all endpoint URLs
 (`AssertionConsumerService`, `SingleLogoutService`,
-`ArtifactResolutionService`) use `https://`. If they show `http://`, the
-`handlerURL` in `apache/shibboleth/shibboleth2.xml` must be an absolute
-`https://` URL rather than a relative path — Apache runs on plain HTTP behind
-the OpenShift edge-terminated route, so mod_shib cannot detect TLS on its own.
+`ArtifactResolutionService`) use `https://`. If they show `http://`, check the
+`ServerName` scheme prefix in `apache/shibboleth-proxy.conf` — Apache runs on
+plain HTTP behind the OpenShift edge-terminated route, so it cannot detect TLS
+on its own. Setting `ServerName https://<host>` makes Apache report `https` as
+its default scheme, which mod_shib then uses consistently for both matching
+`/Shibboleth.sso/*` requests and building endpoint URLs. Do not make
+`handlerURL` in `shibboleth2.xml` an absolute `https://` URL instead — that
+makes mod_shib require the actual detected connection scheme to be `https`
+before it will handle the request, which fails behind edge termination and
+causes `/Shibboleth.sso/Metadata` to 404.
 
 The Shibboleth login integration is disabled unless `SAML_ENABLED=true`.
 
