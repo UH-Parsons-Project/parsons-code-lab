@@ -42,3 +42,10 @@ jobs:
       - name: Push to Quay # Push the docker built image to quay
         run: |
           docker push quay.io/tike/ohtu-faded-parsons:staging
+
+      - name: Build Shibboleth proxy image
+        run: docker build -f apache/Dockerfile -t quay.io/tike/ohtu-faded-parsons-shibboleth:staging apache
+
+      - name: Push Shibboleth proxy image to Quay
+        run: |
+          docker push quay.io/tike/ohtu-faded-parsons-shibboleth:staging
