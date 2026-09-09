@@ -22,6 +22,7 @@ RUN a2enmod headers proxy proxy_http shib ssl && \
 COPY shibboleth-proxy.conf /etc/apache2/sites-available/shibboleth-proxy.conf
 COPY shibboleth/shibboleth2.xml /etc/shibboleth/shibboleth2.xml
 COPY shibboleth/attribute-map.xml /etc/shibboleth/attribute-map.xml
+COPY shibboleth/native.logger /etc/shibboleth/native.logger
 
 RUN a2ensite shibboleth-proxy.conf && \
     printf 'ServerName localhost\n' > /etc/apache2/conf-available/servername.conf && \
