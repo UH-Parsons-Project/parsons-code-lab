@@ -59,7 +59,7 @@ class TestAuthenticateUser:
 
     async def test_authenticate_valid_user(self, db_session, test_teacher):
         """Test authenticating with valid credentials."""
-        user = await authenticate_user("testteacher", "testpassword123", db_session)
+        user = await authenticate_user("test@example.com", "testpassword123", db_session)
 
         assert user is not None
         assert user.username == "testteacher"
@@ -75,7 +75,7 @@ class TestAuthenticateUser:
 
     async def test_authenticate_wrong_password(self, db_session, test_teacher):
         """Test authentication fails with wrong password."""
-        user = await authenticate_user("testteacher", "wrongpassword", db_session)
+        user = await authenticate_user("test@example.com", "wrongpassword", db_session)
 
         assert user is None
 
@@ -87,13 +87,13 @@ class TestAuthenticateUser:
 
     async def test_authenticate_inactive_user(self, db_session, inactive_teacher):
         """Test authentication fails for inactive users."""
-        user = await authenticate_user("inactiveteacher", "testpassword123", db_session)
+        user = await authenticate_user("inactive@example.com", "testpassword123", db_session)
 
         assert user is None
 
     async def test_authenticate_empty_password(self, db_session, test_teacher):
         """Test authentication fails with empty password."""
-        user = await authenticate_user("testteacher", "", db_session)
+        user = await authenticate_user("test@example.com", "", db_session)
 
         assert user is None
 

@@ -1,4 +1,4 @@
-import { initStudentLogout, initSignedInAs } from '../core/auth-ui.js';
+import { initStudentLogout, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
 import { getUsername } from '../core/auth-utils.js';
 import {
 	prepareCode,
@@ -7,6 +7,7 @@ import {
 } from '../core/doctest-grader.js';
 import { FiniteWorker } from '../core/worker-manager.js';
 
+initBurgerMenu();
 initSignedInAs({ preferNickname: true });
 initStudentLogout();
 
@@ -23,7 +24,10 @@ if (!returnUrl) {
 }
 
 const backBtn = document.getElementById('back-to-list');
-if (backBtn) backBtn.href = returnUrl || '/';
+if (backBtn) {
+	backBtn.href = returnUrl || localStorage.getItem('last_task_set_url') || '/';
+	backBtn.style.display = 'inline-block';
+}
 
 const FUNCTION_HEADER = 'def greet(name):\n    """\n    Returns a greeting for the given name.\n    """\n';
 
@@ -162,7 +166,7 @@ probEl = document.createElement('problem-element');
 probEl.setAttribute('name', 'demo-greet');
 probEl.setAttribute(
 	'taskInstructions',
-	'<strong>greet</strong> returns a greeting string. If the name is empty, it returns "Hello, stranger!". Otherwise, it returns "Hello, " followed by the name and "!".'
+	'<div><strong>greet</strong> returns a greeting string. If the name is empty, it returns "Hello, stranger!". Otherwise, it returns "Hello, " followed by the name and "!".</div><br><br><div class="demo-info-note"><em>You might not yet be familiar with all the programming concepts seen in this example. Do not worry if you can not solve the problem quite yet! You can still get familiar with the exercise area by just trying moving the blocks and running the tests.</em></div>'
 );
 probEl.setAttribute(
 	'description',
@@ -171,6 +175,7 @@ probEl.setAttribute(
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
 probEl.setAttribute('codeHeader', FUNCTION_HEADER);
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
+probEl.shuffleStarterBlocks = true;
 
 const savedArrangementJson = localStorage.getItem(LS_DEMO_REPR);
 if (savedArrangementJson) {

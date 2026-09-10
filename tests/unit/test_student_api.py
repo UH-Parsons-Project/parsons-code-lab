@@ -34,7 +34,7 @@ class TestStudentMe:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": "teststu",
+                "email": "test@example.com",
                 "password": "password123",
                 "unique_link_code": "NOTREAL",
             }
@@ -62,7 +62,7 @@ class TestJoinTaskSet:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -89,7 +89,7 @@ class TestJoinTaskSet:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
             }
         )
@@ -111,7 +111,7 @@ class TestCheckEnrollment:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -155,7 +155,7 @@ class TestStudentLogin:
         response = await client.post(
             "/api/student_login",
             json={
-                "username": "logintest",
+                "email": "login@example.com",
                 "password": "password123",
             }
         )
@@ -175,7 +175,7 @@ class TestStudentLogin:
         response = await client.post(
             "/api/student_login",
             json={
-                "username": "wrongpass",
+                "email": "wrong@example.com",
                 "password": "incorrectpassword",
             }
         )
@@ -186,7 +186,7 @@ class TestStudentLogin:
         """Test student login with missing credentials."""
         response = await client.post(
             "/api/student_login",
-            json={"username": "test"}
+            json={"email": "test"}
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -200,7 +200,7 @@ class TestStudentLogin:
         response = await client.post(
             "/api/student_login",
             json={
-                "username": "enrolltest",
+                "email": "enroll@example.com",
                 "password": "password123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -225,7 +225,7 @@ class TestStudentLogout:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
             }
         )
@@ -261,9 +261,9 @@ class TestStudentRegister:
         assert data["status"] == "success"
         assert "id" in data
 
-    async def test_student_register_duplicate_username(self, client, db_session):
-        """Test registration with duplicate username."""
-        student = Student(username="duplicate", email="first@example.com")
+    async def test_student_register_duplicate_email(self, client, db_session):
+        """Test registration with duplicate email."""
+        student = Student(username="first", email="duplicate@example.com")
         student.set_password("password123")
         db_session.add(student)
         await db_session.commit()
@@ -271,8 +271,8 @@ class TestStudentRegister:
         response = await client.post(
             "/api/student_register",
             json={
-                "username": "duplicate",
-                "email": "second@example.com",
+                "username": "second",
+                "email": "duplicate@example.com",
                 "password": "password123",
                 "password_confirm": "password123",
             }
@@ -317,7 +317,7 @@ class TestGetTaskForStudent:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -351,7 +351,7 @@ class TestGetTaskForStudent:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -383,7 +383,7 @@ class TestGetTaskForStudent:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
             }
         )
@@ -406,7 +406,7 @@ class TestCheckTaskHasStarted:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -437,7 +437,7 @@ class TestCheckTaskHasStarted:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -473,7 +473,7 @@ class TestGetCompletionStatus:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -497,7 +497,7 @@ class TestGetCompletionStatus:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -539,7 +539,7 @@ class TestGetCompletionStatus:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }
@@ -585,7 +585,7 @@ class TestStartTask:
         login_response = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": task_set.unique_link_code,
             }

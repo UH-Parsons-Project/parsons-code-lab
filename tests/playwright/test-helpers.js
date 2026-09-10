@@ -45,7 +45,16 @@ export async function registerTeacher(
   password = 'password123',
   registrationToken = getTestRegistrationToken()
 ) {
-  await page.goto('/teacher-register');
+  try {
+    await page.goto('/teacher-register');
+  } catch (err) {
+    if (err.message && (err.message.includes('interrupted') || err.message.includes('ERR_ABORTED') || err.message.includes('Navigation'))) {
+      await page.waitForTimeout(300);
+      await page.goto('/teacher-register');
+    } else {
+      throw err;
+    }
+  }
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
@@ -61,11 +70,26 @@ export async function registerTeacher(
  * @param {string} password - Teacher password
  */
 export async function loginTeacher(page, username, password) {
+  await page.request.post('/api/logout');
   await page.goto('/');
-  await page.waitForTimeout(200);
-  await page.locator('#username').fill(username);
-  await page.locator('#password').fill(password);
-  await page.locator('#login-btn').click();
+  await page.evaluate(() => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('username');
+  });
+  await page.reload();
+  await page.waitForSelector('#login-form', { state: 'visible', timeout: 10000 });
+
+  const usernameInput = page.locator('#login-form #username');
+  const passwordInput = page.locator('#login-form #password');
+  await expect(usernameInput).toBeVisible({ timeout: 10000 });
+  await expect(passwordInput).toBeVisible({ timeout: 10000 });
+  await usernameInput.fill(username);
+  await passwordInput.fill(password);
+
+  await Promise.all([
+    page.waitForURL(/\/teacher-dashboard$|\/$/, { timeout: 15000 }).catch(() => null),
+    page.locator('#login-btn').click(),
+  ]);
 }
 
 /**
@@ -98,7 +122,10 @@ export async function createTaskSet(
     await taskItems[index].click();
   }
 
-  await page.locator('#create-task-set-form button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 }),
+    page.locator('#create-task-set-form button[type="submit"]').click(),
+  ]);
 }
 
 export async function createTaskSetWithTasks(page, taskSetTitle, studentDescription, teacherDescription, taskNames) {
@@ -112,35 +139,37 @@ export async function createTaskSetWithTasks(page, taskSetTitle, studentDescript
     await page.locator('.task-item', { has: page.locator('.task-item-title', { hasText: name }) }).click();
   }
 
-  await page.locator('#create-task-set-form button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 }),
+    page.locator('#create-task-set-form button[type="submit"]').click(),
+  ]);
 }
 
 export async function registerStudent(page, username, email, password = 'password123') {
-  // Click register and wait for the student register form to appear.
-  // Avoid waiting for URL navigation which can be aborted in some browsers.
-  await page.locator('#register-btn').click();
+  await page.request.post('/api/student_logout');
 
-  // Try a few strategies to wait for the register form to appear.
-  try {
-    await page.waitForSelector('#register-form', { timeout: 5000 });
-  } catch (err) {
-    // If selector didn't appear quickly, some browsers may navigate and abort
-    // the URL wait; try waiting for the student register URL then the form.
-    try {
-      await page.waitForURL(/student-register|\/student-register/, { timeout: 5000 });
-      await page.waitForSelector('#register-form', { timeout: 5000 });
-    } catch (err2) {
-      // Final fallback: small delay then wait longer for the form
-      await page.waitForTimeout(500);
-      await page.waitForSelector('#register-form', { timeout: 10000 });
-    }
-  }
+  const currentUrl = new URL(page.url());
+  const taskSetMatch = currentUrl.pathname.match(/^\/([^/]+)\/set\/([^/]+)(?:\/tasks)?\/?$/);
+  const registerUrl = taskSetMatch
+    ? `/student-register?username=${encodeURIComponent(taskSetMatch[1])}&code=${encodeURIComponent(taskSetMatch[2])}`
+    : '/student-register';
+  await page.goto(registerUrl);
+  await page.waitForSelector('#register-form', { state: 'visible', timeout: 10000 });
 
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
   await page.locator('#password_confirm').fill(password);
+
+  const registrationResult = Promise.race([
+    page.waitForURL(/\/student\/profile$|\/tasks$/, { timeout: 15000 }),
+    page.locator('#alert-placeholder .alert-danger').waitFor({
+      state: 'visible',
+      timeout: 15000,
+    }),
+  ]);
   await page.locator('#register-form button[type="submit"]').click();
+  await registrationResult;
 }
 
 /**
@@ -163,9 +192,20 @@ export async function createTestStudent(page, username, email, password = 'passw
 }
 
 export async function loginStudent(page, username, password = 'password123', uniqueLinkCode = null) {
-  await page.waitForTimeout(200);
-  await page.locator('#login-form #username').fill(username);
-  await page.locator('#login-form #password').fill(password);
+  let loginUrl = page.url();
+  await page.request.post('/api/student_logout');
+  await page.waitForURL(/\/[^/]+\/set\/[^/]+\/?$/, { timeout: 5000 }).catch(() => null);
+  loginUrl = page.url();
+  await page.goto(loginUrl);
+  await page.waitForSelector('#login-form', { state: 'visible', timeout: 10000 });
+
+  const usernameInput = page.locator('#login-form #username');
+  const passwordInput = page.locator('#login-form #password');
+  await expect(usernameInput).toBeVisible({ timeout: 10000 });
+  await expect(passwordInput).toBeVisible({ timeout: 10000 });
+
+  await usernameInput.fill(username);
+  await passwordInput.fill(password);
 
   if (uniqueLinkCode) {
     const hiddenCodeInput = page.locator('#login-form input[name="unique_link_code"]');
@@ -174,7 +214,10 @@ export async function loginStudent(page, username, password = 'password123', uni
     }
   }
 
-  await page.locator('#login-btn').click();
+  await Promise.all([
+    page.waitForURL(/\/tasks$/, { timeout: 15000 }).catch(() => null),
+    page.locator('#login-btn').click(),
+  ]);
 }
 
 /**
@@ -184,11 +227,15 @@ export async function loginStudent(page, username, password = 'password123', uni
 export async function logoutTeacher(page) {
   await page.locator('#navbar-burger-toggle').click();
   await page.locator('#logout-btn').click();
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForSelector('#login-form', { timeout: 10000 });
 }
 
 export async function getStudentUrl(page, taskSetTitle) {
-  await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+  await Promise.all([
+    page.waitForURL(/\/task-set-overview/, { timeout: 15000 }),
+    page.locator('.task-set-title', { hasText: taskSetTitle }).click(),
+  ]);
   await page.waitForSelector('#link-code', { timeout: 10000 });
   const studentUrl = (await page.locator('#link-code').textContent()).trim();
   return studentUrl;
@@ -236,7 +283,7 @@ export async function submitTaskWrongThenCorrect(page) {
 
   await page.getByRole('button', { name: 'Run Tests' }).click();
   await page.waitForSelector('test-results-element', { timeout: 30000 });
-  await expect(page.locator('.test-result-summary.full-pass')).toHaveCount(0);
+  await expect(page.locator('.test-result-badge.full-pass')).toHaveCount(0);
 
   // Phase 2: set correct ordering/indents and blanks, then run again
   await page.evaluate(() => {
@@ -294,6 +341,76 @@ export async function submitTaskWrongThenCorrect(page) {
   });
 
   await page.getByRole('button', { name: 'Run Tests' }).click();
-  await page.waitForSelector('.test-result-summary.full-pass', { timeout: 30000 });
-  await expect(page.locator('.test-result-summary.full-pass')).toBeVisible();
+  await page.waitForSelector('.test-result-badge.full-pass', { timeout: 30000 });
+  await expect(page.locator('.test-result-badge.full-pass')).toBeVisible();
+}
+
+/**
+ * Start a Parsons task for 'greater_num' and submit a correct solution
+ * @param {import('@playwright/test').Page} page - student page on the problem view (after clicking Start)
+ */
+export async function submitGreaterNumCorrect(page) {
+  await page.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
+
+  await page.evaluate(() => {
+    const pe = document.querySelector('problem-element');
+    const widget = pe?.parsonsWidget;
+    if (!widget) return;
+    
+    const findId = (substr) => {
+      const l = widget.modified_lines.find(x => x.code && x.code.includes(substr));
+      return l ? l.id : null;
+    };
+    
+    const findAll = (substr) => {
+      return widget.modified_lines.filter(x => x.code && x.code.includes(substr)).map(l => l.id);
+    };
+
+    const returns = findAll('return ');
+
+    const ordered = [
+      findId('def greater_num(num1, num2):'),
+      findId('if '),
+      returns[0],
+      findId('else:'),
+      returns[1],
+    ].filter(Boolean);
+
+    const indentMap = {};
+    if (ordered[0]) indentMap[ordered[0]] = 0;
+    if (ordered[1]) indentMap[ordered[1]] = 1;
+    if (ordered[2]) indentMap[ordered[2]] = 2;
+    if (ordered[3]) indentMap[ordered[3]] = 1;
+    if (ordered[4]) indentMap[ordered[4]] = 2;
+
+    Object.entries(indentMap).forEach(([id, val]) => {
+      const line = widget.getLineById(id);
+      if (line) line.indent = val;
+    });
+
+    widget.createHTMLFromLists(ordered, widget.modified_lines.map(l => l.id).filter(id => !ordered.includes(id)));
+    ordered.forEach(id => widget.updateHTMLIndent(id));
+    
+    const setInputs = (id, values) => {
+      if (!id) return;
+      const li = document.getElementById(id);
+      if (!li) return;
+      const inputs = Array.from(li.querySelectorAll('input.text-box'));
+      values.forEach((v, i) => {
+        if (inputs[i]) {
+          inputs[i].value = v;
+          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+          inputs[i].dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+      });
+    };
+
+    setInputs(ordered[1], ['num1 > num2']);
+    setInputs(ordered[2], ['num1']);
+    setInputs(ordered[4], ['num2']);
+  });
+
+  await page.getByRole('button', { name: 'Run Tests' }).click();
+  await page.waitForSelector('.test-result-badge.full-pass', { timeout: 30000 });
+  await expect(page.locator('.test-result-badge.full-pass')).toBeVisible();
 }

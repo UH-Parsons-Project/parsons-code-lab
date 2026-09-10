@@ -6,6 +6,7 @@ ignore=venv
 disable=C0114,
 		C0115,
 		C0116,
+        C0121,
 		import-error,
 		R0903,
 		R0912,
@@ -63,3 +64,6 @@ max-args=10
 [REPORTS]
 output-format=colorized
 score=no
+
+[DESIGN]
+max-nested-blocks=6

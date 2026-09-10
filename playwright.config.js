@@ -41,12 +41,12 @@ export default defineConfig({
   testDir: './tests/playwright',
   /* Global setup script - runs once before all tests */
   globalSetup: './tests/global-setup.js',
-  fullyParallel: false, // fixed database duplication issues in CI
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // fixed database duplication issues in CI
+  workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : (process.env.CI ? 2 : 4),
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['list', { printSteps: false }],

@@ -105,6 +105,14 @@ async function loadTaskDetails() {
     typeBadge.innerHTML = `<i class="fas fa-tag"></i> ${task.task_type || 'normal'}`;
     badgeContainer.appendChild(typeBadge);
 
+    // Faded Badge
+    if (task.faded) {
+      const fadedBadge = document.createElement('span');
+      fadedBadge.className = 'task-details-badge preview-badge type-faded';
+      fadedBadge.innerHTML = '<i class="fas fa-keyboard"></i> Faded';
+      badgeContainer.appendChild(fadedBadge);
+    }
+
     // 3. Setup Navigation buttons
     document.getElementById('action-run-task').href = `/task?id=${task.id}`;
     document.getElementById('action-stats-task').href = `/task-statistics?id=${task.id}`;
@@ -153,13 +161,71 @@ async function loadTaskDetails() {
     const modelCode = task.model_answer || task.correct_solution?.solution_code || '';
     modelCodeEl.textContent = modelCode.trim() || 'No model answer configured.';
 
-    // 6. Test Cases Code (Fetch correctly as assert statement block)
-    const testsCodeEl = document.getElementById('details-tests-code');
-    let testsCode = task.correct_solution?.teacher_tests || '';
-    if (!testsCode.trim() && task.code_blocks?.function_header) {
-      testsCode = convertDoctestsToAsserts(task.code_blocks.function_header);
+    // 6. Evaluation Details (Tests, Console Output, or Conceptual)
+    const evalTitleEl = document.getElementById('details-eval-title');
+    const evalBodyEl = document.getElementById('details-eval-body');
+    
+    const evalType = task.correct_solution?.eval_type || 'unit_test';
+    let teacherTests = task.correct_solution?.teacher_tests || '';
+    const expectedOutput = task.correct_solution?.expected_output || '';
+
+    if (!teacherTests.trim() && task.code_blocks?.function_header) {
+      teacherTests = convertDoctestsToAsserts(task.code_blocks.function_header);
     }
-    testsCodeEl.textContent = testsCode.trim() || 'No tests configured.';
+    
+    evalBodyEl.innerHTML = '';
+    
+    if (evalType === 'unit_test') {
+      evalTitleEl.innerHTML = '<i class="fas fa-vial text-info"></i> Function Unit Tests';
+      const pre = document.createElement('pre');
+      pre.className = 'code-display';
+      pre.style.cssText = 'border-radius: 0; border: none; margin: 0;';
+      pre.textContent = teacherTests.trim() || 'No unit tests configured.';
+      evalBodyEl.appendChild(pre);
+      
+    } else if (evalType === 'stdout') {
+      evalTitleEl.innerHTML = '<i class="fas fa-terminal text-info"></i> Console Output Evaluation';
+      
+      const paddingDiv = document.createElement('div');
+      paddingDiv.className = 'p-3';
+      
+      const driverLabel = document.createElement('h6');
+      driverLabel.className = 'font-weight-bold mb-2';
+      driverLabel.textContent = 'Function Calls / Driver Code';
+      paddingDiv.appendChild(driverLabel);
+      
+      const driverPre = document.createElement('pre');
+      driverPre.className = 'code-display mb-3';
+      driverPre.style.cssText = 'border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 1rem;';
+      driverPre.textContent = teacherTests.trim() || 'No driver code configured.';
+      paddingDiv.appendChild(driverPre);
+      
+      const outputLabel = document.createElement('h6');
+      outputLabel.className = 'font-weight-bold mb-2';
+      outputLabel.textContent = 'Expected Output';
+      paddingDiv.appendChild(outputLabel);
+      
+      const outputPre = document.createElement('pre');
+      outputPre.className = 'code-display mb-0';
+      outputPre.style.cssText = 'border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; color: #0f172a; margin-bottom: 0;';
+      outputPre.textContent = expectedOutput.trim() || 'No expected output configured.';
+      paddingDiv.appendChild(outputPre);
+      
+      evalBodyEl.appendChild(paddingDiv);
+      
+    } else if (evalType === 'order_only') {
+      evalTitleEl.innerHTML = '<i class="fas fa-list-ol text-info"></i> Order Only (Conceptual)';
+      
+      const paddingDiv = document.createElement('div');
+      paddingDiv.className = 'p-3';
+      
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-info mb-0';
+      alertDiv.innerHTML = '<i class="fas fa-info-circle mr-2"></i> Conceptual task. No code execution or tests are required.';
+      paddingDiv.appendChild(alertDiv);
+      
+      evalBodyEl.appendChild(paddingDiv);
+    }
 
     // 7. Custom Error Messages
     const errContainer = document.getElementById('details-err-container');
@@ -219,8 +285,7 @@ async function loadTaskDetails() {
         }
 
         // Apply indentation padding
-        const indentLevel = block.indent || 0;
-        blockEl.style.paddingLeft = `${Math.max(1.25, indentLevel * 2 + 1.25)}rem`;
+        blockEl.style.paddingLeft = '1.25rem';
 
         // Format !BLANK/___ into visual badges
         const cleanCode = String(block.code || '')
@@ -235,9 +300,9 @@ async function loadTaskDetails() {
         if (isPinned) {
           badgeHtml = '<span class="block-badge badge-pin"><i class="fas fa-thumbtack"></i> Pinned / Given</span>';
         } else if (isSolution) {
-          badgeHtml = '<span class="block-badge badge-sol"><i class="fas fa-check"></i> Solution Block</span>';
+          badgeHtml = '';
         } else {
-          badgeHtml = '<span class="block-badge badge-dist"><i class="fas fa-times"></i> Distractor</span>';
+          badgeHtml = '';
         }
 
         blockEl.innerHTML = `

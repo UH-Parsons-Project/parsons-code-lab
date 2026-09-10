@@ -429,17 +429,18 @@
 	};
 
 	ParsonsWidget.prototype.codeLineToHTML = function (codeline) {
-		while (codeline.code.search(/!BLANK/) >= 0) {
+		var code = codeline.code;
+		while (code.search(/!BLANK/) >= 0) {
 			var replaceText = '';
-			if (codeline.code.search(blankRegexp) >= 0) {
-				replaceText = codeline.code
+			if (code.search(blankRegexp) >= 0) {
+				replaceText = code
 					.match(blankRegexp)[1]
 					.trim()
 					.replace(/"/g, '&quot;')
 					.replace(/'/g, '&apos;');
-				codeline.code = codeline.code.replace(blankRegexp, '');
+				code = code.replace(blankRegexp, '');
 			}
-			codeline.code = codeline.code.replace(/!BLANK/, function () {
+			code = code.replace(/!BLANK/, function () {
 				var rpt = replaceText || '';
 				var width = (rpt.length + 3) * 8;
 				// Build a well-formed input element using double quotes for attributes.
@@ -452,7 +453,7 @@
 				);
 			});
 		}
-		return '<li id="' + codeline.id + '">' + codeline.code + '</li>';
+		return '<li id="' + codeline.id + '">' + code + '</li>';
 	};
 
 	ParsonsWidget.prototype.codeLinesToHTML = function (codelineIDs) {

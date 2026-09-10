@@ -7,25 +7,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...teacher_auth import get_current_user
 from ...database import get_db
-from ..utils.commons import require_session_or_redirect, set_no_cache_headers
+from ..utils.commons import require_session_or_redirect, render_template
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
 
 
-async def _render_teacher_page(request: Request, db: AsyncSession, template_name: str) -> FileResponse:
+async def _render_teacher_page(request: Request, db: AsyncSession, template_name: str):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:
         return redirect
-    return set_no_cache_headers(FileResponse(BASE_DIR / "templates" / template_name))
+    return render_template(template_name, request)
 
 
 @router.get("/global-statistics")
 async def exercise_list(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "global_statistics.html")
+    return await _render_teacher_page(request, db, "statistic/task-database.html")
 
 
 
@@ -34,7 +34,7 @@ async def exercise_list(
 async def create_task_page(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "create_task.html")
+    return await _render_teacher_page(request, db, "task/create-task.html")
 
 
 @router.get("/create-task-editor", response_class=HTMLResponse)
@@ -42,21 +42,21 @@ async def create_task_page(
 async def create_task_problem_page(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "create_task_editor.html")
+    return await _render_teacher_page(request, db, "task/create-task-editor.html")
 
 
 @router.get("/task-details", response_class=HTMLResponse)
 async def task_details_page(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "task_details.html")
+    return await _render_teacher_page(request, db, "task/task-details.html")
 
 
 @router.get("/task", response_class=HTMLResponse)
 async def task_preview_page(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "student_problem.html")
+    return await _render_teacher_page(request, db, "student/student-problem.html")
 
 
 
@@ -65,11 +65,11 @@ async def task_preview_page(
 async def task_set_overview(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "task_set_overview.html")
+    return await _render_teacher_page(request, db, "task/task-set-overview.html")
 
 
 @router.get("/create-task-set", response_class=HTMLResponse)
 async def create_task_set_page(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "create_task_set.html")
+    return await _render_teacher_page(request, db, "task/create-task-set.html")

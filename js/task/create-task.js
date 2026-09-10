@@ -5,7 +5,16 @@
 (function initCreateTaskPage() {
   const TASK_CODE_DRAFT_KEY = 'create_task_draft_code';
   const TASK_TESTS_DRAFT_KEY = 'create_task_draft_tests';
+  const TASK_STDOUT_CALLS_DRAFT_KEY = 'create_task_draft_stdout_calls';
   let editTaskId = null;
+
+  function clearTaskDraftStorage() {
+    [localStorage, sessionStorage].forEach((storage) => {
+      Object.keys(storage)
+        .filter((key) => key.startsWith('create_task_'))
+        .forEach((key) => storage.removeItem(key));
+    });
+  }
 
   function getCursorPositionDetails(text, index) {
     const safeIndex = Math.max(0, Math.min(index, text.length));
@@ -90,16 +99,16 @@
   }
 
   function setupEditorBehavior(textarea, statusElement, storageKey) {
-    const saved = localStorage.getItem(storageKey);
+    const saved = sessionStorage.getItem(storageKey);
     if (saved) {
       textarea.value = saved;
     }
 
     if (storageKey === TASK_CODE_DRAFT_KEY) {
-      const preservedCode = sessionStorage.getItem('preserved_task_code');
+      const preservedCode = sessionStorage.getItem('create_task_preserved_code');
       if (preservedCode) {
         textarea.value = preservedCode;
-        sessionStorage.removeItem('preserved_task_code');
+        sessionStorage.removeItem('create_task_preserved_code');
       }
     }
 
@@ -134,10 +143,34 @@
     });
 
     textarea.addEventListener('input', () => {
-      localStorage.setItem(storageKey, textarea.value);
+      sessionStorage.setItem(storageKey, textarea.value);
       autoResize(textarea);
       updateCaretStatus(textarea, statusElement);
     });
+  }
+
+  function switchGuideTab(tabName, updateDropdown = true) {
+    const tabBtns = document.querySelectorAll('.guide-tab-btn');
+    const tabPanes = document.querySelectorAll('.guide-tab-pane');
+
+    tabBtns.forEach((btn) => {
+      const isMatch = btn.getAttribute('data-tab') === tabName;
+      btn.classList.toggle('active', isMatch);
+      btn.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+
+    tabPanes.forEach((pane) => {
+      const isMatch = pane.id === `guide-pane-${tabName}`;
+      pane.classList.toggle('active', isMatch);
+    });
+
+    if (updateDropdown) {
+      const evalTypeInput = document.getElementById('eval-type');
+      if (evalTypeInput && evalTypeInput.value !== tabName) {
+        evalTypeInput.value = tabName;
+        evalTypeInput.dispatchEvent(new Event('change'));
+      }
+    }
   }
 
   function setupGuideToggle() {
@@ -152,6 +185,16 @@
       guideToggle.classList.toggle('expanded');
       guideContent.classList.toggle('expanded');
     });
+
+    const tabBtns = document.querySelectorAll('.guide-tab-btn');
+    tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tabName = btn.getAttribute('data-tab');
+        if (tabName) {
+          switchGuideTab(tabName, true);
+        }
+      });
+    });
   }
 
   function setupCopyButtons() {
@@ -159,32 +202,75 @@
 
     copyButtons.forEach((button) => {
       button.addEventListener('click', async () => {
-        const targetId = button.getAttribute('data-copy-target');
-        if (!targetId) {
-          return;
+        const evalType = button.getAttribute('data-eval-type');
+        const copyCodeTarget = button.getAttribute('data-copy-code-target');
+        const copyCallsTarget = button.getAttribute('data-copy-calls-target');
+        const copyTestsTarget = button.getAttribute('data-copy-tests-target');
+
+        const taskCodeInput = document.getElementById('task-code');
+        const taskTestsInput = document.getElementById('task-tests');
+        const taskStdoutCallsInput = document.getElementById('task-stdout-calls');
+        const evalTypeInput = document.getElementById('eval-type');
+
+        let textCopied = false;
+
+        if (evalType && evalTypeInput) {
+          evalTypeInput.value = evalType;
+          evalTypeInput.dispatchEvent(new Event('change'));
         }
 
-        const sourceElement = document.getElementById(targetId);
-        if (!sourceElement) {
-          return;
+        if (copyCodeTarget && taskCodeInput) {
+          const codeEl = document.getElementById(copyCodeTarget);
+          if (codeEl) {
+            taskCodeInput.value = codeEl.textContent;
+            taskCodeInput.dispatchEvent(new Event('input'));
+            textCopied = true;
+          }
         }
 
-        const textToCopy = sourceElement.textContent;
+        if (taskStdoutCallsInput) {
+          if (copyCallsTarget) {
+            const callsEl = document.getElementById(copyCallsTarget);
+            if (callsEl) {
+              taskStdoutCallsInput.value = callsEl.textContent;
+              taskStdoutCallsInput.dispatchEvent(new Event('input'));
+              textCopied = true;
+            }
+          } else {
+            taskStdoutCallsInput.value = '';
+            taskStdoutCallsInput.dispatchEvent(new Event('input'));
+          }
+        }
 
-        try {
-          await navigator.clipboard.writeText(textToCopy);
+        if (taskTestsInput) {
+          if (copyTestsTarget) {
+            const testsEl = document.getElementById(copyTestsTarget);
+            if (testsEl) {
+              taskTestsInput.value = testsEl.textContent;
+              taskTestsInput.dispatchEvent(new Event('input'));
+              textCopied = true;
+            }
+          } else if (evalType === 'order_only') {
+            taskTestsInput.value = '';
+            taskTestsInput.dispatchEvent(new Event('input'));
+          }
+        }
+
+        if (textCopied) {
+          try {
+            await navigator.clipboard.writeText(taskCodeInput ? taskCodeInput.value : '');
+          } catch (e) {
+            // Ignore clipboard permission errors if fallback copied into textareas
+          }
 
           const originalHTML = button.innerHTML;
-          button.innerHTML = '<i class="fas fa-check"></i> Copied';
+          button.innerHTML = '<i class="fas fa-check"></i> Copied to Editors';
           button.classList.add('copied');
 
           setTimeout(() => {
             button.innerHTML = originalHTML;
             button.classList.remove('copied');
           }, 2000);
-        } catch (error) {
-          console.error('Failed to copy:', error);
-          alert('Failed to copy. Please try manually selecting and copying.');
         }
       });
     });
@@ -201,18 +287,30 @@
       const teacherTests = task.correct_solution?.teacher_tests || '';
       const evalType = task.correct_solution?.eval_type || 'unit_test';
       const expectedOutput = task.correct_solution?.expected_output || '';
+      const taskStdoutCallsInput = document.getElementById('task-stdout-calls');
 
       if (taskCodeInput) {
         taskCodeInput.value = solutionCode;
         taskCodeInput.dispatchEvent(new Event('input'));
       }
-      if (taskTestsInput) {
-        if (evalType === 'stdout') {
-          taskTestsInput.value = expectedOutput;
-        } else {
-          taskTestsInput.value = teacherTests;
+      if (evalType === 'stdout') {
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = teacherTests;
+          taskStdoutCallsInput.dispatchEvent(new Event('input'));
         }
-        taskTestsInput.dispatchEvent(new Event('input'));
+        if (taskTestsInput) {
+          taskTestsInput.value = expectedOutput;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
+      } else {
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = '';
+          taskStdoutCallsInput.dispatchEvent(new Event('input'));
+        }
+        if (taskTestsInput) {
+          taskTestsInput.value = teacherTests;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
       }
       const evalTypeInput = document.getElementById('eval-type');
       if (evalTypeInput) {
@@ -240,14 +338,19 @@
     const cancelBtn = document.getElementById('cancel-task');
     const taskCodeInput = document.getElementById('task-code');
     const taskTestsInput = document.getElementById('task-tests');
+    const taskStdoutCallsInput = document.getElementById('task-stdout-calls');
+    const taskStdoutCallsPanel = document.getElementById('task-stdout-calls-panel');
     const taskCodeStatus = document.getElementById('task-code-status');
     const taskTestsStatus = document.getElementById('task-tests-status');
+    const taskStdoutCallsStatus = document.getElementById('task-stdout-calls-status');
     const clearButtons = document.querySelectorAll('[data-clear-target]');
-    
+
     const evalTypeInput = document.getElementById('eval-type');
+    const stdoutPanelsWrapper = document.getElementById('stdout-panels-wrapper');
     const taskTestsPanel = document.getElementById('task-tests-panel');
     const taskTestsLabel = document.getElementById('task-tests-label');
     const taskTestsHint = document.getElementById('task-tests-hint');
+    const taskCodeHint = document.getElementById('task-code-hint');
 
     if (!form || !submitBtn || !taskCodeInput || !taskTestsInput) {
       return;
@@ -256,37 +359,93 @@
     if (evalTypeInput) {
       evalTypeInput.addEventListener('change', () => {
         const val = evalTypeInput.value;
+        switchGuideTab(val, false);
         if (val === 'order_only') {
+          if (stdoutPanelsWrapper) stdoutPanelsWrapper.style.display = 'none';
+          if (taskStdoutCallsPanel) taskStdoutCallsPanel.style.display = 'none';
           taskTestsPanel.style.display = 'none';
-          taskCodeInput.placeholder = 'Step 1\nStep 2\nStep 3';
+          taskCodeInput.placeholder = 'Buy all ingredients\nBake a pie\nEat the pie';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>Buy all ingredients</code>';
         } else if (val === 'stdout') {
+          if (stdoutPanelsWrapper) stdoutPanelsWrapper.style.display = 'grid';
+          if (taskStdoutCallsPanel) taskStdoutCallsPanel.style.display = 'block';
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Expected Output';
           taskTestsHint.textContent = 'Exact output expected from the print statements';
-          taskTestsInput.placeholder = 'Hello World!';
-          taskCodeInput.placeholder = 'print("Hello World!")';
+          taskTestsInput.placeholder = 'Hello Emily\nHello Bob';
+          taskCodeInput.placeholder = 'def hello(target):\n    print("Hello", target)';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>def hello(target):</code>';
         } else {
+          if (stdoutPanelsWrapper) stdoutPanelsWrapper.style.display = 'block';
+          if (taskStdoutCallsPanel) taskStdoutCallsPanel.style.display = 'none';
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Task Tests';
           taskTestsHint.textContent = 'Use any Python test style you prefer';
-          taskTestsInput.placeholder = 'assert format_name(\'ada\', \'lovelace\') == \'Ada Lovelace\'\nassert format_name(\'  linus\', \'torvalds \') == \'Linus Torvalds\'';
-          taskCodeInput.placeholder = 'def format_name(first, last):\n    return f"{first.strip().title()} {last.strip().title()}"';
+          taskTestsInput.placeholder = 'assert sum(1, 5) == 6\nassert sum(5, 5) == 10';
+          taskCodeInput.placeholder = 'def sum(a, b):\n    total = a + b\n    return total';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>def sum(a, b):</code>';
         }
       });
       // trigger initial update
       evalTypeInput.dispatchEvent(new Event('change'));
     }
 
+    let draftPayload = null;
+    try {
+      const rawDraft = sessionStorage.getItem('create_task_draft_payload');
+      if (rawDraft) {
+        draftPayload = JSON.parse(rawDraft);
+      }
+    } catch (e) {
+      draftPayload = null;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const taskIdParam = params.get('task_id');
     if (taskIdParam) {
       editTaskId = parseInt(taskIdParam, 10);
-      localStorage.removeItem(TASK_CODE_DRAFT_KEY);
-      localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+      sessionStorage.removeItem(TASK_CODE_DRAFT_KEY);
+      sessionStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+      sessionStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
     }
 
     setupEditorBehavior(taskCodeInput, taskCodeStatus, TASK_CODE_DRAFT_KEY);
     setupEditorBehavior(taskTestsInput, taskTestsStatus, TASK_TESTS_DRAFT_KEY);
+    if (taskStdoutCallsInput && taskStdoutCallsStatus) {
+      setupEditorBehavior(taskStdoutCallsInput, taskStdoutCallsStatus, TASK_STDOUT_CALLS_DRAFT_KEY);
+    }
+
+    if (draftPayload && !taskIdParam) {
+      if (draftPayload.evalType && evalTypeInput) {
+        evalTypeInput.value = draftPayload.evalType;
+        evalTypeInput.dispatchEvent(new Event('change'));
+      }
+      if (draftPayload.evalType === 'stdout') {
+        if (draftPayload.expectedOutput !== undefined) {
+          taskTestsInput.value = draftPayload.expectedOutput;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
+        if (draftPayload.taskTests !== undefined && taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = draftPayload.taskTests;
+          taskStdoutCallsInput.dispatchEvent(new Event('input'));
+        }
+      } else if (draftPayload.evalType === 'unit_test') {
+        if (draftPayload.taskTests !== undefined) {
+          taskTestsInput.value = draftPayload.taskTests;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = '';
+          localStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
+        }
+      } else if (draftPayload.evalType === 'order_only') {
+        taskTestsInput.value = '';
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = '';
+          localStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
+        }
+      }
+    }
 
     clearButtons.forEach((button) => {
       button.addEventListener('click', () => {
@@ -304,12 +463,13 @@
 
     if (clearDraftsBtn) {
       clearDraftsBtn.addEventListener('click', () => {
-        localStorage.removeItem(TASK_CODE_DRAFT_KEY);
-        localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
         taskCodeInput.value = '';
         taskTestsInput.value = '';
+        if (taskStdoutCallsInput) taskStdoutCallsInput.value = '';
         taskCodeInput.dispatchEvent(new Event('input'));
         taskTestsInput.dispatchEvent(new Event('input'));
+        if (taskStdoutCallsInput) taskStdoutCallsInput.dispatchEvent(new Event('input'));
+        clearTaskDraftStorage();
         taskCodeInput.focus();
       });
     }
@@ -322,11 +482,12 @@
         if (!confirmed) {
           return;
         }
+        clearTaskDraftStorage();
         window.location.href = '/teacher-dashboard';
       });
     }
 
-    [taskCodeInput, taskTestsInput].forEach((input) => {
+    [taskCodeInput, taskTestsInput, taskStdoutCallsInput].filter(Boolean).forEach((input) => {
       input.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
           event.preventDefault();
@@ -345,6 +506,7 @@
         let expectedOutput = '';
         if (evalType === 'stdout') {
           expectedOutput = taskTests;
+          tests = taskStdoutCallsInput ? taskStdoutCallsInput.value : '';
         } else if (evalType === 'unit_test') {
           tests = taskTests;
         }
@@ -359,10 +521,11 @@
         };
 
         sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
-        sessionStorage.setItem('preserved_task_code', taskCode);
+        sessionStorage.setItem('create_task_preserved_code', taskCode);
 
-        localStorage.removeItem(TASK_CODE_DRAFT_KEY);
-        localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+        sessionStorage.removeItem(TASK_CODE_DRAFT_KEY);
+        sessionStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+        sessionStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
         window.location.href = '/create-task-editor';
       } catch (error) {
         console.error('Task creation failed:', error);
@@ -370,7 +533,7 @@
       }
     });
 
-    if (editTaskId && !localStorage.getItem(TASK_CODE_DRAFT_KEY)) {
+    if (editTaskId && !sessionStorage.getItem(TASK_CODE_DRAFT_KEY)) {
       loadEditData(editTaskId, taskCodeInput, taskTestsInput);
     }
   }

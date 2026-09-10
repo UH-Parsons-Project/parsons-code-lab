@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teacher Details - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header">
+    <div class="page-title" id="page-title">Teacher Profile</div>
+    <div class="page-subtitle">Viewing tasks and task sets owned by this teacher</div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <!-- Overview Section -->
+    <div class="card mb-4 shadow-sm" style="border-radius: var(--radius); border: 1px solid var(--border);">
+      <div class="card-body bg-white" style="border-radius: var(--radius);">
+        <h5 class="mb-3 text-dark font-weight-bold" style="border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+          <i class="fas fa-info-circle text-primary"></i> Teacher Overview
+        </h5>
+        <div class="row text-muted" style="font-size: 0.95rem;">
+          <div class="col-md-4 col-sm-6 mb-3">
+            <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted);">Username</span>
+            <span id="overview-username" class="font-weight-bold text-dark" style="font-size: 1.1rem;">-</span>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted);">Email Address</span>
+            <span id="overview-email" class="text-dark font-weight-bold">-</span>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted);">User ID</span>
+            <span id="overview-id" class="text-dark font-weight-bold">-</span>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted);">Registered At</span>
+            <span id="overview-registered" class="text-dark font-weight-bold">-</span>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted);">Content Count</span>
+            <div>
+              <span id="overview-sets-count" class="badge badge-info p-2 font-weight-bold">-</span>
+              <span id="overview-tasks-count" class="badge badge-secondary p-2 font-weight-bold">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parallel Columns for Lists -->
+    <div class="parallel-layout">
+      <!-- Left Column: Task Sets -->
+      <div class="parallel-col">
+        <div class="task-set-section">
+          <h4 class="mb-3"><i class="fas fa-folder-open text-primary"></i> Task Sets</h4>
+          
+          <div class="search-box mb-3">
+            <i class="fas fa-search"></i>
+            <input type="text" id="sets-search" placeholder="Search task sets..." autocomplete="off">
+          </div>
+          
+          <div id="task-sets-list-container" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Loading task sets...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Tasks -->
+      <div class="parallel-col">
+        <div class="task-set-section">
+          <h4 class="mb-3"><i class="fas fa-tasks text-success"></i> Tasks</h4>
+          
+          <div class="search-box mb-3">
+            <i class="fas fa-search"></i>
+            <input type="text" id="tasks-search" placeholder="Search tasks..." autocomplete="off">
+          </div>
+          
+          <div id="tasks-list-container" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Loading tasks...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/teacher/teacher-view.js"></script>
+
+  {% include 'common/footer.html' %}
+</body>
+</html>

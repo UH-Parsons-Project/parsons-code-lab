@@ -232,7 +232,7 @@ function hmRenderTable(tasks, students, taskSet) {
 
 		tbody += `<tr class="hm-student-row">`;
 		tbody += `<td class="hm-student-td">
-			<a class="hm-student-link" href="/student-attempts?student=${encodeURIComponent(student.username)}&set_id=${heatmapSetId}">${escapeHtml(student.username)}</a>
+			<a class="hm-student-link" href="/student-attempts?student_id=${encodeURIComponent(student.id)}&student=${encodeURIComponent(student.username)}&set_id=${heatmapSetId}">${escapeHtml(student.username)}</a>
 			${badgeHTML}
 		</td>`;
 
@@ -278,7 +278,7 @@ function hmRenderTable(tasks, students, taskSet) {
 			const ti = parseInt(td.dataset.taskIdx);
 			if (s) {
 				window.location.href =
-					`/student-task-statistics?student=${encodeURIComponent(s.username)}&task_id=${tasks[ti].id}&set_id=${heatmapSetId}`;
+					`/student-task-statistics?student_id=${encodeURIComponent(s.id)}&student=${encodeURIComponent(s.username)}&task_id=${tasks[ti].id}&set_id=${heatmapSetId}`;
 			}
 		});
 	});

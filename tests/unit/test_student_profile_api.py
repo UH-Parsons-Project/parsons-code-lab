@@ -47,7 +47,7 @@ class TestStudentProfileApi:
         login_resp = await client.post(
             "/api/student_login",
             json={
-                "username": "profilestu",
+                "email": "profile@example.com",
                 "password": "studentpass123",
                 "unique_link_code": "PROFILECODE"
             }
@@ -109,7 +109,7 @@ class TestStudentProfileApi:
 
         await client.post(
             "/api/student_login",
-            json={"username": "lonestu", "password": "studentpass123"}
+            json={"email": "lone@example.com", "password": "studentpass123"}
         )
 
         profile_resp = await client.get("/api/student/profile")
@@ -155,7 +155,7 @@ class TestStudentProfileApi:
 
         await client.post(
             "/api/student_login",
-            json={"username": "sortstu", "password": "studentpass123"}
+            json={"email": "sortstu@example.com", "password": "studentpass123"}
         )
 
         db_session.add_all([
@@ -204,7 +204,7 @@ class TestStudentProfileApi:
         # Login
         await client.post(
             "/api/student_login",
-            json={"username": "emailstu", "password": "securepassword"}
+            json={"email": "old_email@example.com", "password": "securepassword"}
         )
 
         # Update Email
@@ -233,7 +233,7 @@ class TestStudentProfileApi:
         # Login student1
         await client.post(
             "/api/student_login",
-            json={"username": "failstu1", "password": "securepassword"}
+            json={"email": "failstu1@example.com", "password": "securepassword"}
         )
 
         # 1. Incorrect password
@@ -270,7 +270,7 @@ class TestStudentProfileApi:
         # Login
         await client.post(
             "/api/student_login",
-            json={"username": "pwstu", "password": "pwstu_old"}
+            json={"email": "pwstu@example.com", "password": "pwstu_old"}
         )
 
         # Update Password
@@ -291,14 +291,14 @@ class TestStudentProfileApi:
         # Login with old password should fail
         login_fail = await client.post(
             "/api/student_login",
-            json={"username": "pwstu", "password": "pwstu_old"}
+            json={"email": "pwstu@example.com", "password": "pwstu_old"}
         )
         assert login_fail.status_code == status.HTTP_400_BAD_REQUEST
 
         # Login with new password should succeed
         login_success = await client.post(
             "/api/student_login",
-            json={"username": "pwstu", "password": "pwstu_new_secure"}
+            json={"email": "pwstu@example.com", "password": "pwstu_new_secure"}
         )
         assert login_success.status_code == 200
 
@@ -312,7 +312,7 @@ class TestStudentProfileApi:
         # Login
         await client.post(
             "/api/student_login",
-            json={"username": "pwfailstu", "password": "original_pw"}
+            json={"email": "pwfailstu@example.com", "password": "original_pw"}
         )
 
         # 1. Incorrect current password

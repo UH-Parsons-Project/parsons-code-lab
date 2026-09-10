@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Attempts - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+  <link rel="stylesheet" href="/css/student/student-attempts.css">
+  <link rel="stylesheet" href="/css/statistics/task-statistics.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="container py-4">
+
+    <div class="mb-3">
+      <a href="#" id="back-btn" class="embossed-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
+
+    <div id="page-header" class="loading-spinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading student attempts...</p>
+    </div>
+
+    <div id="attempts-container" style="display: none;">
+      <div class="row">
+        <div class="col-lg-4 mb-4 mb-lg-0">
+          <div class="card-soft p-3 h-100" id="completion-panel">
+            <div class="sa-completion-title">Completion</div>
+            <div class="d-flex flex-column align-items-center sa-completion-stack">
+              <div class="sa-donut-wrap">
+                <svg class="sa-donut-svg" width="220" height="220" viewBox="0 0 160 160" aria-hidden="true">
+                  <circle class="sa-arc-track" cx="80" cy="80" r="60" fill="none" stroke-width="14"></circle>
+                  <circle class="sa-arc-completed" id="sa-arc-completed" cx="80" cy="80" r="60" fill="none" stroke-width="14" stroke-linecap="round" transform="rotate(-90 80 80)"></circle>
+                  <circle class="sa-arc-not-completed" id="sa-arc-not-completed" cx="80" cy="80" r="60" fill="none" stroke-width="14" stroke-linecap="round"></circle>
+                  <circle class="sa-arc-not-started" id="sa-arc-not-started" cx="80" cy="80" r="60" fill="none" stroke-width="14" stroke-linecap="round"></circle>
+                </svg>
+                <div class="sa-donut-center">
+                  <div class="sa-donut-percent" id="sa-donut-percent">—</div>
+                  <div class="sa-donut-label">COMPLETED</div>
+                </div>
+              </div>
+              <div class="sa-done-ratio" id="sa-done-ratio">—</div>
+              <div class="sa-legend">
+                <div class="sa-legend-row">
+                  <span><span class="sa-dot sa-dot-completed"></span>Completed</span>
+                  <strong class="sa-value-completed" id="sa-value-completed">—</strong>
+                </div>
+                <div class="sa-legend-row">
+                  <span><span class="sa-dot" id="sa-dot-not-completed"></span>Not completed</span>
+                  <strong id="sa-value-not-completed">—</strong>
+                </div>
+                <div class="sa-legend-row">
+                  <span><span class="sa-dot" id="sa-dot-not-started"></span>Not started</span>
+                  <strong id="sa-value-not-started">—</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <h3 class="mb-3">Tasks in Task Set</h3>
+          <div id="attempts-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <script src="/js/student/student-attempts.js" type="module"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

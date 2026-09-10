@@ -1,0 +1,398 @@
+/* ── Content width constraint ────────────────────────── */
+.page-header,
+.dashboard-main {
+  width: 100%;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Page header ─────────────────────────────────────── */
+.page-header {
+  padding: 1.25rem 2rem .9rem;
+}
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  font-family: var(--mono);
+  letter-spacing: -0.02em;
+}
+.page-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: .2rem;
+}
+
+/* ── Main content area ───────────────────────────────── */
+.dashboard-main { padding: .75rem 2rem 3rem; }
+
+/* ── Search box ──────────────────────────────────────── */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .45rem .85rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+.search-box i { color: var(--gray); flex-shrink: 0; font-size: .9rem; }
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: var(--font);
+  font-size: .9rem;
+  color: var(--text);
+  background: transparent;
+}
+.search-box input::placeholder { color: var(--gray); }
+.search-no-results {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: .9rem;
+}
+
+/* ── Loading / error states ──────────────────────────── */
+.loading-spinner {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+.empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: .75rem;
+  opacity: 0.4;
+  display: block;
+}
+.empty-state h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: .4rem;
+  color: var(--text);
+}
+.empty-state p { font-size: .875rem; }
+
+/* ── Dashboard parallel layout ───────────────────────── */
+.parallel-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+.parallel-col { flex: 1; min-width: 0; }
+
+/* ── Section create-button row ───────────────────────── */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+}
+.section-header-row h4 { margin: 0; }
+.section-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .8rem;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+#task-sets-container .section-create-btn,
+#your-tasks-container .section-create-btn {
+  background-color: #16a34a;
+}
+.section-create-btn:link,
+.section-create-btn:visited,
+.section-create-btn:hover,
+.section-create-btn:focus {
+  color: #fff;
+  text-decoration: none;
+}
+.section-create-btn:hover,
+.section-create-btn:focus {
+  background: #15803d;
+}
+
+/* ── Section headings ────────────────────────────────── */
+.task-set-section { margin-bottom: 1.5rem; }
+.task-set-section h4 {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  margin-bottom: .6rem;
+}
+
+/* ── Task set card ───────────────────────────────────── */
+.task-set-item {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  padding: .85rem 1.1rem;
+  margin-bottom: .5rem;
+  cursor: pointer;
+  transition: box-shadow .15s, border-color .15s, transform .12s;
+}
+.task-set-item:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand-dark);
+  transform: translateY(-1px);
+}
+
+/* Card top row: title + code chip */
+.task-set-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .3rem;
+}
+.task-set-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.task-set-code-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  padding: .2rem .65rem;
+  font-family: var(--mono);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--brand-text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s, border-color .15s;
+  user-select: none;
+}
+.task-set-code-chip:hover {
+  background: var(--brand);
+  border-color: var(--brand-dark);
+}
+.task-set-code-chip i { color: var(--text-muted); }
+.task-set-code-chip.copied { background: var(--green-light); border-color: var(--green); color: var(--green); }
+.task-set-code-chip.copied i { color: var(--green); }
+
+.task-set-meta {
+  font-size: .85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.task-set-meta i { margin-right: .25rem; }
+.task-set-opening-active { color: var(--green); }
+.task-set-expiring-soon { color: #e67e22; }
+.task-set-description {
+  font-size: .875rem;
+  color: var(--text-muted);
+  margin-top: .55rem;
+  padding: .45rem .75rem;
+  background: var(--bg);
+  border-left: 2px solid var(--brand-dark);
+  border-radius: 0 5px 5px 0;
+  line-height: 1.5;
+  font-style: italic;
+}
+.teacher-notes-box {
+  font-size: .85rem;
+  color: var(--text-muted);
+  padding: .55rem .85rem;
+  background: #f8fafc;
+  border-left: 3px solid var(--brand-dark);
+  border-radius: 0 6px 6px 0;
+  margin-top: .35rem;
+  margin-bottom: .35rem;
+  line-height: 1.5;
+}
+.student-instructions-box {
+  font-size: .85rem;
+  color: var(--text);
+  padding: .55rem .85rem;
+  background: #f0f9ff;
+  border-left: 3px solid #38bdf8;
+  border-radius: 0 6px 6px 0;
+  margin-top: .35rem;
+  margin-bottom: .35rem;
+  line-height: 1.5;
+}
+
+/* ── Sidebar actions ─────────────────────────────────── */
+.btn-success.btn-block,
+a.btn-success.btn-block {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--green);
+  border: none;
+  border-radius: var(--radius);
+  padding: .6rem 1rem;
+  font-size: .82rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  margin-bottom: .6rem;
+  transition: background .15s, box-shadow .15s;
+  box-shadow: var(--shadow);
+}
+.btn-success.btn-block:hover,
+a.btn-success.btn-block:hover {
+  background: #15803d;
+  box-shadow: var(--shadow-md);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ── Top actions bar ─────────────────────────────────── */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+.nav-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .45rem .9rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: .875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.nav-link-btn:link,
+.nav-link-btn:visited {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.nav-link-btn:hover,
+.nav-link-btn:focus {
+  background: var(--bg);
+  border-color: var(--gray);
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* ── Admin button area ───────────────────────────────── */
+#all-sets-button {
+  background: var(--brand-text);
+  border-color: var(--brand-text);
+  border-radius: var(--radius);
+  font-weight: 700;
+  padding: .45rem 1rem;
+  font-size: .82rem;
+}
+#all-sets-button:hover { background: #253080; border-color: #253080; }
+
+/* ── Your Tasks section ──────────────────────────────── */
+
+/* ── Utilities ───────────────────────────────────────── */
+.text-muted { color: var(--text-muted) !important; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ── Navbar: collapse username to icon on small screens ─ */
+@media (max-width: 600px) {
+  #user-name { display: none; }
+}
+
+/* ── Admin Modals ────────────────────────────────────── */
+.admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.admin-modal {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  font-family: inherit;
+}
+
+.admin-modal h5 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.admin-modal-warning {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.admin-modal p {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: #5f6b7a;
+}
+
+.admin-password-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-password-input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border: 1.5px solid #0284c7;
+  border-radius: 6px;
+  background-color: #f0f9ff;
+  color: #0369a1;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+

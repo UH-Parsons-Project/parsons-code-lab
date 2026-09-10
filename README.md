@@ -1,17 +1,49 @@
 
 [![CI](https://github.com/UH-Parsons-Project/faded-parsons-static/actions/workflows/main.yml/badge.svg)](https://github.com/UH-Parsons-Project/faded-parsons-static/actions/workflows/main.yml)
-
 [![Codecov](https://codecov.io/gh/UH-Parsons-Project/parsons-code-lab/branch/main/graph/badge.svg)](https://codecov.io/gh/UH-Parsons-Project/parsons-code-lab)
 
-# Python Faded Parsons Problems
+# <img src="ohtuproj_logo.png" alt="drawing" width="170"/> PARSONS CODE LAB 
+## Educational software for programming practise and learning analytics
 
-Check it out here:
+**What?**
 
+Parsons Code Lab offers educators a simple way to observe and understand student progress at one glance. By providing a diverse set of statistics on learning outcomes and the challenges students most commonly encounter, the tool helps educators form a clearer picture of individual and class development. Its aim is to support reflective teaching practices by making meaningful patterns in student learning easier to recognize and interpret.
+
+**How?**
+
+Parsons Code Lab lets students practice programming basics by solving Parsons Problems, a type of programming exercise where you rearrange blocks of code and fill in blanks to create a working program. Parsons Code Lab supports two-dimensional, faded, and distractor blocks. It also allows for purely conceptual ordering tasks! You can learn more about Parsons Problems e.g. in this [2022 review by Ericson, et al](https://dl.acm.org/doi/10.1145/3571785.3574127).
+
+The coding problems hosted in Parsons Code Lab are currently written in Python 3, and student submissions are checked for correctness using doctests. The software is straightforward to use; educators can build task sets from a library of ready-made exercises or include their own custom tasks. Each task set can be shared with students through a unique URL, making the whole process easy and smooth. 
+
+
+### Check it out here:
 https://parsonscodelab.web.helsinki.fi
 
-## Running the website
 
-### To run locally:
+</br>
+
+## Development
+Parsons Code Lab is being hosted and developed by the University of Helsinki, Finland. It is in beta phase.
+
+Parsons Code Lab is developed by Julia Roukala, Sebastian Olander, Mira Tihveräinen, Boris Versonnen, Vili Mähönen, Victoria Khoreva, and Santeri Silvennoinen.
+
+Project PI: Laura Sinikallio
+
+#### Original codebase
+
+This codebase is based on the Faded Parsons Problems project found here: https://github.com/pamelafox/faded-parsons-static, which is licensed under the MIT License.
+The original project, a static website, allows the user to run Faded Parsons Problems in the browser. It used Pyodide for executing Python doctests and localStorage for storing user progress. The original project contained the functionality and UI for solving faded parsons problems (read from a file) and running predefines tests for feedback on correctness.
+
+The repository was forked in Jan 2026, and this fork was renamed and detached in Feb 2026.
+
+</br>
+
+
+## Developer guide
+
+**[Project Wiki](https://github.com/UH-Parsons-Project/parsons-code-lab/wiki)**
+
+### Run the software locally:
 
 ```
 docker compose --profile web up --build
@@ -62,48 +94,17 @@ Container startup command:
 alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Project Wiki
-[Wiki](https://github.com/UH-Parsons-Project/parsons-code-lab/wiki)
 
-## Tuntikirjanpito
-[Tuntikirjanpito](https://github.com/UH-Parsons-Project/parsons-code-lab/wiki/Ty%C3%B6aikakirjanpito)
+## Misc
 
-## Definition of Done
 
-Code is validated and all tests are passing, docstrings are written, code is reviewed and approved by a peer developer before merging to the main branch, and the feature is successfully deployed to the production environment.
+[Tuntikirjanpito](https://github.com/UH-Parsons-Project/parsons-code-lab/wiki/Ty%C3%B6aikakirjanpito) (For course work documentation)
 
-## Product and Sprint Backlogs
-[Product Backlog](https://github.com/orgs/UH-Parsons-Project/projects/12)
 
-## Original codebase
+**Parsons Code Lab logo by [Victoria Khoreva](https://www.instagram.com/victheliar/)**
 
-This codebase is based on the Faded Parsons Problems project found here: https://github.com/pamelafox/faded-parsons-static, which is licensed under the MIT License.
-The original project, a static website, allows the user to run Faded Parsons Problems in the browser. It used Pyodide for executing Python doctests and localStorage for storing user progress. The original project contained the functionality for solving and submitting faded parsons problems which were then automatically tested according to task definitions.
+<p align="center">
+	<img src="ohtuproj_logo.png" alt="drawing" width="600"/>
+</p>
 
-The repository was forked in Jan 2026, and this fork was renamed and detached in Feb 2026.
 
-## Team
-Students:
-- Julia Roukala
-- Sebastian Olander
-- Mira Tihveräinen
-- Boris Versonnen
-- Vili Mähönen
-- Victoria Khoreva
-- Santeri Silvennoinen
-
-Instructor:
-- Sasu Paukku
-
-## Internal team communication 
-- Telegram
-- Discord
-- Meeting up on campus
-
-## Logo
-
-Project logo made by [Victoria Khoreva](https://www.instagram.com/victheliar/):
-![Parsons code lab logo](ohtuproj_logo.png)
-
----
-[Privacy Policy](templates/privacy-policy.html)

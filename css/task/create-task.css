@@ -1,0 +1,502 @@
+:root {
+
+  --panel-bg: var(--card);
+  --panel-border: var(--border);
+  --label-color: var(--text);
+  --hint-color: var(--text-muted);
+  --editor-bg: #0f172a;
+  --editor-text: #e2e8f0;
+  --editor-border: #334155;
+  --focus: var(--brand-dark);
+  --action: var(--green);
+  --action-hover: #15803d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.navbar,
+.navbar .btn,
+.navbar .text-dark,
+.navbar #signed-in-as {
+    font-family: var(--font);
+}
+
+.create-task-shell {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.25rem 2rem 3rem;
+}
+
+.page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+    font-family: var(--mono);
+    letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+    margin: 0.2rem 0 1.4rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.editor-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.stdout-panels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .stdout-panels-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.editor-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+}
+
+.field-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.55rem;
+}
+
+.field-head label {
+    font-weight: 700;
+    color: var(--label-color);
+}
+
+.field-hint {
+    color: var(--hint-color);
+    font-size: 0.9rem;
+}
+
+.code-editor {
+    width: 100%;
+    min-height: 260px;
+    border-radius: 10px;
+    border: 1px solid var(--editor-border);
+    background: var(--editor-bg);
+    color: var(--editor-text);
+    padding: 0.95rem;
+    resize: vertical;
+    line-height: 1.45;
+    font-size: 0.95rem;
+    tab-size: 4;
+    outline: none;
+    font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.code-editor:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+}
+
+.editor-footer {
+    margin-top: 0.55rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--hint-color);
+    font-size: 0.88rem;
+}
+
+.text-btn {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    color: #1f2937;
+}
+
+.text-btn:hover {
+    background: #f1f5f9;
+}
+
+.actions {
+    margin-top: 1.15rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.actions-left,
+.actions-right {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.primary-btn,
+.secondary-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.primary-btn {
+    color: #fff;
+    background: var(--action);
+}
+
+.primary-btn:hover {
+    background: var(--action-hover);
+}
+
+.secondary-btn {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.editor-toolbar-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.eval-mode-group {
+    margin-bottom: 0;
+    max-width: 400px;
+    flex: 1 1 280px;
+}
+
+.shortcut-note {
+    margin: 0 0 0.35rem 0;
+    font-size: 0.85rem;
+    color: var(--hint-color);
+    text-align: right;
+}
+
+/* Guide & Examples Section */
+.guide-section {
+    margin-bottom: 1.5rem;
+}
+
+.guide-toggle {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    border-left: 3px solid var(--brand);
+}
+
+.guide-toggle:hover {
+    border-color: var(--brand-dark);
+    box-shadow: var(--shadow-md);
+    background: var(--bg);
+}
+
+.guide-toggle i:first-child {
+    font-size: 1.2rem;
+    color: #0f766e;
+}
+
+.guide-toggle span {
+    flex: 1;
+    text-align: left;
+}
+
+.guide-toggle i:last-child {
+    transition: transform 0.3s ease;
+}
+
+.guide-toggle.expanded i:last-child {
+    transform: rotate(180deg);
+}
+
+.guide-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.guide-content.expanded {
+    max-height: 2000px;
+    opacity: 1;
+    margin-top: 1rem;
+}
+
+/* Guide Task Type Tabs */
+.guide-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid var(--border, #e2e8f0);
+    padding-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.guide-tab-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.guide-tab-btn:hover {
+    background: #e2e8f0;
+    color: #0f766e;
+}
+
+.guide-tab-btn.active {
+    background: #0f766e;
+    color: #ffffff;
+    border-color: #0f766e;
+    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+}
+
+.guide-tab-pane {
+    display: none;
+}
+
+.guide-tab-pane.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.guide-example-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.guide-example-header h3 {
+    margin: 0 0 0.25rem 0;
+}
+
+.guide-example-header p {
+    margin: 0;
+    color: #475569;
+}
+
+.example-container-single {
+    grid-template-columns: 1fr;
+}
+
+.guide-steps,
+.guide-example,
+
+.guide-steps h3,
+.guide-example h3,
+
+.steps-list {
+    margin: 0;
+    padding-left: 1.5rem;
+    list-style: decimal;
+}
+
+.steps-list li {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.steps-list li strong {
+    color: #0f766e;
+}
+
+.steps-list p {
+    margin: 0.4rem 0 0 0;
+    color: #475569;
+}
+
+.steps-list code {
+    background: #f1f5f9;
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+    color: #064e3b;
+}
+
+.example-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0 0.75rem 0;
+}
+
+.example-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.example-code {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.example-header {
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.copy-btn {
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background: #e8f0ff;
+    border-color: #60a5fa;
+    color: #0f766e;
+}
+
+.copy-btn.copied {
+    background: #d1f0c8;
+    border-color: #22c55e;
+    color: #16a34a;
+}
+
+.copy-btn i {
+    font-size: 0.8rem;
+}
+
+.example-code pre {
+    margin: 0;
+    padding: 0.8rem;
+    background: #0f172a;
+    color: #e2e8f0;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.example-code code {
+    font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* Keyboard focus ring for scrollable code blocks (tabindex="0").
+   Without this, focused state is invisible to sighted keyboard users. */
+.example-code pre:focus {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.example-note {
+    background: #fef9e7;
+    border-left: 4px solid #fbbf24;
+    padding: 0.8rem;
+    border-radius: 4px;
+    margin: 1rem 0 0 0;
+    color: #78350f;
+    font-size: 0.95rem;
+    display: flex;
+    gap: 0.6rem;
+}
+
+.example-note i {
+    color: #f59e0b;
+    flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+    .page-title {
+        font-size: 1.55rem;
+    }
+
+    .code-editor {
+        min-height: 220px;
+    }
+
+    .example-container {
+        grid-template-columns: 1fr;
+    }
+
+    .guide-toggle {
+        padding: 0.8rem;
+        font-size: 0.95rem;
+    }
+
+    .guide-toggle i:first-child {
+        font-size: 1rem;
+    }
+}
+
+/* Cancel button override */
+#cancel-task {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+}
+
+#cancel-task:hover {
+    background: var(--red);
+    color: #fff;
+}

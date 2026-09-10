@@ -94,7 +94,7 @@ def hello():
 
         assert result is not None
         assert result["title"] == "hello_world"
-        assert result["task_type"] == "normal"
+        assert result["task_type"] == "other"
         assert result["correct_solution"]["test_function"] == "test_hello"
         assert len(result["code_blocks"]["blocks"]) == 2
 
@@ -236,6 +236,7 @@ class TestMigrationFlow:
                     "task_instructions": "",
                     "description": "{}",
                     "task_type": "normal",
+                    "faded": False,
                     "code_blocks": {"blocks": []},
                     "correct_solution": {"correct_order": [], "test_function": "test_new"},
                 }
@@ -281,6 +282,7 @@ class TestMigrationFlow:
                 "description": "{}",
                 "task_instructions": "",
                 "task_type": "normal",
+                "faded": False,
                 "code_blocks": {"blocks": []},
                 "correct_solution": {"correct_order": [], "test_function": "test_fail"},
             },

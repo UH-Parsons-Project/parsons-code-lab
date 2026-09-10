@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Details - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap" style="padding: 1.25rem 2rem .9rem; max-width: 1600px; margin-left: auto; margin-right: auto; gap: 1rem;">
+    <div>
+      <div class="page-title" id="page-title">Student Profile</div>
+      <div class="page-subtitle">Viewing task sets joined and tasks attempted by this student</div>
+    </div>
+    <div>
+      <a href="/all-users" class="btn btn-outline-dark btn-sm font-weight-bold" style="border-radius: var(--radius); padding: 0.45rem 0.9rem;">
+        <i class="fas fa-arrow-left"></i> Back to Users
+      </a>
+    </div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <!-- Overview Section -->
+    <div class="card mb-4 shadow-sm" style="border-radius: var(--radius); border: 1px solid var(--border);">
+      <div class="card-body bg-white" style="border-radius: var(--radius);">
+        <h5 class="mb-3 text-dark font-weight-bold" style="border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+          <i class="fas fa-info-circle text-primary"></i> Student Overview
+        </h5>
+        <div class="row text-muted" style="font-size: 0.95rem;">
+          <div class="col-md-4 col-sm-6 mb-3">
+            <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid #8c7fa6; padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
+              <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-user mr-1" style="color: #8c7fa6;"></i> Username</span>
+              <div class="d-flex align-items-center justify-content-between">
+                <span id="overview-username" class="font-weight-bold" style="font-size: 1.1rem; color: #8c7fa6;"></span>
+                <button id="copy-username-btn" type="button" class="btn btn-sm btn-light p-1 ml-2" style="border: 1px solid var(--border); color: #8c7fa6; line-height: 1;" title="Copy Username">
+                  <i class="far fa-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid #8c7fa6; padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
+              <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-envelope mr-1" style="color: #8c7fa6;"></i> Email Address</span>
+              <div class="d-flex align-items-center justify-content-between">
+                <span id="overview-email" class="font-weight-bold" style="word-break: break-all; color: #8c7fa6;"></span>
+                <button id="copy-email-btn" type="button" class="btn btn-sm btn-light p-1 ml-2" style="border: 1px solid var(--border); color: #8c7fa6; line-height: 1;" title="Copy Email">
+                  <i class="far fa-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid #8c7fa6; padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
+              <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-id-badge mr-1" style="color: #8c7fa6;"></i> User ID</span>
+              <span id="overview-id" class="font-weight-bold" style="color: #8c7fa6;"></span>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid #8c7fa6; padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
+              <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-calendar-alt mr-1" style="color: #8c7fa6;"></i> Registered At</span>
+              <span id="overview-registered" class="font-weight-bold" style="color: #8c7fa6;"></span>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--blue); padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
+              <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-folder-open mr-1" style="color: var(--blue);"></i> Enrolled Task Sets</span>
+              <span id="overview-sets-count" class="font-weight-bold" style="font-size: 1.1rem; color: var(--blue);"></span>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6 mb-3">
+            <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--green); padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
+              <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-tasks mr-1" style="color: var(--green);"></i> Attempted Tasks</span>
+              <span id="overview-tasks-count" class="font-weight-bold" style="font-size: 1.1rem; color: var(--green);"></span>
+            </div>
+          </div>
+        </div>
+        <div id="user-actions-row" class="pt-3 border-top d-flex align-items-center flex-wrap" style="gap: 0.5rem; display: none;">
+          <span class="font-weight-bold text-muted mr-2" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: .04em;"><i class="fas fa-tools mr-1"></i> User Actions:</span>
+          <div id="user-actions-container" class="d-flex flex-wrap" style="gap: 0.5rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parallel Columns for Lists -->
+    <div class="parallel-layout">
+      <!-- Left Column: Task Sets -->
+      <div class="parallel-col">
+        <div class="task-set-section">
+          <h4 class="mb-3"><i class="fas fa-folder-open text-primary"></i> Enrolled Task Sets</h4>
+          
+          <div class="search-box mb-3">
+            <i class="fas fa-search"></i>
+            <input type="text" id="sets-search" placeholder="Search enrolled task sets..." autocomplete="off">
+          </div>
+          
+          <div id="task-sets-list-container" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Loading task sets...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Tasks -->
+      <div class="parallel-col">
+        <div class="task-set-section">
+          <h4 class="mb-3"><i class="fas fa-tasks text-success"></i> Attempted Tasks</h4>
+          
+          <div class="search-box mb-3">
+            <i class="fas fa-search"></i>
+            <input type="text" id="tasks-search" placeholder="Search tasks..." autocomplete="off">
+          </div>
+          
+          <div id="tasks-list-container" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Loading tasks...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/admin/admins-student-view.js"></script>
+
+  {% include 'common/footer.html' %}
+</body>
+</html>

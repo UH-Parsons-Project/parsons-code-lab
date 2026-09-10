@@ -1,0 +1,27 @@
+.action-btn.btn-outline-success:link,
+.action-btn.btn-outline-success:visited {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.action-btn.btn-outline-primary:link,
+.action-btn.btn-outline-primary:visited {
+  color: #007bff;
+  border-color: #007bff;
+}
+
+.action-btn.btn-outline-primary:hover,
+.action-btn.btn-outline-primary:focus {
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.action-btn.btn-submit {
+  background-color: #16a34a;
+}
+
+.action-btn.btn-submit:hover,
+.action-btn.btn-submit:focus {
+  background-color: #15803d;
+}

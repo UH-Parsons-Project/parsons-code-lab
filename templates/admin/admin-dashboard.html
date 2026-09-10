@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+  <link rel="stylesheet" href="/css/admin/admin-dashboard.css">
+
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header">
+    <div class="page-title"><i class="fas fa-shield-alt"></i> Admin Dashboard</div>
+    <div class="page-subtitle">System overview and administration tools</div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <!-- Statistics Section -->
+    <div class="mb-4">
+
+      <!-- Students Section -->
+      <div class="user-group-section">
+        <h3><i class="fas fa-graduation-cap"></i> Student Activity</h3>
+        <div class="stats-row">
+          <div class="stat-mini-card">
+            <div class="label">Registered Students</div>
+            <div class="value" id="stat-registered-students">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Active (Last 7 Days)</div>
+            <div class="value" id="stat-active-7d-students">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Monthly Activity</div>
+            <div class="value" id="stat-avg-monthly-students">—</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 7 Days</h6>
+            <canvas id="student-activity-chart" width="500" height="250"></canvas>
+          </div>
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 6 Months</h6>
+            <canvas id="student-monthly-chart" width="500" height="250"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teachers Section -->
+      <div class="user-group-section">
+        <h3><i class="fas fa-chalkboard-teacher"></i> Teacher Activity</h3>
+        <div class="stats-row">
+          <div class="stat-mini-card">
+            <div class="label">Registered Teachers</div>
+            <div class="value" id="stat-registered-teachers">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Active (Last 7 Days)</div>
+            <div class="value" id="stat-active-7d-teachers">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Monthly Activity</div>
+            <div class="value" id="stat-avg-monthly-teachers">—</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 7 Days</h6>
+            <canvas id="teacher-activity-chart" width="500" height="250"></canvas>
+          </div>
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 6 Months</h6>
+            <canvas id="teacher-monthly-chart" width="500" height="250"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Sets + Users Section -->
+      <div class="row">
+
+        <!-- Task Sets -->
+        <div class="col-md-6 mb-3 mb-md-0">
+          <div class="user-group-section h-100 mb-0">
+            <h3><i class="fas fa-list"></i> Task Sets</h3>
+            <div class="stats-row">
+              <div class="stat-mini-card">
+                <div class="label">Total Task Sets</div>
+                <div class="value" id="stat-total-lists">—</div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <a href="/all-tasksets" class="btn btn-primary">
+                <i class="fas fa-table"></i> View All Task Sets
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users -->
+        <div class="col-md-6">
+          <div class="user-group-section h-100 mb-0">
+            <h3><i class="fas fa-users"></i> Users</h3>
+            <div class="stats-row">
+              <div class="stat-mini-card">
+                <div class="label">Total Users</div>
+                <div class="value" id="stat-total-users">—</div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <a href="/all-users" class="btn btn-primary">
+                <i class="fas fa-users"></i> View All Users
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Task Tags Overview Section -->
+    <section class="task-tags-section" aria-labelledby="task-tags-title">
+      <div class="task-tags-header">
+        <div>
+          <h2 id="task-tags-title" class="task-tags-title">Task tags</h2>
+          <p class="task-tags-description">Add and view tags teachers can assign to tasks.</p>
+        </div>
+        <div class="task-tags-actions">
+          <button type="button" class="btn btn-primary task-tags-add-button" id="add-task-type-btn">+ Add tag</button>
+          <button type="button" class="btn btn-outline-danger task-tags-deactivate-button" id="deactivate-task-type-btn">Deactivate tag</button>
+        </div>
+      </div>
+
+      <div id="task-type-status" class="task-tags-feedback" role="status" aria-live="polite"></div>
+
+      <div id="task-tag-action-controls" class="task-tag-action-controls" hidden>
+        <p id="task-tag-action-help" class="task-tag-action-help"></p>
+        <div class="task-tag-action-buttons">
+          <button type="button" class="btn btn-outline-secondary" id="cancel-task-tag-action">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-task-tag-action" disabled></button>
+        </div>
+      </div>
+
+      <div class="task-tags-overview">
+        <div class="task-tags-group">
+          <h3 class="task-tags-group-title">Existing tags</h3>
+          <div id="task-types-list" class="task-tags-list" aria-live="polite">
+            <p class="task-tags-message">Loading tags...</p>
+          </div>
+        </div>
+
+        <details id="inactive-task-tags" class="task-tags-inactive" hidden>
+          <summary>
+            <span>Inactive tags (<span id="inactive-task-tags-count">0</span>)</span>
+            <button type="button" class="btn btn-outline-success task-tags-restore-button" id="restore-task-type-btn">Restore tag</button>
+          </summary>
+          <div id="inactive-task-types-list" class="task-tags-list task-tags-list--inactive"></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Token Management Section -->
+    <div class="border-top pt-4 mt-4">
+      <div class="section-divider-title mb-3">
+        <i class="fas fa-key"></i> Registration Token Management
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3 mb-md-0">
+          <div class="card admin-card">
+            <div class="card-body">
+              <h5 class="card-title">Create New Token</h5>
+              <p class="card-text text-muted small">Enter a token manually or generate one automatically. Tokens must be at least 10 characters and expire after 7 days.</p>
+
+              <div class="form-group">
+                <label for="token-input" class="small">Token</label>
+                <input type="text" class="form-control form-control-sm" id="token-input" placeholder="Enter token or generate one..." minlength="10">
+                <small class="form-text text-muted">Minimum 10 characters</small>
+              </div>
+
+              <div class="btn-group btn-group-sm btn-block mb-3" role="group">
+                <button type="button" class="btn btn-outline-secondary" id="generate-token-btn" title="Generate random token">
+                  <i class="fas fa-random"></i> Generate
+                </button>
+                <button type="button" class="btn btn-primary" id="add-token-btn">
+                  <i class="fas fa-save"></i> Add Token
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Token Display (shown after creation) -->
+          <div id="token-display" class="alert alert-success mt-3" style="display: none;">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="flex-grow-1">
+                <strong><i class="fas fa-check-circle"></i> Token Added!</strong>
+                <p class="mb-2 mt-2 text-dark"><strong>Make sure to copy it:</strong></p>
+                <div class="bg-white p-2 border rounded mb-2" id="token-value" style="word-break: break-all; font-family: monospace; font-size: 0.9rem;"></div>
+                <p class="mb-2 small text-muted"><i class="fas fa-clock"></i> Expires: <span id="token-expires"></span></p>
+                <button class="btn btn-sm btn-outline-success" id="copy-token-btn">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+              </div>
+              <button type="button" class="close" onclick="document.getElementById('token-display').style.display='none';">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card admin-card">
+            <div class="card-body">
+              <h5 class="card-title">Active Tokens</h5>
+              <p class="card-text text-muted small">Manage your registration tokens.</p>
+              <div id="tokens-list" class="tokens-list mt-3" style="max-height: 300px; overflow-y: auto;">
+                <div class="text-muted small">Loading tokens...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="task-tag-modal" class="admin-modal-overlay" hidden>
+    <div class="admin-modal task-tag-modal" role="dialog" aria-modal="true" aria-labelledby="task-tag-modal-title" aria-describedby="task-tag-modal-description">
+      <div class="task-tag-modal-header">
+        <h5 id="task-tag-modal-title">Add tag</h5>
+        <button type="button" class="task-tag-modal-close" id="task-tag-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <p id="task-tag-modal-description">Add a tag teachers can assign to tasks.</p>
+      <form id="task-tag-form">
+        <div class="form-group mb-3">
+          <label for="task-tag-name">Tag name</label>
+          <input type="text" class="form-control" id="task-tag-name" maxlength="100" autocomplete="off" aria-required="true" aria-describedby="task-tag-modal-status">
+        </div>
+        <div id="task-tag-modal-status" class="task-tags-feedback mb-3" role="alert" aria-live="polite"></div>
+        <div class="admin-modal-actions">
+          <button type="button" class="btn btn-outline-secondary" id="task-tag-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="task-tag-save">Add tag</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="/js/admin/admin-dashboard.js"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

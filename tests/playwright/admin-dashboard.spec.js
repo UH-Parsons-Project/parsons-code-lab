@@ -1,10 +1,10 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { loginTeacher, createTestStudent } from './test-helpers.js';
+import { loginTeacher, registerTeacher, logoutTeacher, createTestStudent } from './test-helpers.js';
 
 test.beforeEach(async ({ page }) => {
   // Login as seeded admin user
-  await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+  await loginTeacher(page, 'matti.ruotsalainen@example.com', 'test1234');
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Register one student so "Registered Students" stat is non-zero
@@ -15,6 +15,29 @@ test.beforeEach(async ({ page }) => {
   if (!resp.ok()) {
     console.warn('Student registration in beforeEach returned', resp.status());
   }
+});
+
+test('admin dashboard button is visible for admin teacher but hidden for standard teacher', async ({ page }) => {
+  // 1. Verify Admin Dashboard button is visible on teacher dashboard for the logged-in admin teacher
+  await page.goto('/teacher-dashboard');
+  await expect(page.locator('#all-sets-button')).toBeVisible();
+
+  // 2. Logout admin teacher
+  await logoutTeacher(page);
+
+  // 3. Register and login as a new standard (non-admin) teacher
+  const unique = Date.now();
+  const teacherUsername = `std_teacher_${unique}`;
+  const teacherEmail = `std_teacher_${unique}@example.com`;
+  const teacherPassword = 'password123';
+
+  await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+  await loginTeacher(page, teacherEmail, teacherPassword);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  // 4. Verify Admin Dashboard button is hidden for standard teacher
+  await expect(page.locator('#all-sets-button')).toBeHidden();
 });
 
 test('admin dashboard shows stats and can create a registration token', async ({ page }) => {

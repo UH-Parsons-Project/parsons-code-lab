@@ -11,7 +11,7 @@ ENV PATH="/app/venv/bin:$PATH"
 COPY package*.json ./
 COPY requirements.txt ./
 
-RUN npm install
+RUN npm ci --no-audit --no-fund
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

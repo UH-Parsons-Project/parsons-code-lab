@@ -2,10 +2,10 @@
 import { test, expect } from '@playwright/test';
 import { loginTeacher } from './test-helpers.js';
 
-test.describe('Global Statistics Task Browser & Quick Preview E2E', () => {
+test.describe('Task Database Browser & Quick Preview E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Login as default seeded test teacher
-    await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+    await loginTeacher(page, 'matti.ruotsalainen@example.com', 'test1234');
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
   });
 
@@ -94,11 +94,12 @@ test.describe('Global Statistics Task Browser & Quick Preview E2E', () => {
 
     // Verify favorite class toggles on card star and preview star using auto-retrying assertions
     const previewStar = page.locator('#preview-fav-btn');
+    const updatedCardStar = page.locator('#problems-list .task-set-item').first().locator('.task-favorite-button');
     if (wasFavorite) {
-      await expect(firstCard.locator('.task-favorite-button')).not.toHaveClass(/is-favorite/);
+      await expect(updatedCardStar).not.toHaveClass(/is-favorite/);
       await expect(previewStar).not.toHaveClass(/is-favorite/);
     } else {
-      await expect(firstCard.locator('.task-favorite-button')).toHaveClass(/is-favorite/);
+      await expect(updatedCardStar).toHaveClass(/is-favorite/);
       await expect(previewStar).toHaveClass(/is-favorite/);
     }
   });
@@ -184,4 +185,131 @@ test.describe('Global Statistics Task Browser & Quick Preview E2E', () => {
       await expect(page.locator('#task-preview-panel .preview-title')).toContainText(secondTitleText);
     }
   });
+
+  test('clicking Solve Task button on a task list card opens solver page in a new tab', async ({ page, context }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+
+    const firstCard = page.locator('#problems-list .task-set-item').first();
+    const solveBtn = firstCard.locator('a', { hasText: 'Solve Task' });
+
+    await expect(solveBtn).toBeVisible();
+    await expect(solveBtn).toHaveAttribute('href', /\/task\?id=/);
+    await expect(solveBtn).toHaveAttribute('target', '_blank');
+
+    const [newPage] = await Promise.all([
+      context.waitForEvent('page'),
+      solveBtn.click(),
+    ]);
+
+    await newPage.waitForLoadState();
+    await expect(newPage.locator('#problem-wrapper')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('clicking Solve Task button inside preview panel opens solver page in a new tab', async ({ page, context }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+
+    const firstCard = page.locator('#problems-list .task-set-item').first();
+    await firstCard.hover();
+
+    const previewCard = page.locator('#task-preview-panel .task-preview-card');
+    await expect(previewCard).toBeVisible({ timeout: 10000 });
+
+    const solveTaskBtn = previewCard.locator('a', { hasText: 'Solve Task' });
+    await expect(solveTaskBtn).toBeVisible();
+    await expect(solveTaskBtn).toHaveAttribute('href', /\/task\?id=/);
+    await expect(solveTaskBtn).toHaveAttribute('target', '_blank');
+
+    const [newPage] = await Promise.all([
+      context.waitForEvent('page'),
+      solveTaskBtn.click(),
+    ]);
+
+    await newPage.waitForLoadState();
+    await expect(newPage.locator('#problem-wrapper')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('toggles search and filter panel', async ({ page }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+
+    const toggleBtn = page.locator('#task-filter-toggle');
+    const filterPanel = page.locator('#task-filter-panel');
+
+    await expect(filterPanel).not.toHaveClass(/show/);
+
+    await toggleBtn.click();
+    await expect(filterPanel).toHaveClass(/show/);
+    await expect(page.locator('#task-search')).toBeVisible();
+
+    await toggleBtn.click();
+    await expect(filterPanel).not.toHaveClass(/show/);
+  });
+
+  test('filters tasks by search query and updates task count badge', async ({ page }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+
+    const taskBadge = page.locator('#task-count-badge');
+    await expect(taskBadge).toBeVisible();
+    const initialBadgeText = await taskBadge.innerText();
+
+    // Open filter panel
+    await page.locator('#task-filter-toggle').click();
+
+    // Type a specific query matching first task title
+    const firstTitle = (await page.locator('#problems-list .task-set-title').first().innerText()).trim();
+    await page.locator('#task-search').fill(firstTitle);
+
+    // Verify task list filters down
+    const filteredCards = page.locator('#problems-list .task-set-item');
+    const filteredCount = await filteredCards.count();
+    expect(filteredCount).toBeGreaterThan(0);
+    await expect(filteredCards.first().locator('.task-set-title')).toContainText(firstTitle);
+
+    // Verify badge update
+    await expect(taskBadge).toContainText(`${filteredCount} task`);
+
+    // Clear search
+    await page.locator('#task-search').fill('');
+    await expect(taskBadge).toHaveText(initialBadgeText);
+  });
+
+  test('shows empty state when search query returns no matching tasks', async ({ page }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+
+    await page.locator('#task-filter-toggle').click();
+    await page.locator('#task-search').fill('NonExistentTaskQueryXYZ999');
+
+    await expect(page.locator('#problems-list.empty-state')).toBeVisible();
+    await expect(page.locator('#problems-list.empty-state h4')).toHaveText('No Exercises Found');
+    await expect(page.locator('#task-count-badge')).toHaveText('0 tasks listed');
+  });
+
+  test('filters tasks by scope checkboxes', async ({ page }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+
+    await page.locator('#task-filter-toggle').click();
+
+    // Select 'title' scope by clicking its label (Bootstrap custom checkbox)
+    const titleCheckbox = page.locator('#scope-title');
+    await page.locator('label[for="scope-title"]').click();
+    await expect(titleCheckbox).toBeChecked();
+
+    // Ensure checking another scope unchecks previous single-select scope checkbox
+    const teacherCheckbox = page.locator('#scope-teacher');
+    await page.locator('label[for="scope-teacher"]').click();
+    await expect(teacherCheckbox).toBeChecked();
+    await expect(titleCheckbox).not.toBeChecked();
+
+    // Uncheck scope by clicking label again
+    await page.locator('label[for="scope-teacher"]').click();
+    await expect(teacherCheckbox).not.toBeChecked();
+  });
 });
+
+
+

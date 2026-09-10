@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Task - Parsons Code Lab</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/base/main.css">
+    <link rel="stylesheet" href="/js-parsons/parsons.css">
+    <link rel="stylesheet" href="/css/task/create-task.css">
+</head>
+<body>
+    {% include 'common/nav-teacher.html' %}
+
+    <main class="create-task-shell">
+        <h1 class="page-title">Create a New Task</h1>
+        <p class="page-subtitle">
+            Write plain Python in the first editor and any Python test code in the second editor.
+            You can use <code>assert</code>, loops, helper functions, and multiple test cases.
+        </p>
+
+        <!-- Guide & Examples Section -->
+        <section class="guide-section">
+            <button type="button" class="guide-toggle" id="guide-toggle">
+                <i class="fas fa-book"></i>
+                <span>How to Create a Task</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+
+            <div class="guide-content" id="guide-content">
+                <div class="guide-tabs" role="tablist">
+                    <button type="button" class="guide-tab-btn active" data-tab="unit_test" role="tab" aria-selected="true">
+                        <i class="fas fa-code"></i> Function Unit Tests
+                    </button>
+                    <button type="button" class="guide-tab-btn" data-tab="stdout" role="tab" aria-selected="false">
+                        <i class="fas fa-terminal"></i> Console Output (print)
+                    </button>
+                    <button type="button" class="guide-tab-btn" data-tab="order_only" role="tab" aria-selected="false">
+                        <i class="fas fa-list-ol"></i> Order Only (Conceptual)
+                    </button>
+                </div>
+
+                <!-- Tab Pane 1: Unit Test -->
+                <div class="guide-tab-pane active" id="guide-pane-unit_test">
+                    <div class="guide-steps">
+                        <h3>Step-by-Step Guide: Function Unit Tests</h3>
+                        <ol class="steps-list">
+                            <li>
+                                <strong>Write the Task Function</strong>
+                                <p>In the Task Code editor, write a Python function that defines the task students need to solve.</p>
+                            </li>
+                            <li>
+                                <strong>Create Test Cases</strong>
+                                <p>In the Task Tests editor, write tests that verify the function works correctly. Use <code>assert</code> statements for clear checks.</p>
+                            </li>
+                            <li>
+                                <strong>Continue to Block Builder</strong>
+                                <p>When ready, click "Continue To Block Builder" to arrange blocks and distractors. To create a faded editable block, type <code>!BLANK</code> (e.g. <code>total = !BLANK</code>).</p>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-example">
+                        <h3>Example Task: Format Names</h3>
+                        <p>Function that formats first and last names with title casing:</p>
+
+                        <div class="example-container">
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Task Code</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Task code example"><code id="example-task-code-unit">def sum(a, b):
+    total = a + b
+    return total</code></pre>
+                            </div>
+
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Task Tests</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Task tests example"><code id="example-task-tests-unit">assert sum(1, 5) == 6
+assert sum(5, 5) == 10</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-actions">
+                            <button type="button" class="copy-btn copy-example-btn" data-copy-code-target="example-task-code-unit" data-copy-tests-target="example-task-tests-unit" data-eval-type="unit_test">
+                                <i class="fas fa-copy"></i> Copy Example to Editors
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Pane 2: Stdout -->
+                <div class="guide-tab-pane" id="guide-pane-stdout">
+                    <div class="guide-steps">
+                        <h3>Step-by-Step Guide: Console Output</h3>
+                        <ol class="steps-list">
+                            <li>
+                                <strong>Write Python Print Code</strong>
+                                <p>In the Task Code editor, write Python code that prints text using <code>print(...)</code> statements.</p>
+                            </li>
+                            <li>
+                                <strong>Specify Expected Output</strong>
+                                <p>In the Expected Output editor, write the exact text string that student code should output.</p>
+                            </li>
+                            <li>
+                                <strong>Continue to Block Builder</strong>
+                                <p>When ready, click "Continue To Block Builder" to set up scrambled code blocks and distractors for students.</p>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-example">
+                        <h3>Example Task: Hello Greeting</h3>
+                        <p>Function that prints a greeting for given targets:</p>
+
+                        <div class="example-container">
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Task Code</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Task code example"><code id="example-task-code-stdout">def hello(target):
+    print("Hello", target)</code></pre>
+                            </div>
+
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Function Calls (Optional)</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Function calls example"><code id="example-task-calls-stdout">hello("Emily")
+hello("Bob")</code></pre>
+                            </div>
+
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Expected Output</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Expected output example"><code id="example-task-tests-stdout">Hello Emily
+Hello Bob</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-actions">
+                            <button type="button" class="copy-btn copy-example-btn" data-copy-code-target="example-task-code-stdout" data-copy-calls-target="example-task-calls-stdout" data-copy-tests-target="example-task-tests-stdout" data-eval-type="stdout">
+                                <i class="fas fa-copy"></i> Copy Example to Editors
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Pane 3: Order Only -->
+                <div class="guide-tab-pane" id="guide-pane-order_only">
+                    <div class="guide-steps">
+                        <h3>Step-by-Step Guide: Order Only (Conceptual)</h3>
+                        <ol class="steps-list">
+                            <li>
+                                <strong>Write Scrambled Lines / Steps</strong>
+                                <p>In the Task Code editor, write each line or conceptual step on a separate line in the correct order.</p>
+                            </li>
+                            <li>
+                                <strong>No Code Execution or Tests Required</strong>
+                                <p>Order-only tasks grade students purely on placing the blocks in the correct sequence without executing code.</p>
+                            </li>
+                            <li>
+                                <strong>Continue to Block Builder</strong>
+                                <p>Click "Continue To Block Builder" to finalize the block sequence and add optional distractor blocks.</p>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-example">
+                        <h3>Example Task: Pie</h3>
+                        <p>Order of making a pie:</p>
+
+                        <div class="example-container example-container-single">
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Task Code (Lines)</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Task code example"><code id="example-task-code-order">Buy all ingredients
+Bake a pie
+Eat the pie</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-actions">
+                            <button type="button" class="copy-btn copy-example-btn" data-copy-code-target="example-task-code-order" data-eval-type="order_only">
+                                <i class="fas fa-copy"></i> Copy Example to Editors
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <form id="create-task-form">
+            <div class="editor-toolbar-top">
+                <div class="form-group eval-mode-group">
+                    <label for="eval-type" class="font-weight-bold">Evaluation Mode</label>
+                    <select id="eval-type" class="form-control">
+                        <option value="unit_test" selected>Function Unit Tests (Default)</option>
+                        <option value="stdout">Console Output (print)</option>
+                        <option value="order_only">Order Only (Non-code / Conceptual)</option>
+                    </select>
+                </div>
+                <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
+            </div>
+
+            <div class="editor-grid">
+                <section class="editor-panel">
+                    <div class="field-head">
+                        <label for="task-code">Task Code</label>
+                        <span class="field-hint" id="task-code-hint">Example: <code>def sum(a, b):</code></span>
+                    </div>
+                    <textarea
+                        id="task-code"
+                        name="task-code"
+                        class="code-editor"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        autocomplete="off"
+                        autocorrect="off"
+                        placeholder="def sum(a, b):&#10;    total = a + b&#10;    return total"
+                    ></textarea>
+                    <div class="editor-footer">
+                        <span id="task-code-status">Ln 1, Col 1</span>
+                        <button type="button" class="text-btn" data-clear-target="task-code">Clear</button>
+                    </div>
+                </section>
+
+                <div class="stdout-panels-grid" id="stdout-panels-wrapper">
+                    <section class="editor-panel" id="task-stdout-calls-panel" style="display: none;">
+                        <div class="field-head">
+                            <label for="task-stdout-calls" id="task-stdout-calls-label">Function Calls / Driver Code (Optional)</label>
+                            <span class="field-hint" id="task-stdout-calls-hint">Calls to execute function(s)</span>
+                        </div>
+                        <textarea
+                            id="task-stdout-calls"
+                            name="task-stdout-calls"
+                            class="code-editor"
+                            spellcheck="false"
+                            autocapitalize="off"
+                            autocomplete="off"
+                            autocorrect="off"
+                            placeholder="hello(&quot;Emily&quot;)&#10;hello(&quot;Bob&quot;)"
+                        ></textarea>
+                        <div class="editor-footer">
+                            <span id="task-stdout-calls-status">Ln 1, Col 1</span>
+                            <button type="button" class="text-btn" data-clear-target="task-stdout-calls">Clear</button>
+                        </div>
+                    </section>
+                    <section class="editor-panel" id="task-tests-panel">
+                        <div class="field-head">
+                            <label for="task-tests" id="task-tests-label">Task Tests</label>
+                            <span class="field-hint" id="task-tests-hint">Use any Python test style you prefer</span>
+                        </div>
+                        <textarea
+                            id="task-tests"
+                            name="task-tests"
+                            class="code-editor"
+                            spellcheck="false"
+                            autocapitalize="off"
+                            autocomplete="off"
+                            autocorrect="off"
+                            placeholder="assert sum(1, 5) == 6&#10;assert sum(5, 5) == 10"
+                        ></textarea>
+                        <div class="editor-footer">
+                            <span id="task-tests-status">Ln 1, Col 1</span>
+                            <button type="button" class="text-btn" data-clear-target="task-tests">Clear</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="actions">
+                <div class="actions-left">
+                    <button type="button" id="cancel-task" class="secondary-btn">Cancel</button>
+                    <button type="button" id="clear-drafts" class="secondary-btn">Clear Drafts</button>
+                </div>
+                <div class="actions-right">
+                    <button type="button" id="submit-task" class="primary-btn">Continue To Block Builder</button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script type="module">
+        import { initSignedInAs, initProtectedPage, initBurgerMenu } from "/js/core/auth-ui.js";
+
+        initSignedInAs();
+        initProtectedPage('/');
+        initBurgerMenu();
+    </script>
+    <script src="/js/task/create-task.js"></script>
+{% include 'common/footer.html' %}
+</body>
+</html>

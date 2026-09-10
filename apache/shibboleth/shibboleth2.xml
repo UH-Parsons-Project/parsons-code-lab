@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<SPConfig
+    xmlns="urn:mace:shibboleth:3.0:native:sp:config"
+    xmlns:conf="urn:mace:shibboleth:3.0:native:sp:config"
+    clockSkew="180">
+  <OutOfProcess tranLogFormat="%u|%s|%IDP|%i|%ac|%t|%attr|%n|%b|%E|%S|%SS|%L|%UA|%a"/>
+
+  <ApplicationDefaults
+      entityID="https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/sp"
+      REMOTE_USER="eppn"
+      signing="true">
+    <Sessions
+        lifetime="28800"
+        timeout="3600"
+        relayState="ss:mem"
+        handlerURL="/Shibboleth.sso"
+        checkAddress="false"
+        handlerSSL="true"
+        cookieProps="https">
+      <SSO entityID="https://login.helsinki.fi/shibboleth">SAML2</SSO>
+      <Logout>SAML2 Local</Logout>
+            <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
+    </Sessions>
+
+    <Errors supportContact="REPLACE_WITH_SUPPORT_EMAIL@helsinki.fi"/>
+
+    <MetadataProvider
+        type="XML"
+        reloadInterval="7200"
+        url="https://login.helsinki.fi/metadata/sign-hy-metadata-v2.xml"
+                backingFilePath="/var/cache/shibboleth/sign-hy-metadata.xml">
+            <MetadataFilter
+                    type="Signature"
+                    certificate="/etc/shibboleth/metadata/sign-login.helsinki.fi-v2.pem"/>
+        </MetadataProvider>
+
+    <AttributeExtractor
+        type="XML"
+        validate="true"
+        reloadChanges="false"
+        path="attribute-map.xml"/>
+    <AttributeFilter type="XML" validate="true" path="attribute-policy.xml"/>
+
+    <CredentialResolver
+        type="File"
+        use="signing"
+        key="/etc/shibboleth/credentials/signing-key.pem"
+        certificate="/etc/shibboleth/credentials/signing-cert.pem"/>
+    <CredentialResolver
+        type="File"
+        use="encryption"
+        key="/etc/shibboleth/credentials/encryption-key.pem"
+        certificate="/etc/shibboleth/credentials/encryption-cert.pem"/>
+  </ApplicationDefaults>
+
+  <SecurityPolicyProvider
+      type="XML"
+      validate="true"
+      path="security-policy.xml"/>
+  <ProtocolProvider
+      type="XML"
+      validate="true"
+      reloadChanges="false"
+      path="protocols.xml"/>
+</SPConfig>

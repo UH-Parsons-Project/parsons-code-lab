@@ -6,9 +6,10 @@ initBurgerMenu();
 
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
+const studentId = params.get('student_id');
 const setId = params.get('set_id');
 
-if (!studentUsername || !setId) {
+if (!studentId || !setId) {
 	window.location.href = '/teacher-dashboard';
 	throw new Error('Missing required query params: student or set_id');
 }
@@ -16,7 +17,11 @@ if (!studentUsername || !setId) {
 // Set up back button
 const backBtn = document.getElementById('back-btn');
 if (backBtn) {
-	backBtn.href = `/task-set-overview?set_id=${setId}`;
+	backBtn.href = "#";
+	backBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+		history.back();
+	});
 }
 
 function bindRemoveStudentButton() {
@@ -29,7 +34,7 @@ function bindRemoveStudentButton() {
 		removeStudentBtn.disabled = true;
 		try {
 			const response = await fetch(
-				`/api/my_sets/${encodeURIComponent(setId)}/students/${encodeURIComponent(studentUsername)}`,
+				`/api/my_sets/${encodeURIComponent(setId)}/students/${encodeURIComponent(studentId)}`,
 				{
 					method: 'DELETE',
 					credentials: 'include'
@@ -150,7 +155,7 @@ function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	const navigate = () => {
-		window.location.href = `/student-task-statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
+		window.location.href = `/student-task-statistics?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentUsername || '')}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
 	item.onclick = navigate;
 	makeKeyActivatable(item, navigate);
@@ -169,12 +174,16 @@ function createAttemptItem(attempt) {
 		statusIcon = '<i class="fas fa-check-circle sa-icon-success"></i><span class="sa-status-label"> Success</span>';
 	} else if (attempt.attempts > 0) {
 		statusIcon = '<i class="fas fa-times-circle sa-icon-failed"></i><span class="sa-status-label"> Failed</span>';
+	} else if (attempt.has_started) {
+		statusIcon = '<i class="fas fa-clock sa-icon-in-progress" style="color:var(--amber);"></i><span class="sa-status-label" style="color:var(--amber);"> In progress</span>';
 	} else {
 		statusIcon = '<i class="fas fa-circle sa-icon-not-started" style="font-size: 0.75em; vertical-align: middle;"></i><span class="sa-status-label text-muted"> Not started</span>';
 	}
 
 	if (attempt.attempts > 0 && attempt.last_attempt_at) {
 		lastAttemptText = `<i class="far fa-clock"></i> Last attempt: ${formatDateTime(attempt.last_attempt_at)}`;
+	} else if (attempt.has_started) {
+		lastAttemptText = `<i class="far fa-clock"></i> Started (no attempts yet)`;
 	} else {
 		lastAttemptText = `<i class="far fa-clock"></i> Not attempted yet`;
 	}
@@ -216,7 +225,7 @@ function renderAttempts(attempts) {
 
 // Load student attempts and full task set task count
 Promise.all([
-	fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?set_id=${setId}`, {
+	fetch(`/api/students/${encodeURIComponent(studentId)}/attempts?set_id=${setId}`, {
 		credentials: 'include'
 	}),
 	fetch(`/api/my_sets/${encodeURIComponent(setId)}/tasks`, {
@@ -236,7 +245,7 @@ Promise.all([
 		}
 
 		const attempts = await attemptsResponse.json();
-		const attemptedTasks = attempts.filter(attempt => attempt.attempts > 0).length;
+		const startedTasks = attempts.filter(attempt => attempt.has_started || attempt.attempts > 0).length;
 		const completedTasks = attempts.filter(attempt => attempt.success_count > 0).length;
 
 		let totalTasks = attempts.length;
@@ -254,7 +263,7 @@ Promise.all([
 		}
 
 		const isOwner = localStorage.getItem('username') === ownerUsername;
-		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks, taskSetName, isOwner);
+		renderHeader(studentUsername, completedTasks, startedTasks, totalTasks, taskSetName, isOwner);
 		renderAttempts(attempts);
 	})
 	.catch(err => {

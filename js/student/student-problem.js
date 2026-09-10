@@ -22,31 +22,29 @@ initNavbarExercisesButton();
 // Initialize problem widget separately from auth UI.
 initWidget();
 
-const backButton = document.getElementById('back-to-list');
-
-if (isPreview) {
-	if (backButton) {
+const backButton = document.getElementById('page-back-btn');
+if (backButton) {
+	backButton.style.display = 'inline-flex';
+	if (isPreview) {
 		backButton.textContent = 'Close Preview';
 		backButton.href = '#';
 		backButton.addEventListener('click', (e) => {
 			e.preventDefault();
 			window.close();
 		});
-	}
-} else {
-	// Set the back button to return to the task set
-	// Path: /{username}/set/{unique_link_code}/tasks/{task_id}
-	const pathParts = window.location.pathname.split('/').filter(p => p);
-	const username = pathParts[0];
-	const uniqueLinkCode = pathParts[2];
-	const taskId = pathParts[4];
-	const dashboardUrl = `/${username}/set/${uniqueLinkCode}/tasks`;
+	} else {
+		const pathParts = window.location.pathname.split('/').filter(p => p);
+		const username = pathParts[0];
+		const uniqueLinkCode = pathParts[2];
+		const taskId = pathParts[4];
+		const dashboardUrl = `/${username}/set/${uniqueLinkCode}/tasks`;
 
-	if (backButton && uniqueLinkCode) {
-		backButton.href = dashboardUrl;
-	}
+		if (uniqueLinkCode) {
+			backButton.href = dashboardUrl;
+		}
 
-	if (taskId) {
-		initInactivityTimer(taskId, uniqueLinkCode, dashboardUrl).catch(console.error);
+		if (taskId) {
+			initInactivityTimer(taskId, uniqueLinkCode, dashboardUrl).catch(console.error);
+		}
 	}
 }

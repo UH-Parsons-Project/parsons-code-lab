@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Task Sets - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header">
+    <div class="page-title">All Task Sets</div>
+    <div class="page-subtitle">Showing all task sets from all teachers</div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <div class="top-actions align-items-center justify-content-between mb-3" style="display: flex;">
+      <p id="task-set-count-badge" style="display: none; font-size: 0.85rem; font-weight: 700; color: var(--brand-text); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.4rem 0.8rem; margin: 0; box-shadow: var(--shadow);"></p>
+    </div>
+
+    <div class="task-filter-menu mb-4">
+      <button class="btn nav-link-btn task-filter-toggle" type="button" id="task-filter-toggle" aria-expanded="false" aria-controls="task-filter-panel">
+        <i class="fas fa-filter"></i> Search & Filter
+      </button>
+      <div class="collapse mt-2" id="task-filter-panel">
+        <div class="filter-panel-content" style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow);">
+          <div class="form-group mb-3">
+            <input type="text" class="form-control" id="task-search" placeholder="Search task sets..." style="border-radius: var(--radius); border-color: var(--border); font-family: var(--font);">
+            <small class="form-text text-muted mt-1">Select a field below to search in a specific area</small>
+          </div>
+          <div class="filter-scopes">
+            <label class="filter-scope-label" style="font-weight: 600; color: var(--text);">Search in:</label>
+            <div class="scope-checkboxes">
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input filter-scope" id="scope-title" value="title">
+                <label class="custom-control-label" for="scope-title">Title</label>
+              </div>
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input filter-scope" id="scope-teacher" value="teacher">
+                <label class="custom-control-label" for="scope-teacher">Teacher</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="task-sets-container" class="loading-spinner mt-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading task sets...</p>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/task/all-tasksets.js"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

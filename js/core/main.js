@@ -23,6 +23,8 @@ const lsKey = (suffix) => `${globalUniqueLinkCode}-${globalTaskId}${suffix}`;
 // Global reference to the current problem element
 let probEl;
 
+const isStudentTask = /^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)\/?$/.test(window.location.pathname);
+
 // Global variable to store task ID for local storage operations
 let globalTaskId;
 
@@ -82,7 +84,7 @@ async function resolveNextTaskUrl() {
 	});
 
 	const unfinished = statuses.filter(
-		(item) => !item.isCompleted && item.taskNumber !== currentTaskId
+		(item) => !item.isCompleted && item.taskId !== currentTaskId
 	);
 	if (unfinished.length === 0) {
 		return null;
@@ -90,10 +92,10 @@ async function resolveNextTaskUrl() {
 
 	const preferred = unfinished.find((item) => item.hasStarted) || unfinished[0];
 	if (preferred.hasStarted) {
-		return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}`;
+		return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}`;
 	}
 
-	return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}/start`;
+	return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}/start`;
 }
 
 
@@ -105,15 +107,12 @@ export async function initWidget() {
 	let params = new URL(document.location).searchParams;
 	globalTaskId = params.get('id');
 
-	// If no query parameter, try extracting from URL path
-	if (!globalTaskId) {
-		const pathParts = window.location.pathname.split('/').filter(p => p);
-		// Path format: {username}/set/unique_link_code/tasks/task_id
-		if (pathParts.length >= 5 && pathParts[3] === 'tasks') {
-			globalUsername = pathParts[0];
-			globalUniqueLinkCode = pathParts[2];
-			globalTaskId = pathParts[4];
-		}
+	const pathParts = window.location.pathname.split('/').filter(p => p);
+	// Path format: {username}/set/unique_link_code/tasks/task_id
+	if (pathParts.length >= 5 && pathParts[3] === 'tasks') {
+		if (!globalUsername) globalUsername = pathParts[0];
+		if (!globalUniqueLinkCode) globalUniqueLinkCode = pathParts[2];
+		if (!globalTaskId) globalTaskId = pathParts[4];
 	}
 
 	if (!globalTaskId) {
@@ -180,16 +179,20 @@ export async function initWidget() {
 			}
 		}
 
+		const evalType = task.eval_type || task.correct_solution?.eval_type || 'unit_test';
+
 		// Reconstruct code lines from blocks for display
 		let codeLines = reconstructCodeLines(codeBlocksData.blocks);
 
-		// Add debug print statements and blank lines
-		codeLines =
-			codeLines +
-			"\nprint('DEBUG:', !BLANK)" +
-			"\nprint('DEBUG:', !BLANK)" +
-			'\n# !BLANK' +
-			'\n# !BLANK';
+		// Add debug print statements and blank lines ONLY for code-executing tasks (unit_test, stdout)
+		if (evalType !== 'order_only') {
+			codeLines =
+				codeLines +
+				"\nprint('DEBUG:', !BLANK)" +
+				"\nprint('DEBUG:', !BLANK)" +
+				'\n# !BLANK' +
+				'\n# !BLANK';
+		}
 
 		// Create a new problem-element web component
 		probEl = document.createElement('problem-element');
@@ -201,8 +204,8 @@ export async function initWidget() {
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
+		probEl.shuffleStarterBlocks = isStudentTask;
 		
-		const evalType = task.eval_type || task.correct_solution?.eval_type || 'unit_test';
 		const expectedOutput = task.expected_output !== undefined ? task.expected_output : (task.correct_solution?.expected_output || '');
 		const correctOrder = task.correct_order || task.correct_solution?.correct_order || [];
 		const requireIndentation = task.require_indentation !== undefined ? task.require_indentation : (task.correct_solution?.require_indentation !== undefined ? task.correct_solution.require_indentation : true);
@@ -410,7 +413,7 @@ async function handleSubmit(submittedCode, reprCode, studentOrder, moves, edits,
 
 			// Process results or errors
 			if (typeof results === 'string') {
-				testResults = processTestResults(results, customErrorRules, evalType, expectedOutput);
+				testResults = processTestResults(results, customErrorRules, evalType, expectedOutput, teacherTests);
 			} else {
 				testResults = processTestError(error, testResults.startLine, customErrorRules);
 			}

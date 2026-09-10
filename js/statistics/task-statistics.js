@@ -1,9 +1,16 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, formatTime } from '../utils/ui-utils.js';
+import { openTaskPreview, setupPreviewModalClose } from '../task/task-preview.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
+setupPreviewModalClose();
+
+const previewTaskButton = document.getElementById('preview-task-statistics-btn');
+if (previewTaskButton) {
+	previewTaskButton.addEventListener('click', () => openTaskPreview({ id: taskId }));
+}
 
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');
@@ -12,16 +19,11 @@ const setId = params.get('set_id');
 
 const backBtn = document.getElementById('back-btn');
 if (backBtn) {
-	if (!task_setCode) {
-		backBtn.href = '/global-statistics';
-		backBtn.textContent = 'Back to Global Statistics';
-	} else if (setId) {
-		backBtn.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
-		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
-	} else {
-		backBtn.href = '/teacher-dashboard';
-		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
-	}
+	backBtn.href = "#";
+	backBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+		history.back();
+	});
 }
 
 if (!task_setCode) {
@@ -322,7 +324,7 @@ function renderSidebarSection(listEl, names, urlFn) {
 		return;
 	}
 	listEl.innerHTML = names.map(n => {
-		const url = urlFn ? urlFn(n.name) : null;
+		const url = urlFn ? urlFn(n) : null;
 		const tag = url ? 'a' : 'div';
 		const href = url ? ` href="${url}"` : '';
 		return `
@@ -345,10 +347,10 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 	document.getElementById('sidebar-not-started-count').textContent = notStarted;
 
 	const taskStatsUrl = (taskId && setId)
-		? name => `/student-task-statistics?student=${encodeURIComponent(name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
+		? n => `/student-task-statistics?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(n.name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 	const attemptsUrl = setId
-		? name => `/student-attempts?student=${encodeURIComponent(name)}&set_id=${encodeURIComponent(setId)}`
+		? n => `/student-attempts?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(n.name)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 
 	renderSidebarSection(

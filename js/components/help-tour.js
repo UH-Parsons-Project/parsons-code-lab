@@ -39,8 +39,9 @@ async function loadDriverJSAndCSS() {
  * Path check helper for teacher-oriented views
  */
 function shouldShowHelpTour(pathname) {
-	// Never show the tour on login or register pages, even if the URL path matches a tour route
-	if (document.getElementById('login-form') || document.getElementById('register-form')) {
+	// Never show the tour on login or register pages
+	const unauthPaths = ['/', '/login', '/register', '/teacher-register', '/student-register'];
+	if (unauthPaths.includes(pathname.replace(/\/$/, ''))) {
 		return false;
 	}
 
@@ -190,17 +191,17 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Fill-in-the-Blanks',
 					description:
-						'This exercise contains faded blocks! You will need to click on these blank input fields and type the correct code to complete the block.',
+						'Some exercises contain faded blocks! You will need to click on these blank input fields and type the correct code to complete the block.',
 					side: 'top',
 				},
 			});
 		}
 
 		// Check for helper blocks like DEBUG or comments
-		const helperBlock = Array.from(document.querySelectorAll('problem-element .sortable-code li')).find(li => 
+		const helperBlock = Array.from(document.querySelectorAll('problem-element .sortable-code li')).find(li =>
 			li.textContent.includes('DEBUG') || li.textContent.includes('#')
 		);
-		
+
 		if (helperBlock) {
 			steps.push({
 				element: helperBlock,
@@ -269,9 +270,9 @@ function getTourStepsForPath(pathname) {
 			{
 				element: '#global-stats-btn',
 				popover: {
-					title: 'Global Statistics',
+					title: 'Task Database',
 					description:
-						'Access all public tasks, view global statistics and find the right tasks for your own task sets.',
+						'Access all public tasks, view statistics and find the right tasks for your own task sets.',
 					side: 'bottom',
 				},
 			},
@@ -352,31 +353,13 @@ function getTourStepsForPath(pathname) {
 
 	// Task Set Overview Tour
 	if (pathname.startsWith('/task-set-overview')) {
-		return [
+		const steps = [
 			{
 				element: '.taskset-page-title',
 				popover: {
 					title: 'Task Set Title',
 					description:
-						'Welcome to you task set! Here you can view and manage your task set, including student join links and shared viewers.',
-					side: 'bottom',
-				},
-			},
-			{
-				element: '#view-toggle-container',
-				popover: {
-					title: 'View Toggle & Completion Heatmap',
-					description:
-						'Switch between the list view (Tasks and Students) and the Completion Heatmap view to inspect overall student progress in a table format.',
-					side: 'bottom',
-				},
-			},
-			{
-				element: '.csv-buttons-group',
-				popover: {
-					title: 'Download CSVs',
-					description:
-						'You can download the CSV for all data available of each task, or the Teacher CSV that has a simple table of what tasks each student has completed',
+						'Welcome to your task set! Here you can view and manage your task set, student enrollments, and performance data.',
 					side: 'bottom',
 				},
 			},
@@ -385,16 +368,25 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Student Join Link',
 					description:
-						'Share this unique link with your students to allow them to join your task set. After login in students will be able to do all active tasks in the task set.',
+						'Share this unique link with your students so they can join this task set and start working on exercises.',
 					side: 'bottom',
 				},
 			},
 			{
-				element: '#expiry-section',
+				element: '.taskset-meta-row',
 				popover: {
-					title: 'Expiry',
+					title: 'Opening & Expiry Dates',
 					description:
-						'Set or edit your expiry date and time. After expiry, the task set will no longer be available to students, but teachers will still be able to view all data like normal.',
+						'View or configure when this task set opens for students and when it expires.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '.csv-buttons-group',
+				popover: {
+					title: 'Download CSVs',
+					description:
+						'Export detailed timing statistics or a summary table of student completion data as CSV files.',
 					side: 'bottom',
 				},
 			},
@@ -403,26 +395,38 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Shared Viewers',
 					description:
-						'Here you can manage shared viewers. Giving viewing rights allows the teacher to view all data in this task set, including student specific data.',
-					side: 'bottom',
-				},
-			},
-			{
-				element: '.header-stats',
-				popover: {
-					title: 'Statistics',
-					description:
-						'Here you can have a quick look at how many students have joind and overview on how they are doing.',
+						'Manage viewing permissions for co-teachers to grant them read-only access to student progress in this task set.',
 					side: 'bottom',
 				},
 			},
 			{
 				element: '.descriptions-wrapper',
 				popover: {
-					title: 'Notes and Instructions',
+					title: 'Notes & Instructions',
 					description:
-						'<strong>Teacher Notes</strong> are visuable to you and teachers with viewing rights. Students will never see this. <strong>Student Instructions</strong> are visuable to students on the main dashboard when they open this task set. ',
+						'Read or edit <strong>Teacher Notes</strong> (private to teachers) and <strong>Student Instructions</strong> (shown to students).',
 					side: 'bottom',
+				},
+			},
+			{
+				element: '.header-stats',
+				popover: {
+					title: 'Statistics & Progress',
+					description:
+						'Quick overview of enrolled students, task counts, average progress, total attempt count, and student progression breakdown.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '#toggle-lists',
+				popover: {
+					title: 'Tasks & Students View Toggle',
+					description:
+						'Switch to the primary view displaying the list of tasks and enrolled students.',
+					side: 'bottom',
+				},
+				onHighlightStarted: () => {
+					document.getElementById('toggle-lists')?.click();
 				},
 			},
 			{
@@ -430,7 +434,7 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Tasks List',
 					description:
-						'These are all tasks within your task set. By clicking on a task you can view the tasks statistics. Tasks can be deactivated, which hides them from all students. They can be reactivated if needed. No data is lost by deactivation, but make sure no students are attempting the task before deactivation.',
+						'View all tasks in this set. Click any task to inspect its detailed statistics. In edit mode, you can add tasks, drag to reorder or deactivate tasks.',
 					side: 'right',
 				},
 			},
@@ -439,8 +443,29 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Students List',
 					description:
-						'All students that have enrolled through your shared link. Clicking a student opens their overview and allowing to view task specific statistics.',
+						'View enrolled students. Click on any student to open their detailed attempt breakdown.',
 					side: 'left',
+				},
+			},
+			{
+				element: '#toggle-heatmap',
+				popover: {
+					title: 'Heatmap View Toggle',
+					description:
+						'Click here to switch to the Completion Heatmap view.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '#heatmap-container',
+				popover: {
+					title: 'Completion Heatmap',
+					description:
+						'Visual matrix showing student status across all tasks (completed, in progress, struggling, not started). Hover or click any cell for details.',
+					side: 'top',
+				},
+				onHighlightStarted: () => {
+					document.getElementById('toggle-heatmap')?.click();
 				},
 			},
 			{
@@ -448,11 +473,18 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Account Settings',
 					description:
-						'Change profile settings, access all quick links, or sign out of your account.',
+						'Access profile settings, navigation shortcuts, or log out of your account.',
 					side: 'left',
 				},
 			},
 		];
+
+		return steps.filter((step) => {
+			if (typeof step.element === 'string') {
+				return document.querySelector(step.element) !== null;
+			}
+			return true;
+		});
 	}
 
 
@@ -856,15 +888,15 @@ function getTourStepsForPath(pathname) {
 		return steps;
 	}
 
-	// Global Statistics Tour
+	// Task Database Tour
 	if (pathname.startsWith('/global-statistics')) {
 		const steps = [
 			{
 				element: '.page-header',
 				popover: {
-					title: 'All Tasks & Global Statistics',
+					title: 'Task Database',
 					description:
-						'Welcome to the All Tasks & Global Statistics page! Here you can search and filter all public exercises, preview tasks, and view their anonymous global statistics.',
+						'Welcome to the Task Database page! Here you can search and filter all public exercises, preview tasks, and view their anonymous global statistics.',
 					side: 'bottom',
 				},
 			},
@@ -950,6 +982,23 @@ function getTourStepsForPath(pathname) {
 
 	// Create Task Editor (Step 2: Blocks and Details) Tour
 	if (pathname.startsWith('/create-task-editor')) {
+		const evalTypeInput = document.getElementById('eval-type');
+		const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+
+		let testsStepElement = '#unit-test-container';
+		let testsStepTitle = 'Check Tests (Unit Tests)';
+		let testsStepDesc = 'Review or edit test cases and click "Run Tests" to verify your model answer.';
+
+		if (evalType === 'stdout') {
+			testsStepElement = '#stdout-container';
+			testsStepTitle = 'Expected Output';
+			testsStepDesc = 'Review expected print output and click "Run Tests" to verify your model answer.';
+		} else if (evalType === 'order_only') {
+			testsStepElement = '#order-only-container';
+			testsStepTitle = 'Order Only (No Tests Required)';
+			testsStepDesc = 'No code execution required! The task is automatically verified against the model block order.';
+		}
+
 		return [
 			{
 				element: '.checklist-sidebar',
@@ -974,7 +1023,7 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Start Page Intro',
 					description:
-						'Provide a brief introduction for students that will appear on the task start page before they begin. Do not give the entire description since this can be read before the timer starts. ',
+						'Provide a brief introduction for students that will appear on the task start page before they begin. Do not give the entire description since this can be read before the timer starts.',
 					side: 'bottom',
 				},
 			},
@@ -983,7 +1032,7 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Problem Statement',
 					description:
-						'Write clear instructions and problem requirements for students to read while solving the task. Its adviced to also add an example of how the program should work.',
+						'Write clear instructions and problem requirements for students to read while solving the task. It is advised to also add an example of how the program should work.',
 					side: 'bottom',
 				},
 			},
@@ -1015,11 +1064,10 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
-				element: '#tests-input',
+				element: testsStepElement,
 				popover: {
-					title: 'Check Tests',
-					description:
-						'Review or edit the test cases and click "Run Tests" to verify that your model answer passes all checks.',
+					title: testsStepTitle,
+					description: testsStepDesc,
 					side: 'top',
 				},
 			},
@@ -1068,7 +1116,10 @@ function getTourStepsForPath(pathname) {
 		!pathname.startsWith('/create-task-editor') &&
 		!pathname.startsWith('/create-task-set')
 	) {
-		return [
+		const evalTypeInput = document.getElementById('eval-type');
+		const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+
+		const steps = [
 			{
 				element: '.page-title',
 				popover: {
@@ -1079,33 +1130,63 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
+				element: '#guide-toggle',
+				popover: {
+					title: 'How to Create a Task Guide',
+					description:
+						'Click here anytime to view step-by-step guides and ready-to-copy examples for all 3 task types (Function Unit Tests, Console Output, and Order Only).',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '#eval-type',
+				popover: {
+					title: 'Evaluation Mode',
+					description:
+						'Choose your task type:<br>- <b>Function Unit Tests</b>: Standard function code tested with assert statements.<br>- <b>Console Output (print)</b>: Code printing text matched against expected output.<br>- <b>Order Only</b>: Scrambled conceptual steps graded on sequence without code execution.',
+					side: 'bottom',
+				},
+			},
+			{
 				element: '#task-code',
 				popover: {
 					title: 'Task Code Editor',
 					description:
-						'Write the reference Python function that defines the task students need to solve. Use standard Python syntax.',
+						evalType === 'stdout'
+							? 'Write Python code that outputs text using print statements.'
+							: evalType === 'order_only'
+							? 'Write the scrambled lines or conceptual steps in correct order (one per line).'
+							: 'Write the reference Python function that defines the task students need to solve.',
 					side: 'right',
 				},
 			},
-			{
-				element: '#task-tests',
+		];
+
+		if (evalType !== 'order_only') {
+			steps.push({
+				element: '#task-tests-panel',
 				popover: {
-					title: 'Task Tests Editor',
+					title: evalType === 'stdout' ? 'Expected Output Editor' : 'Task Tests Editor',
 					description:
-						'Write Python tests (like assert statements) to verify the correctness of your task code.',
+						evalType === 'stdout'
+							? 'Enter the exact string expected to be printed by the code.'
+							: 'Write Python unit tests (like assert statements) to verify student solutions.',
 					side: 'left',
 				},
+			});
+		}
+
+		steps.push({
+			element: '#submit-task',
+			popover: {
+				title: 'Continue to Block Builder',
+				description:
+					'Once your task code and tests are configured, click here to move on to Step 2: Block Builder.',
+				side: 'top',
 			},
-			{
-				element: '#submit-task',
-				popover: {
-					title: 'Continue to Block Builder',
-					description:
-						'Once your task code and tests are written, click here to move on to Step 2: Block Builder.',
-					side: 'top',
-				},
-			},
-		];
+		});
+
+		return steps;
 	}
 
 	// Create Task Set Tour
@@ -1218,6 +1299,32 @@ function getTourStepsForPath(pathname) {
 	];
 }
 
+async function launchHelpTour(triggerBtn) {
+	if (triggerBtn) {
+		triggerBtn.disabled = true;
+		if (triggerBtn.id === 'floating-help-btn') {
+			triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+		}
+	}
+	try {
+		await loadDriverJSAndCSS();
+		const driverObj = window.driver.js.driver({
+			showProgress: true,
+			steps: getTourStepsForPath(window.location.pathname),
+		});
+		driverObj.drive();
+	} catch (err) {
+		console.error('Failed to launch help tour:', err);
+	} finally {
+		if (triggerBtn) {
+			triggerBtn.disabled = false;
+			if (triggerBtn.id === 'floating-help-btn') {
+				triggerBtn.innerHTML = '<i class="fas fa-question"></i>';
+			}
+		}
+	}
+}
+
 /**
  * Injects and initializes the global tour widget
  */
@@ -1226,7 +1333,17 @@ function initGlobalHelpTour() {
 		return;
 	}
 
-	// Check if already injected
+	// Bind any static menu tour triggers if present in DOM
+	const menuTourBtn = document.getElementById('start-tour-menu-item');
+	if (menuTourBtn && !menuTourBtn.dataset.tourBound) {
+		menuTourBtn.dataset.tourBound = 'true';
+		menuTourBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			launchHelpTour(menuTourBtn);
+		});
+	}
+
+	// Check if floating button is already injected
 	if (document.getElementById('floating-help-btn')) {
 		return;
 	}
@@ -1273,22 +1390,8 @@ function initGlobalHelpTour() {
 	btn.innerHTML = '<i class="fas fa-question"></i>';
 	document.body.appendChild(btn);
 
-	btn.addEventListener('click', async () => {
-		btn.disabled = true;
-		btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-		try {
-			await loadDriverJSAndCSS();
-			const driverObj = window.driver.js.driver({
-				showProgress: true,
-				steps: getTourStepsForPath(window.location.pathname),
-			});
-			driverObj.drive();
-		} catch (err) {
-			console.error('Failed to launch help tour:', err);
-		} finally {
-			btn.disabled = false;
-			btn.innerHTML = '<i class="fas fa-question"></i>';
-		}
+	btn.addEventListener('click', () => {
+		launchHelpTour(btn);
 	});
 }
 

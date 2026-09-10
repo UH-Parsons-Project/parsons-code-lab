@@ -290,7 +290,7 @@ class TestLogin:
     async def test_valid_credentials_return_token(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
         assert r.status_code == 200
         assert "access_token" in r.json()
@@ -299,7 +299,7 @@ class TestLogin:
     async def test_valid_login_sets_cookie(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
         assert "access_token" in r.cookies
 
@@ -314,7 +314,7 @@ class TestLogin:
     async def test_wrong_password_returns_400(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "wrong"},
+            data={"username": "test@example.com", "password": "wrong"},
         )
         assert r.status_code == 400
         assert "Incorrect" in r.json()["detail"]
@@ -574,7 +574,7 @@ class TestListTasks:
             description='{"description": "Not visible to others."}',
             task_type="python",
             code_blocks={"blocks": []},
-            correct_solution={"solution": []},
+            correct_solution={"solution": [], "require_indentation": True},
             is_public=False,
         )
         db_session.add(other_private)
@@ -711,7 +711,7 @@ class TestGetProblemsetTasks:
                     {"id": "block_2", "code": "print(___)", "indent": 0, "faded": True, "given": False},
                 ]
             },
-            correct_solution={"solution": []},
+            correct_solution={"solution": [], "require_indentation": True},
             is_public=True,
         )
         db_session.add(task)
@@ -724,6 +724,35 @@ class TestGetProblemsetTasks:
         r = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
         assert r.status_code == 200
         assert r.json()[0]["is_faded"] is True
+
+    async def test_task_set_tasks_do_not_report_regular_movable_blocks_as_faded(
+        self, client, db_session, test_teacher, task_set
+    ):
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Regular Parsons Task",
+            description="Arrange the blocks.",
+            task_instructions="Arrange the blocks",
+            task_type="normal",
+            code_blocks={
+                "blocks": [
+                    {"id": "block_1", "code": "print('hello')", "indent": 0, "given": False},
+                    {"id": "block_2", "code": "print('world')", "indent": 0, "given": False},
+                ]
+            },
+            correct_solution={"solution": [], "require_indentation": False},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=task.id))
+        await db_session.commit()
+
+        r = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
+        assert r.status_code == 200
+        assert r.json()[0]["is_faded"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -1069,7 +1098,7 @@ class TestStatistics:
         await _add_attempt(db_session, student_session.id, private_task.id, task_set.id, success=True)
 
         response = await client.get(
-            f"/api/students/{student_session.username}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student_session.id}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
             headers=_auth(viewer.username),
         )
         assert response.status_code == 200
@@ -1296,7 +1325,7 @@ class TestAdditionalMainPagesAndStudentAuth:
     async def test_student_login_invalid_credentials_returns_400(self, client):
         r = await client.post(
             "/api/student_login",
-            json={"username": "ghost", "password": "wrong", "unique_link_code": None},
+            json={"email": "ghost@example.com", "password": "wrong", "unique_link_code": None},
         )
         assert r.status_code == 400
         assert "Incorrect" in r.json()["detail"]
@@ -1305,7 +1334,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         r = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.email,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": None,
             },
@@ -1330,7 +1359,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         r = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": "WEEK2",
             },
@@ -1434,6 +1463,20 @@ class TestAdditionalProblemsetAndTaskSetApis:
         )
         assert r.status_code == 400
         assert "Invalid expiration date format" in r.json()["detail"]
+
+    async def test_create_task_set_rejects_opening_after_expiration(self, client, test_teacher):
+        r = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json={
+                "title": "Date Order Set",
+                "opens_at": "2027-01-02T00:00:00Z",
+                "expires_at": "2027-01-01T00:00:00Z",
+                "task_ids": [],
+            },
+        )
+        assert r.status_code == 400
+        assert "Opening date must be before or equal to expiration date" in r.json()["detail"]
 
     async def test_create_task_set_success_with_tasks(self, client, test_teacher, task, db_session):
         second = Parsons(
@@ -1553,3 +1596,90 @@ class TestCreateProblemApi:
         import json
         instructions_data = json.loads(created_task.task_instructions)
         assert instructions_data["examples"] == ">>> add_in_range(3, 5)\n12"
+
+    async def test_create_and_update_task_set_opens_at(self, client, test_teacher, task):
+        payload = {
+            "title": "Opens At Test Set",
+            "opens_at": "2099-01-01T12:00:00Z",
+            "task_ids": [task.id],
+        }
+        res = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["opens_at"].startswith("2099-01-01T12:00:00")
+        task_set_id = data["id"]
+
+        # Update opens_at
+        patch_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/opens_at",
+            headers=_auth(test_teacher.username),
+            json={"opens_at": "2099-06-01T12:00:00Z"},
+        )
+        assert patch_res.status_code == 200
+        assert patch_res.json()["opens_at"].startswith("2099-06-01T12:00:00")
+
+        # Clear opens_at
+        clear_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/opens_at",
+            headers=_auth(test_teacher.username),
+            json={"opens_at": None},
+        )
+        assert clear_res.status_code == 200
+        assert clear_res.json()["opens_at"] is None
+
+    async def test_update_task_set_dates_rejects_invalid_order(self, client, test_teacher, task):
+        res = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json={
+                "title": "Update Date Order Set",
+                "opens_at": "2027-01-01T00:00:00Z",
+                "expires_at": "2027-01-10T00:00:00Z",
+                "task_ids": [task.id],
+            },
+        )
+        assert res.status_code == 200
+        task_set_id = res.json()["id"]
+
+        expires_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/expires_at",
+            headers=_auth(test_teacher.username),
+            json={"expires_at": "2026-12-31T00:00:00Z"},
+        )
+        assert expires_res.status_code == 400
+
+        opens_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/opens_at",
+            headers=_auth(test_teacher.username),
+            json={"opens_at": "2027-01-11T00:00:00Z"},
+        )
+        assert opens_res.status_code == 400
+
+    async def test_student_access_blocked_before_opens_at(self, client, test_teacher, task, db_session):
+        payload = {
+            "title": "Future Opening Set",
+            "opens_at": "2099-01-01T12:00:00Z",
+            "task_ids": [task.id],
+        }
+        res = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert res.status_code == 200
+        unique_code = res.json()["unique_link_code"]
+
+        student_res = await client.get(f"/{test_teacher.username}/set/{unique_code}")
+        assert student_res.status_code == 200
+        assert "This task set is not open" in student_res.text
+
+
+class TestContactPages:
+    async def test_contact_page(self, client):
+        res = await client.get("/contact")
+        assert res.status_code == 200
+        assert "Contact" in res.text

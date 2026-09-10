@@ -5,15 +5,29 @@ set -euo pipefail
 # Then check each service exit code explicitly.
 compose_cmd=(docker compose --profile test)
 
+SKIP_BUILD=false
+for arg in "$@"; do
+  if [[ "$arg" == "--no-build" || "$arg" == "--fast" ]]; then
+    SKIP_BUILD=true
+  fi
+done
+
+if [[ "${SKIP_BUILD}" == "false" ]]; then
+  echo "Building test profile services..."
+  "${compose_cmd[@]}" build
+else
+  echo "Skipping container build step..."
+fi
+
 # Start only infrastructure in background.
-"${compose_cmd[@]}" up --build -d db-test web-test
+"${compose_cmd[@]}" up -d db-test web-test
 
 # Run both test services concurrently and wait for both to finish.
 set +e
-"${compose_cmd[@]}" run --build --rm unittest &
+"${compose_cmd[@]}" run --rm unittest &
 unit_pid=$!
 
-"${compose_cmd[@]}" run --build --rm test &
+"${compose_cmd[@]}" run --rm test &
 playwright_pid=$!
 
 wait "${unit_pid}"
@@ -33,3 +47,4 @@ fi
 
 echo "Tests failed (unittest=${unit_exit}, playwright=${playwright_exit})"
 exit 1
+

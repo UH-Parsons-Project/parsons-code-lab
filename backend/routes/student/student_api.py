@@ -3,11 +3,9 @@ import secrets
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from ...teacher_auth import CurrentUser
 from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse, StudentTaskResponse
 from ...database import get_db
@@ -59,7 +57,6 @@ async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_id
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
     await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
     return task_set, task_id
-
 
 
 @router.get("/api/student/me")
@@ -147,7 +144,7 @@ async def get_student_profile(
                 "enrolled_at": row.enrolled_at.isoformat() if row.enrolled_at else "",
                 "task_count": task_count,
                 "completed_tasks": completed_tasks,
-                "is_completed": task_count > 0 and completed_tasks >= task_count,
+                "is_completed": completed_tasks >= task_count > 0,
             }
         )
 
@@ -225,6 +222,9 @@ async def update_student_password(
     if new_password != new_password_confirm:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match")
 
+    if current_password == new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password cannot be the same as the current password")
+
     if len(new_password) < 8:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must have a minimum length of 8 characters")
 
@@ -248,7 +248,6 @@ async def get_task_set_info(
         "title": task_set.title,
         "teacher": teacher.username
     }
-
 
 
 @router.post("/api/sets/{unique_link_code}/join")
@@ -312,14 +311,14 @@ async def student_login(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
-    username = body.get("username") if isinstance(body, dict) else None
+    email = body.get("email") if isinstance(body, dict) else None
     password = body.get("password") if isinstance(body, dict) else None
     unique_link_code = body.get("unique_link_code") if isinstance(body, dict) else None
 
-    if username is None or password is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="username and password are required")
+    if email is None or password is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="email and password are required")
 
-    identifier = username.strip().lower()
+    identifier = email.strip().lower()
 
     remaining = check_brute_force(identifier)
     if remaining is not None:
@@ -328,12 +327,12 @@ async def student_login(
             detail=f"Account temporarily locked. Try again in {int(remaining // 60) + 1} minute(s).",
         )
 
-    student = await authenticate_student(username, password, db)
+    student = await authenticate_student(email, password, db)
     if not student:
         record_failed_attempt(identifier)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
         )
 
     clear_failed_attempts(identifier)
@@ -382,7 +381,11 @@ async def student_logout(
 
 @router.post("/api/student_register")
 @limiter.limit("10/minute")
-async def api_student_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def api_student_register(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     reg_identifier = f"student_reg:{request.client.host}"
 
     remaining = check_brute_force(reg_identifier)
@@ -400,20 +403,44 @@ async def api_student_register(request: Request, db: Annotated[AsyncSession, Dep
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
+    unique_link_code = payload.get("unique_link_code")
 
     # Basic validation (lengths, presence, password match)
     validate_registration_basic(username, password, password_confirm, email,
                                 username_max=20, email_max=100)
 
     # Ensure uniqueness in DB
-    await ensure_unique_user(db, Student, username, email)
+    await ensure_unique_user(db, Student, username, email, check_username=False)
 
     student = Student(username=username, email=email)
     student.set_password(password)
+    student.started_at = datetime.now(timezone.utc)
+    student.last_activity_at = datetime.now(timezone.utc)
+    student.session_token = secrets.token_urlsafe(32)
 
     db.add(student)
     await db.commit()
     await db.refresh(student)
+
+    if unique_link_code:
+        stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+        result = await db.execute(stmt)
+        task_set = result.scalar_one_or_none()
+        if task_set:
+            enroll_result = await db.execute(
+                select(StudentTaskSetEnrollment).where(
+                    StudentTaskSetEnrollment.student_id == student.id,
+                    StudentTaskSetEnrollment.task_set_id == task_set.id,
+                )
+            )
+            if not enroll_result.scalar_one_or_none():
+                db.add(StudentTaskSetEnrollment(
+                    student_id=student.id,
+                    task_set_id=task_set.id,
+                ))
+                await db.commit()
+
+    set_session_cookie(response, student.session_token)
 
     clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": student.id}
@@ -440,8 +467,7 @@ async def get_task_for_student_set(
             detail=f"Task with id {resolved_task_id} not found",
         )
 
-    # If the student has a successful attempt, include their latest
-    # submitted_order so the frontend can restore the solved arrangement.
+
     submitted_order = None
     if student_session:
         attempt_stmt = (
@@ -475,6 +501,7 @@ async def get_task_for_student_set(
         code_blocks=task.code_blocks,
         correct_solution=student_correct_solution,
         is_public=task.is_public,
+        faded=task.faded,
         created_at=task.created_at.isoformat(),
         submitted_order=submitted_order,
         eval_type=task.correct_solution.get("eval_type", "unit_test"),
@@ -693,14 +720,12 @@ async def submit_test_result(
     await db.flush()
     await db.refresh(new_attempt)
 
-    # Persist final arrangement for successful attempts so students can later
-    # review their solved arrangement.
+
     if result.success and result.arrangement:
         try:
             new_attempt.submitted_order = result.arrangement
             await db.flush()
         except Exception:
-            # Don't fail the whole request if submitted_order can't be stored
             pass
 
     if result.moves:
@@ -798,9 +823,9 @@ async def record_task_exit(
     return {"status": "success"}
 
 
-@router.get("/api/students/{student_username}/tasks/{task_id}/moves")
+@router.get("/api/students/{student_id}/tasks/{task_id}/moves")
 async def get_task_moves(
-    student_username: str,
+    student_id: int,
     task_id: int,
     set_id: int,
     current_user: CurrentUser,
@@ -811,9 +836,7 @@ async def get_task_moves(
         raise HTTPException(status_code=404, detail="Task set not found")
     await require_task_set_view_access(task_set, current_user, db)
 
-    stmt = select(Student).where(Student.username == student_username)
-    result = await db.execute(stmt)
-    student = result.scalar_one_or_none()
+    student = await db.get(Student, student_id)
 
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -846,14 +869,22 @@ async def get_task_moves(
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
 
-    # main.js appends these 4 extra lines to codeLines before passing to the widget,
-    # so they get sortable-codelineN IDs just like real blocks and live in the starter.
+    eval_type = getattr(task, "eval_type", None)
+    if not eval_type and task and hasattr(task, "correct_solution") and task.correct_solution:
+        if isinstance(task.correct_solution, dict):
+            eval_type = task.correct_solution.get("eval_type")
+        else:
+            eval_type = getattr(task.correct_solution, "eval_type", None)
+    eval_type = eval_type or "unit_test"
+
+    # main.js appends these 4 extra lines to codeLines before passing to the widget
+    # for non-order_only tasks, so they get sortable-codelineN IDs.
     DEBUG_LINES = [
         {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
         {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
         {"code": "# !BLANK", "given": False, "indent": 0},
         {"code": "# !BLANK", "given": False, "indent": 0},
-    ]
+    ] if eval_type != "order_only" else []
 
     initial_blocks = []
     block_code_map = {}
@@ -878,7 +909,7 @@ async def get_task_moves(
                     "indent": block.get("indent", 0),
                 })
                 draggable_index += 1
-        # Debug lines come before given blocks in the widget's modified_lines
+
         for debug in DEBUG_LINES:
             block_id = f"sortable-codeline{draggable_index}"
             block_code_map[block_id] = debug["code"]

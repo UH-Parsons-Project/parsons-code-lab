@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Task Blocks - Parsons Code Lab</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/task/create-task-editor.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+</head>
+<body>
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-layout">
+    <aside class="student-sidebar checklist-sidebar" aria-label="Task checklist">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Task Checklist</span>
+        <div class="sidebar-enrolled-row" style="margin-top: 0.4rem;">
+          <span class="sidebar-enrolled-label" style="text-transform: none; letter-spacing: normal;">Track what's left before this task is ready to save.</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div id="task-checklist" class="sidebar-rows" style="display: flex; flex-direction: column; gap: 0.35rem;">
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="title" data-target="task-title">
+            <span class="sidebar-row-name checklist-label">Task name</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="start-description" data-target="start-description">
+            <span class="sidebar-row-name checklist-label">Start page intro</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="problem-description" data-target="problem-description">
+            <span class="sidebar-row-name checklist-label">Problem statement</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="solution-blocks" data-target="solution-sortable">
+            <span class="sidebar-row-name checklist-label">Blocks in solution</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="model-answer" data-target="model-answer-status">
+            <span class="sidebar-row-name checklist-label">Model answer set</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="custom-errors" data-target="custom-error-messages">
+            <span class="sidebar-row-name checklist-label">Custom error messages</span>
+            <span class="checklist-status badge badge-secondary">Optional</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="tests-written" data-target="tests-input">
+            <span class="sidebar-row-name checklist-label">Tests written</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="tests-passed" data-target="test-results">
+            <span class="sidebar-row-name checklist-label">Tests passed</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="task-type" data-target="task-type">
+            <span class="sidebar-row-name checklist-label">Task tag</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="previewed" data-target="preview-student-view">
+            <span class="sidebar-row-name checklist-label">Task previewed</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="page-content">
+      <div class="mb-2">
+        <button id="back-to-code" class="embossed-btn" type="button">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+      </div>
+      <div class="page-header mt-0">
+        <div class="page-title-row">
+          <h1 class="page-title">Create Task Blocks</h1>
+        </div>
+        <p class="page-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
+      </div>
+
+      <div class="main page-wrap">
+        <section class="guide-section mb-3" aria-label="Teacher guide for block builder">
+          <button type="button" class="guide-toggle" id="problem-guide-toggle" aria-expanded="false" aria-controls="problem-guide-content">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Quick Guide for Teachers: Building and Visibility</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+
+          <div class="guide-content" id="problem-guide-content">
+            <div class="guide-steps">
+            <ol class="steps-list">
+              <li>Drag only the blocks that should be in the model answer to the right column. Leave distractors on the left. Note: starter blocks are automatically shuffled for students, and extra distractor blocks (comments and debug prints) are added for code-executing tasks.</li>
+              <li>Optionally <strong>double-click</strong> any right-column block to pin it as pre-given for students &mdash; it will start in their solution area. Pinned blocks show a red pin (&#128204;) and blue highlight.</li>
+              <li>Use <strong>+ Add Custom Block</strong> to add a new custom code block.</li>
+              <li>Write or verify tests in the <strong>Tests</strong> area and click <strong>Run Tests</strong> before saving.</li>
+              <li>Click <strong>Set as Model Answer</strong>. You can click it again later to update the saved model answer.</li>
+              <li>Click <strong>Preview</strong> to review the block page.</li>
+              <li>The <strong>Make task private</strong> checkbox is off by default (leaving the task public, which is preferred to help the community). Public tasks remain in the system for other teachers even if your account is removed. Check this box to make the task private.</li>
+              <li>When a task is private, only the creator can see it, plus teachers who have access to a task set that includes the task.</li>
+              <li>When all tests pass, click <strong>Save Task to Problem List</strong> to publish the task with the selected visibility.</li>
+            </ol>
+            </div>
+          </div>
+        </section>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><strong>Step 1: Task Description</strong></h3>
+          </div>
+          <div class="card-body">
+            <label for="task-title" class="mb-1 font-weight-bold">Task name shown in task sets</label>
+            <input id="task-title" class="form-control mb-3 font-weight-bold" style="font-size: 1.1rem;" placeholder="sum" />
+
+            <div class="d-flex flex-column" style="gap: 1.5rem;">
+              <div>
+                <label for="start-description" class="mb-1">Start page info</label>
+                <p class="field-help">A short description shown before starting the task (e.g. the learning objective)</p>
+                <textarea id="start-description" class="problem-description" style="min-height: 96px;" placeholder="In this exercise you will practice adding values."></textarea>
+              </div>
+              <div>
+                <label for="problem-description" class="mb-1">Problem statement</label>
+                <p class="field-help">These are the main instructions students see on the task page while solving the task</p>
+                <textarea id="problem-description" class="problem-description" placeholder="sum returns the total of a and b. It should take a and b as inputs and return a + b."></textarea>
+              </div>
+              <div>
+                <label for="examples-input" class="mb-1">Examples <span class="text-muted font-weight-normal">(optional)</span></label>
+                <p class="field-help">Code examples or sample calls shown in a formatted box under the problem statement</p>
+                <textarea id="examples-input" class="problem-description" style="font-family: var(--gs-mono);" placeholder=">>> sum(2, 3)&#10;5"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="builder-layout card">
+          <div class="card-header">
+            <h3 class="card-title"><strong>Step 2: Model Answer</strong></h3>
+            <div class="d-flex align-items-center" style="gap: 1.5rem;">
+              <div class="custom-control custom-checkbox" style="margin-bottom: 0;">
+                <input type="checkbox" class="custom-control-input" id="allow-indent" checked>
+                <label class="custom-control-label font-weight-bold text-dark" for="allow-indent" style="font-size: 0.9rem; cursor: pointer; user-select: none;">Allow Indentation</label>
+              </div>
+              <div class="d-flex align-items-center" style="gap: 0.75rem;">
+                <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
+                <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info d-flex align-items-center mb-3" style="background-color: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; border-radius: 6px; padding: 0.45rem 0.85rem; font-size: 0.84rem; line-height: 1.35;">
+              <i class="fas fa-info-circle mr-2" style="color: #0284c7; flex-shrink: 0;"></i>
+              <div>
+                <strong>Student View Shuffling & Extra Blocks:</strong> Code blocks are automatically shuffled for students. For code-executing tasks, two comment (<code>#</code>) and two <code>print('DEBUG:', ...)</code> distractor blocks are also added.
+              </div>
+            </div>
+            <div id="source-sortable" class="sortable-code starter"></div>
+            <div id="solution-sortable" class="sortable-code solution"></div>
+            <div style="clear: both;"></div>
+
+            <div class="model-answer-toolbar" aria-live="polite">
+              <span id="model-answer-status" class="model-answer-status missing">No model answer saved yet.</span>
+              <button id="set-model-answer" class="btn btn-primary btn-sm" type="button">Set as Model Answer</button>
+            </div>
+
+            <div class="custom-block-box">
+              <label for="custom-block-input">+ Add Custom Block</label>
+              <p class="field-help">Tip: type !BLANK inside a custom block (for example <strong>total = !BLANK</strong>) to create an editable faded input for students.</p>
+              <textarea id="custom-block-input" class="custom-block-input" spellcheck="false" placeholder="Write custom block code here..."></textarea>
+              <button id="add-custom-block" class="add-btn btn btn-outline-primary btn-sm" type="button">+ Add Custom Block</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><strong>Step 3: Tests</strong></h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-lg-6 mb-4 mb-lg-0">
+                <div class="form-group mb-3">
+                  <label for="eval-type" class="mb-2 font-weight-bold">Evaluation Mode</label>
+                  <select id="eval-type" class="form-control" style="max-width: 300px;">
+                    <option value="unit_test" selected>Function Unit Tests (Default)</option>
+                    <option value="stdout">Console Output (print)</option>
+                    <option value="order_only">Order Only (Non-code / Conceptual)</option>
+                  </select>
+                </div>
+                <div id="unit-test-container">
+                  <p class="field-help mb-2" style="margin-top: 0;">Write standard Python <code>assert</code> statements, each on a new line.</p>
+                  <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert sum(1, 5) == 6&#10;assert sum(5, 5) == 10"></textarea>
+                </div>
+                <div id="stdout-container" style="display: none;">
+                  <div class="form-group mb-3">
+                    <label for="stdout-tests-input" class="mb-1 font-weight-bold">Function Calls / Driver Code (Optional)</label>
+                    <p class="field-help mb-2" style="margin-top: 0;">If your code defines functions (e.g. <code>def hello(target):</code>), write the function calls here to execute them. Leave empty if your code prints directly.</p>
+                    <textarea id="stdout-tests-input" class="tests-input mb-3" spellcheck="false" style="min-height: 80px;" placeholder="hello(&quot;Emily&quot;)&#10;hello(&quot;Bob&quot;)"></textarea>
+                  </div>
+                  <div class="form-group mb-0">
+                    <label for="expected-output-input" class="mb-1 font-weight-bold">Expected Output</label>
+                    <p class="field-help mb-2" style="margin-top: 0;">Provide the exact expected console output that the program should print when executed.</p>
+                    <textarea id="expected-output-input" class="tests-input" spellcheck="false" placeholder="Hello Emily&#10;Hello Bob"></textarea>
+                  </div>
+                </div>
+                <div id="order-only-container" style="display: none;">
+                  <div class="alert alert-info d-flex align-items-center mb-0" style="background: #e0f2fe; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 8px; padding: 0.9rem 1.1rem;">
+                    <i class="fas fa-info-circle fa-lg" style="font-size: 1.3rem; margin-right: 0.75rem; flex-shrink: 0;"></i>
+                    <div>
+                      <strong style="font-size: 0.95rem;">No tests needed for Conceptual tasks!</strong>
+                      <div style="font-size: 0.88rem; margin-top: 0.25rem; color: #075985;">Conceptual tasks do not execute code. Student solutions are automatically checked against the model answer block order set in Step 2 above.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="run-toolbar mt-3">
+                  <span id="run-status" class="run-status"></span>
+                  <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
+                </div>
+                <label for="test-results" class="mb-2 mt-3 font-weight-bold">Test results</label>
+                <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
+              </div>
+
+              <div class="col-lg-6">
+                <label for="custom-error-messages" class="mb-1 font-weight-bold">Custom Error Messages <span class="text-muted font-weight-normal">(optional)</span></label>
+                <p class="field-help mb-2" style="margin-top: 0;">Provide specific feedback rules in JSON format when student code matches certain patterns or errors.</p>
+                <textarea id="custom-error-messages" class="tests-input" style="min-height: 280px;" spellcheck="false" placeholder="[
+  {
+    &quot;match_type&quot;: &quot;contains&quot;,
+    &quot;pattern&quot;: &quot;IndexError&quot;,
+    &quot;message&quot;: &quot;Keep in mind that indexing in Python starts from 0!&quot;
+  }
+]"></textarea>
+                <div class="run-toolbar mt-3">
+                  <button id="add-custom-error-messages" class="btn btn-success" type="button">Add error message</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><strong>Step 4: Other settings</strong></h3>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-stretch">
+              <div class="col-md">
+                <div class="form-group mb-3 mb-md-0">
+                  <label for="task-type" class="mb-2 font-weight-bold">Task tag</label>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">Select the task's primary learning objective.</p>
+                  <select id="task-type" class="form-control" required style="min-width: 200px; max-width: 300px;">
+                    <option value="" selected disabled>Select a task tag</option>
+                  </select>
+                  <small id="task-type-load-status" class="form-text text-muted">Loading task tags...</small>
+                </div>
+              </div>
+              <div class="col-md">
+                <div class="form-group visibility-card mb-0 h-100 d-flex flex-column justify-content-start">
+                  <div class="checkbox-custom visibility-toggle">
+                    <input type="checkbox" id="task-visibility-public" class="form-check-input">
+                    <label for="task-visibility-public" class="form-check-label font-weight-bold">
+                      Make task private
+                    </label>
+                  </div>
+                  <small class="form-text text-muted visibility-help" style="font-size: 0.85rem; margin-top: 0.5rem;">Unchecked by default. Private tasks are visible only to you and teachers who have access to a task set that includes this task.</small>
+                  <div id="visibility-warning-box"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><strong>Step 5: Preview & Save</strong></h3>
+          </div>
+          <div class="card-body">
+            <p class="finalize-instruction mb-3">Finalize your new task by first previewing it, then click <strong>Save new task</strong>. Click <strong>Cancel</strong> to discard your changes and return to the dashboard.</p>
+
+            <div class="actions">
+              <div class="actions-left" style="display: flex; gap: 0.6rem;">
+                <button id="cancel-task-editor" class="secondary-btn" type="button">Cancel</button>
+                <button id="preview-student-view" class="secondary-btn" type="button">Preview</button>
+              </div>
+              <div class="actions-right">
+                <button id="add-to-problem-list" class="primary-btn" type="button" disabled>Save new task</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+    <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
+      <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
+        <div class="student-preview-header">
+          <h4 id="student-preview-title" class="mb-0">Preview</h4>
+          <button id="close-student-preview" type="button" class="student-preview-close" aria-label="Close preview">&times;</button>
+        </div>
+        <div class="student-preview-body">
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Task Name</h3>
+                </div>
+                <div class="card-body" id="preview-task-title"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Start Page Intro</h3>
+                </div>
+                <div class="card-body" id="preview-start-intro"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Problem Statement</h3>
+                </div>
+                <div class="card-body" id="preview-problem-text"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Task Tag</h3>
+                </div>
+                <div class="card-body" id="preview-task-type"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-body">
+                  <div id="preview-source-sortable" class="sortable-code starter"></div>
+                  <div id="preview-solution-sortable" class="sortable-code solution"></div>
+                  <div style="clear: both;"></div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="mb-0" id="preview-eval-title">Evaluation Details</h4>
+                </div>
+                <div class="card-body p-0" id="preview-eval-body">
+                  <div class="card-body preview-code-block" id="preview-written-tests">
+                    No tests written yet.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="mb-0">Model Answer</h4>
+                </div>
+                <div class="card-body preview-code-block" id="preview-model-answer">
+                  No model answer set yet.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+      </div><!-- /main -->
+    </div><!-- /page-content -->
+  </div><!-- /page-layout -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="/js/lib/jquery.ui.touch-punch.js"></script>
+  <script src="/js-parsons/parsons.js"></script>
+  <script type="module" src="/js/task/create-task-editor.js"></script>
+{% include 'common/footer.html' %}
+</body>
+</html>

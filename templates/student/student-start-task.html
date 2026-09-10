@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Start Task - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+
+</head>
+
+<body>
+
+  {% include 'common/nav-student.html' %}
+  <div class="student-page-toolbar">
+    <a href="#" id="page-back-btn" class="embossed-btn" title="Back" style="margin-left: 0;">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
+  <main class="container start-task-shell">
+    <div class="start-task-content p-4">
+      <h2 id="task-instructions" class="section-title mb-3"></h2>
+      <div class="text-center">
+        <div class="alert alert-info d-inline-block" role="alert">
+          <i class="fas fa-info-circle mr-2"></i>
+          Please only start this task if you have enough time to complete it in one sitting.
+        </div>
+      </div>
+      <div class="text-center">
+        <button id="start-btn" class="btn btn-primary btn-lg">Start</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/student/student-start-task.js"></script>
+{% include 'common/footer.html' %}
+</body>

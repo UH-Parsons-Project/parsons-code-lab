@@ -27,7 +27,7 @@ test.describe('Task URL resilience and Task Reordering', () => {
     // 1. Teacher registers and creates task set
     await registerTeacher(teacherPage, teacherUsername, teacherEmail, teacherPassword);
     await teacherPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-    await loginTeacher(teacherPage, teacherUsername, teacherPassword);
+    await loginTeacher(teacherPage, teacherEmail, teacherPassword);
     await expect(teacherPage).toHaveURL(/\/teacher-dashboard$/);
 
     const originalTaskNames = ['add_in_range', 'greater_num', 'hello_world'];
@@ -73,7 +73,6 @@ test.describe('Task URL resilience and Task Reordering', () => {
     expect(regResp.ok()).toBeTruthy();
     
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
     // Explicitly pass unique_link_code to login
     const urlParts = studentUrl.split('/set/');
@@ -82,7 +81,7 @@ test.describe('Task URL resilience and Task Reordering', () => {
     const loginResponsePromise = studentPage.waitForResponse(
       r => r.url().includes('/api/student_login')
     );
-    await loginStudent(studentPage, studentUsername, 'password123', uniqueLinkCode);
+    await loginStudent(studentPage, studentEmail, 'password123', uniqueLinkCode);
     const loginResponse = await loginResponsePromise;
     expect(loginResponse.status()).toBe(200);
 
@@ -149,7 +148,7 @@ test.describe('Task URL resilience and Task Reordering', () => {
 
     // 1. Teacher Setup
     await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
-    await loginTeacher(page, teacherUsername, teacherPassword);
+    await loginTeacher(page, teacherEmail, teacherPassword);
 
     const originalTaskNames = ['hello_world', 'add_in_range'];
     await createTaskSetWithTasks(
@@ -189,15 +188,13 @@ test.describe('Task URL resilience and Task Reordering', () => {
     expect(regResp.ok()).toBeTruthy();
     
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
-
     const urlParts = studentUrl.split('/set/');
     const uniqueLinkCode = urlParts.length > 1 ? urlParts[1].split('/')[0] : null;
 
     const loginResponsePromise = studentPage.waitForResponse(
       r => r.url().includes('/api/student_login')
     );
-    await loginStudent(studentPage, studentUsername, 'password123', uniqueLinkCode);
+    await loginStudent(studentPage, studentEmail, 'password123', uniqueLinkCode);
     const loginResponse = await loginResponsePromise;
     expect(loginResponse.status()).toBe(200);
 

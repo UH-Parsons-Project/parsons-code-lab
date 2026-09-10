@@ -8,17 +8,16 @@ initProtectedPage('/');
 initSignedInAs();
 initBurgerMenu();
 
+function clearTaskDraftStorage() {
+	[localStorage, sessionStorage].forEach((storage) => {
+		Object.keys(storage)
+			.filter((key) => key.startsWith('create_task_'))
+			.forEach((key) => storage.removeItem(key));
+	});
+}
+
 // Clear any draft states from the task creator when loading the dashboard
-sessionStorage.removeItem('create_task_draft_payload');
-sessionStorage.removeItem('create_task_builder_blocks');
-sessionStorage.removeItem('create_task_builder_blocks_source');
-sessionStorage.removeItem('create_task_builder_meta');
-sessionStorage.removeItem('create_task_builder_meta_source');
-sessionStorage.removeItem('create_task_builder_model_answer');
-sessionStorage.removeItem('create_task_builder_model_answer_repr');
-sessionStorage.removeItem('create_task_builder_model_answer_source');
-sessionStorage.removeItem('create_task_builder_model_answer_updated_at');
-sessionStorage.removeItem('preserved_task_code');
+clearTaskDraftStorage();
 
 // Load user info
 const userNameEl = document.getElementById('user-name');
@@ -222,7 +221,7 @@ function createMyTaskCard(task) {
 	if (task.editable) {
 		const editBtn = document.createElement('a');
 		editBtn.href = `/create-task-editor?task_id=${task.id}`;
-		editBtn.className = 'btn btn-sm btn-outline-success';
+		editBtn.className = 'btn btn-sm btn-outline-success action-btn';
 		editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit';
 		actions.appendChild(editBtn);
 
@@ -251,7 +250,7 @@ function createMyTaskCard(task) {
 
 	const statsBtn = document.createElement('a');
 	statsBtn.href = `/task-statistics?id=${task.id}`;
-	statsBtn.className = 'btn btn-sm btn-outline-primary';
+	statsBtn.className = 'btn btn-sm btn-outline-primary action-btn';
 	statsBtn.innerHTML = '<i class="fas fa-chart-line"></i>Global Statistics';
 	actions.appendChild(statsBtn);
 
@@ -277,6 +276,7 @@ function renderMyTasks(tasks) {
 	createBtn.href = '/create-task';
 	createBtn.className = 'section-create-btn';
 	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task';
+	createBtn.addEventListener('click', clearTaskDraftStorage);
 
 	sectionHeader.appendChild(heading);
 	sectionHeader.appendChild(createBtn);

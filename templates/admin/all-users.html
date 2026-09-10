@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Users - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+  <link rel="stylesheet" href="/css/admin/all-users.css">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header">
+    <div class="page-title"><i class="fas fa-users text-primary"></i> All Registered Users</div>
+    <div class="page-subtitle">Showing all teachers and students registered in the system. <span id="user-count-badge" style="display: none; font-weight: 600;"></span></div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <!-- Expandable Info Panel -->
+    <details class="mb-4 p-3 border rounded bg-light" style="cursor: pointer; outline: none; box-shadow: var(--shadow);">
+      <summary class="font-weight-bold text-secondary" style="user-select: none;"><i class="fas fa-info-circle text-info mr-1"></i> User Deletion & Admin Rights</summary>
+      <div class="mt-3 text-muted" style="font-size: 0.9rem; line-height: 1.6;">
+        <div class="parallel-layout">
+          <div class="parallel-col mb-3 mb-md-0">
+            <h6 class="font-weight-bold text-danger mb-2"><i class="fas fa-user-minus mr-1"></i> Deleting a student</h6>
+            <p class="mb-3">Deleting a student fully deletes all data related to the students. This includes but is not limited to: username, email, password, activity timestamps, enrollments, task submissions, move history, and time spent on tasks. This also removes all their attempt data from global statistics.</p>
+
+            <h6 class="font-weight-bold text-success mb-2"><i class="fas fa-user-shield mr-1"></i> Promoting a teacher (Make Admin)</h6>
+            <p class="mb-0">Promoting a teacher grants them full admin rights. <strong>This action is not reversible</strong> and the promoted teacher account <strong>cannot be deleted anymore</strong>. Please make sure you select the correct account before confirming.</p>
+          </div>
+          <div class="parallel-col">
+            <h6 class="font-weight-bold text-warning mb-2"><i class="fas fa-chalkboard-teacher mr-1"></i> Deleting a teacher</h6>
+            <p class="mb-2">Deleting a teacher deletes all private data of the teacher. This includes but is not limited to: username, email, password, activity timestamps, and private tasks.</p>
+            <p class="mb-2">All public tasks and task sets change ownership to a user made for deleted accounts (<code>deleted_user</code>). Public tasks stay fully accessible for everybody, their creator ID just changes.</p>
+            <p class="mb-0">Task sets are automatically closed and their URL is deleted. Private tasks in task sets are removed. All other task set data is kept. This allows admins to look at any students and submissions in the task set. This also allows the global statistics to not be affected by deleted teacher users.</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="parallel-layout">
+      <!-- Teachers Column -->
+      <div class="parallel-col">
+        <h4 class="task-set-section h4 mb-3" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted);"><i class="fas fa-chalkboard-teacher text-primary"></i> Teachers</h4>
+        <div class="search-box mb-3">
+          <i class="fas fa-search"></i>
+          <input type="text" id="teacher-search" placeholder="Search teachers..." autocomplete="off">
+        </div>
+        <div id="teachers-container" class="loading-spinner mt-2 text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p class="mt-2">Loading teachers...</p>
+        </div>
+      </div>
+
+      <!-- Students Column -->
+      <div class="parallel-col">
+        <h4 class="task-set-section h4 mb-3" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted);"><i class="fas fa-graduation-cap text-success"></i> Students</h4>
+        <div class="search-box mb-3">
+          <i class="fas fa-search"></i>
+          <input type="text" id="student-search" placeholder="Search students..." autocomplete="off">
+        </div>
+        <div id="students-container" class="loading-spinner mt-2 text-center">
+          <div class="spinner-border text-success" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p class="mt-2">Loading students...</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/teacher/all-users.js"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

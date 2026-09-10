@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Task Set - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/components/action-buttons.css">
+  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+  <link rel="stylesheet" href="/css/task/create-task-editor.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+
+  <!-- jQuery and Bootstrap JS for modal functionality -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+
+  <!-- Task list creation form module -->
+  <script type="module" src="/js/task/create-task-set.js"></script>
+
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header">
+    <div class="page-title">Create New Task Set</div>
+    <div class="page-subtitle">Configure task set details, select and order exercises</div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <div id="error-container"></div>
+
+    <!-- Modal for Duplicate Title Error -->
+    <div id="duplicate-title-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="duplicateTitleLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header border-bottom-2" style="border-color: #dc3545;">
+            <h5 class="modal-title" id="duplicateTitleLabel">
+              <i class="fas fa-exclamation-triangle text-danger"></i> Task Set Title Already Exists
+            </h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeDuplicateTitleModal()">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p id="duplicate-error-message"></p>
+            <div class="alert alert-warning" role="alert">
+              <strong>Try one of these options:</strong>
+              <ul class="mb-0 mt-2">
+                <li>Add a date or semester identifier (e.g., "Python Basics - Fall 2024")</li>
+                <li>Include a class or section number (e.g., "Python Basics - Section A")</li>
+                <li>Add a version number (e.g., "Python Basics v2")</li>
+                <li>Use a more specific title that describes the course content</li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeDuplicateTitleModal()">
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form id="create-task-set-form" class="task-set-form">
+      <div class="parallel-layout" style="gap: 3rem;">
+        <!-- Left Column: Info & Submit -->
+        <div class="parallel-col" style="flex: 1; position: sticky; top: 100px; align-self: flex-start;">
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
+
+            <div class="form-group">
+              <label for="task-set-title">Task Set Title</label>
+              <input type="text" class="form-control" id="task-set-title"
+                     placeholder="e.g., Python Basics - Week 1"
+                     minlength="4"
+                     required>
+              <small class="form-text text-muted">Give your task set a name</small>
+            </div>
+
+            <div class="form-group">
+              <label for="student-description">
+                <i class="fas fa-graduation-cap"></i> Student Description (optional)
+              </label>
+              <textarea class="form-control" id="student-description"
+                        rows="3"
+                        placeholder="What students will see when they start the task set"></textarea>
+              <small class="form-text text-muted">This is shown to students on the start page</small>
+            </div>
+
+            <div class="form-group">
+              <label for="teacher-description">
+                <i class="fas fa-chalkboard-teacher"></i> Teacher Notes (optional)
+              </label>
+              <textarea class="form-control" id="teacher-description"
+                        rows="3"
+                        placeholder="Notes for the teacher"></textarea>
+              <small class="form-text text-muted">This is only visible to teachers</small>
+            </div>
+
+            <div class="form-group">
+              <label for="viewer-identifiers">
+                <i class="fas fa-user-plus"></i> Share viewing rights (optional)
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="viewer-identifiers"
+                       placeholder="Username or email">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
+                    <i class="fas fa-user-plus"></i> Add
+                  </button>
+                </div>
+              </div>
+              <small class="form-text text-muted">Add teachers who can view this task set.</small>
+              <div id="viewer-errors" class="mt-2"></div>
+              <div id="viewer-list" class="mt-2"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="opening-date">
+                <i class="fas fa-calendar-alt"></i> Opening Date (optional)
+              </label>
+              <input type="datetime-local" class="form-control" id="opening-date">
+              <small class="form-text text-muted">Before this date, students won't be able to join or submit</small>
+            </div>
+
+            <div class="form-group">
+              <label for="expiration-date">
+                <i class="fas fa-calendar-times"></i> Expiration Date (optional)
+              </label>
+              <input type="datetime-local" class="form-control" id="expiration-date">
+              <small class="form-text text-muted">After this date, students won't be able to join or submit</small>
+            </div>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="button-group mt-4">
+            <a href="/teacher-dashboard" class="btn-cancel" id="cancel-task-set">
+              <i class="fas fa-times"></i> Cancel
+            </a>
+            <button type="submit" class="btn-submit action-btn">
+              <i class="fas fa-save"></i> Create Task Set
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Tasks -->
+        <div class="parallel-col" style="flex: 2;">
+          <!-- Selected Tasks with Ordering -->
+          <div class="form-section">
+            <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
+            <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
+            <div class="selected-tasks-list" id="selected-tasks-list">
+              <div class="empty-selected">No tasks selected yet</div>
+            </div>
+          </div>
+
+          <!-- Task Selection -->
+          <div class="form-section mt-4">
+            <h5><i class="fas fa-list"></i> Select Tasks</h5>
+
+            <div id="universal-task-search"></div>
+
+            <div id="tasks-loading" class="loading-spinner" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+              <p>Loading available tasks...</p>
+            </div>
+
+            <div class="task-selector" id="task-selector">
+              <!-- Tasks will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
+    <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
+      <div class="student-preview-header">
+        <h4 id="student-preview-title" class="mb-0">Preview</h4>
+        <button id="close-student-preview" type="button" class="student-preview-close" aria-label="Close preview">&times;</button>
+      </div>
+      <div class="student-preview-body">
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Task Name</h3>
+              </div>
+              <div class="card-body" id="preview-task-title"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Start Page Intro</h3>
+              </div>
+              <div class="card-body" id="preview-start-intro"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Problem Statement</h3>
+              </div>
+              <div class="card-body" id="preview-problem-text"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-body">
+                <div id="preview-source-sortable" class="sortable-code starter"></div>
+                <div id="preview-solution-sortable" class="sortable-code solution"></div>
+                <div style="clear: both;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="mb-0">Written Tests</h4>
+              </div>
+              <div class="card-body preview-code-block" id="preview-written-tests">
+                No tests written yet.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="mb-0">Model Answer</h4>
+              </div>
+              <div class="card-body preview-code-block" id="preview-model-answer">
+                No model answer set yet.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% include 'common/footer.html' %}
+<script src="/js/lib/jquery.ui.touch-punch.js"></script>
+<script src="/js-parsons/parsons.js"></script>
+</body>
+</html>

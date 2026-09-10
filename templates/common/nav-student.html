@@ -1,0 +1,42 @@
+<nav class="navbar">
+  <div class="d-flex align-items-center">
+    <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    {% if request and request.url and request.url.path.endswith('/tasks') %}
+    <span class="ml-3" style="font-size: 1.2rem; color: #0056b3; border-left: 3px solid #0056b3; padding-left: 1rem;">
+      <i class="fas fa-book-reader"></i> <strong>Task Set Overview</strong>
+    </span>
+    {% endif %}
+  </div>
+  <div class="ml-auto d-flex align-items-center" id="auth-section">
+{% if not request or not request.url or request.url.path not in ['/teacher-register', '/student-register'] %}
+    <form class="form-inline" id="login-form">
+      <div id="error-message" class="text-danger mr-2" style="display: none;"></div>
+      <input class="form-control mr-2" type="text" id="username" placeholder="Email" aria-label="Email" required>
+      <input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
+      <button class="btn btn-outline-dark btn-sm mr-2" id="login-btn" type="submit">Login</button>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="forgot-password-btn" href="/contact">Forgot password?</a>
+      <button class="btn btn-outline-dark btn-sm mr-2" id="register-btn" type="button">Register</button>
+    </form>
+{% endif %}
+    <div id="user-info" class="align-items-center text-dark" style="display: none;">
+      <button class="btn btn-success btn-sm mr-2" id="join-btn" style="display: none;">Join Task Set</button>
+      <span class="mr-3"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
+      <div class="navbar-burger-menu" id="navbar-burger-menu" style="margin-left: 1rem;">
+        <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
+          <a href="/student/profile" class="navbar-burger-item" id="profile-link">
+            <i class="fas fa-cog"></i> Profile
+          </a>
+          <a href="#" class="navbar-burger-item" id="start-tour-menu-item">
+            <i class="fas fa-question-circle"></i> Start Page Tour
+          </a>
+          <a href="#" class="navbar-burger-item text-danger" id="logout-btn" style="border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

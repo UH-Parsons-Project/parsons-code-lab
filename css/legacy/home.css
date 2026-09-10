@@ -1,0 +1,46 @@
+/* Teacher landing page styles. */
+
+.index-logo,
+.navbar-logo-index {
+  position: static;
+}
+
+.index-logo {
+  width: auto;
+  height: 150px;
+}
+
+.title-with-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title-logo-link {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  margin-bottom: 0;
+}
+
+.screenshots {
+  display: block;
+  width: auto;
+  height: 500px;
+  margin: 0 50px;
+  border: 3px solid black;
+}
+
+.instructions {
+  margin: 0 50px;
+}
+
+.title-main {
+  margin: 0;
+}
+
+.main-page-text-block {
+  border: 2px solid #cbced2;
+  border-radius: 5px;
+  padding: 0.5rem;
+}

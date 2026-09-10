@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Set Overview - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/task/task-set-overview.css?v=3">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+    <div class="mb-2" style="width: 100%;">
+      <a href="/teacher-dashboard" class="embossed-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
+    <div id="list-header" class="loading-spinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading task set...</p>
+    </div>
+  </div>
+
+  <div class="overview-main">
+    <div id="content-container" style="display: none;">
+
+      <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:space-between; margin-bottom:2rem; align-items:flex-start;">
+        <div class="view-toggle-control" id="view-toggle-container" style="margin-bottom:0;">
+          <div class="toggle-segment active" data-value="lists" id="toggle-lists" role="button" tabindex="0">
+            <span class="segment-title">Tasks & Students</span>
+            <span class="segment-desc">Task list and student cards</span>
+          </div>
+          <div class="toggle-segment" data-value="heatmap" id="toggle-heatmap" role="button" tabindex="0">
+            <span class="segment-title">Completion Heatmap</span>
+            <span class="segment-desc">Student × task matrix</span>
+          </div>
+        </div>
+        <div id="stats-container" style="flex: 1 1 540px;"></div>
+      </div>
+
+      <div class="statistics-layout" id="statistics-layout">
+
+        <div class="tasks-column">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: .65rem;">
+            <h3 class="mb-3" style="margin-bottom:0 !important;">Tasks</h3>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button id="add-task-btn" class="btn btn-sm btn-outline-info" style="display:none;"><i class="fas fa-plus"></i> Add Task</button>
+              <button id="edit-tasks-btn" class="btn btn-sm btn-outline-secondary" style="display:none;"><i class="fas fa-edit"></i> Edit Tasks</button>
+            </div>
+          </div>
+          <div id="tasks-list"></div>
+        </div>
+
+        <div class="right-panel">
+          <h3 class="mb-3">Students <span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:.9rem;">(<span id="student-count">—</span>)</span></h3>
+          <div id="students-list"></div>
+        </div>
+
+      </div>
+
+      <div id="heatmap-container" style="display:none;">
+        <div class="hm-controls-bar" id="hm-controls"></div>
+        <div class="hm-card" id="hm-card">
+          <div class="hm-scroll">
+            <table class="hm-table" id="hm-table"></table>
+          </div>
+        </div>
+        <div class="hm-legend" id="hm-legend"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="hm-tooltip" id="hm-tooltip"></div>
+
+  <div class="hm-modal-overlay" id="hm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hm-modal-title">
+    <div class="hm-modal">
+      <div class="hm-modal-header">
+        <div class="hm-modal-title" id="hm-modal-title"></div>
+        <button class="hm-modal-close" id="hm-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="hm-modal-body" id="hm-modal-body"></div>
+      <div class="hm-modal-footer" id="hm-modal-footer"></div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="add-task-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Tasks to Set</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div class="task-filter-menu mb-3">
+            <button class="btn btn-outline-secondary task-filter-toggle btn-sm" type="button" data-toggle="collapse" data-target="#task-filter-panel" aria-expanded="false" aria-controls="task-filter-panel">
+              <i class="fas fa-bars"></i> Search & Filter
+            </button>
+            <div class="collapse mt-2" id="task-filter-panel">
+              <div class="filter-panel-content" style="background:#f8f9fa; padding:1rem; border-radius:6px; border:1px solid #dee2e6;">
+                <div class="form-group mb-2">
+                  <input type="text" class="form-control form-control-sm" id="task-search" placeholder="Search tasks...">
+                </div>
+                <div class="filter-scopes" style="font-size: 0.85rem;">
+                  <label class="filter-scope-label mb-1"><strong>Search in:</strong></label>
+                  <div class="scope-checkboxes d-flex flex-wrap" style="gap: 1rem;">
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-title" value="title">
+                      <label class="custom-control-label" for="scope-title">Title</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-teacher" value="teacher">
+                      <label class="custom-control-label" for="scope-teacher">Teacher</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-type" value="type">
+                      <label class="custom-control-label" for="scope-type">Type</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-my-exercises" value="my-exercises">
+                      <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-favorites" value="favorites">
+                      <label class="custom-control-label" for="scope-favorites">Favorites</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="tasks-loading" class="loading-spinner text-center" style="display: none; padding: 2rem;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading tasks...</p>
+          </div>
+
+          <div class="task-selector" id="task-selector" style="display:flex; flex-direction:column; gap:0.5rem;">
+            <!-- Available tasks will be loaded here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirm-add-task-btn" disabled>Add to Set</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="initial-events-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Select tasks for initial events data</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body" id="initial-events-task-list"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirm-initial-events-btn"><i class="fas fa-download"></i> Download ZIP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
+    <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
+      <div class="student-preview-header">
+        <h4 id="student-preview-title" class="mb-0">Preview</h4>
+        <button id="close-student-preview" type="button" class="student-preview-close" aria-label="Close preview">&times;</button>
+      </div>
+      <div class="student-preview-body">
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Task Name</h3>
+              </div>
+              <div class="card-body" id="preview-task-title"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Start Page Intro</h3>
+              </div>
+              <div class="card-body" id="preview-start-intro"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Problem Statement</h3>
+              </div>
+              <div class="card-body" id="preview-problem-text"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-body">
+                <div id="preview-source-sortable" class="sortable-code starter"></div>
+                <div id="preview-solution-sortable" class="sortable-code solution"></div>
+                <div style="clear: both;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="mb-0">Written Tests</h4>
+              </div>
+              <div class="card-body preview-code-block" id="preview-written-tests">
+                No tests written yet.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="mb-0">Model Answer</h4>
+              </div>
+              <div class="card-body preview-code-block" id="preview-model-answer">
+                No model answer set yet.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="/js/lib/jquery.ui.touch-punch.js"></script>
+  <script src="/js-parsons/parsons.js"></script>
+  <script type="module" src="/js/task/task-set-overview.js"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

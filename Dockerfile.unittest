@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["pytest", "--cov=backend", "--cov-report=html", "--cov-report=term-missing"]
+CMD ["pytest", "-n", "auto", "--dist=loadscope", "--cov=backend", "--cov-report=html", "--cov-report=term-missing"]

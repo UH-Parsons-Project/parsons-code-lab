@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Details - Parsons Code Lab</title>
+
+  <link class="main-css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/components/action-buttons.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+
+  <link rel="stylesheet" href="/css/task/task-details.css">
+  <link rel="stylesheet" href="/css/task/task-set-overview.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+    <div class="mb-2" style="width: 100%;">
+      <a href="/teacher-dashboard" class="embossed-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
+    <div class="task-details-header-content w-100">
+      <div class="page-title" id="details-task-title">Loading Task...</div>
+      <div class="d-flex align-items-center flex-wrap" id="task-badge-container">
+        <!-- Populated dynamically -->
+      </div>
+      <div class="page-subtitle" id="details-task-subtitle">Fetching task configuration and properties</div>
+    </div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <!-- Action buttons toolbar -->
+    <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap" style="gap: 0.75rem;">
+      <a href="#" id="action-edit-task" class="btn btn-outline-success action-bar-btn action-btn" style="display: none;">
+        <i class="fas fa-pen"></i> Edit Task
+      </a>
+      <a href="#" id="action-run-task" target="_blank" class="btn btn-primary action-bar-btn">
+        <i class="fas fa-play"></i> Solve as Student
+      </a>
+      <a href="#" id="action-stats-task" class="btn btn-outline-primary action-bar-btn action-btn">
+        <i class="fas fa-chart-line"></i> View Statistics
+      </a>
+    </div>
+
+    <div class="details-grid">
+
+      <!-- Left Column: Instructions and Configured Code Blocks -->
+      <div>
+        <!-- Start Page Intro Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-sign-in-alt text-primary"></i> Start Page Intro</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.5;" id="details-start-intro">Loading...</p>
+          </div>
+        </div>
+
+        <!-- Problem Statement Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-align-left text-primary"></i> Problem Statement</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.5;" id="details-problem-statement">Loading...</p>
+          </div>
+        </div>
+
+        <!-- Configured Code Blocks Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-cubes text-secondary"></i> Configured Code Blocks</h5>
+            <span class="text-muted" style="font-size: 0.8rem;" id="details-blocks-summary">Loading blocks count...</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3" style="font-size: 0.88rem;">
+              These are the code blocks given for the exercise. Pinned blocks (📌) are pre-placed in the solution area for students.
+            </p>
+            <div class="blocks-container" id="details-blocks-container">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Model Answer, Tests, and Custom Error Messages -->
+      <div>
+        <!-- Model Answer Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-check-circle text-success"></i> Model Answer</h5>
+          </div>
+          <div class="card-body" id="details-model-container">
+            <pre class="model-code" id="details-model-code">Loading...</pre>
+          </div>
+        </div>
+
+        <!-- Evaluation Details Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5 id="details-eval-title"><i class="fas fa-vial text-info"></i> Evaluation Details</h5>
+          </div>
+          <div class="card-body p-0" id="details-eval-body">
+            <pre class="code-display" style="border-radius: 0; border: none;" id="details-tests-code">Loading...</pre>
+          </div>
+        </div>
+
+        <!-- Custom Error Messages Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-exclamation-circle text-warning"></i> Custom Error Messages</h5>
+            <span class="badge badge-light" id="details-err-count">0 rules</span>
+          </div>
+          <div class="card-body" id="details-err-container">
+            <!-- Populated dynamically -->
+            <div class="empty-display">
+              <i class="far fa-smile"></i>
+              No custom error rules defined.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script type="module" src="/js/task/task-details.js"></script>
+<style>
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

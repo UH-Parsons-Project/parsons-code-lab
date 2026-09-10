@@ -236,7 +236,26 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         correct_order = [block["id"] for block in blocks]
 
         # Determine task type
-        task_type = "Faded" if has_faded else "normal"
+        task_type = yaml_data.get("task_type") or yaml_data.get("tag")
+        if not task_type:
+            desc_lower = description.lower()
+            if "loop" in desc_lower:
+                task_type = "loops"
+            elif "if-" in desc_lower or "conditional" in desc_lower:
+                task_type = "conditionals"
+            elif "math" in desc_lower or "arithmetic" in desc_lower:
+                task_type = "arithmetic"
+            elif "list" in desc_lower:
+                task_type = "lists"
+            elif "comparison" in desc_lower or "boolean" in desc_lower:
+                task_type = "booleans"
+            elif "string" in desc_lower:
+                task_type = "strings"
+            elif "function" in desc_lower:
+                task_type = "functions"
+            elif "dictionar" in desc_lower:
+                task_type = "dictionaries"
+            else: task_type = "other"
 
         # Get test function name
         test_fn = yaml_data.get("test_fn", get_function_name(function_header))
@@ -302,6 +321,7 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
             "task_instructions": json.dumps(parsed_instructions),
             "description": description,
             "task_type": task_type,
+            "faded": has_faded,
             "code_blocks": {"blocks": blocks, "function_header": function_header},
             "correct_solution": {
                 "correct_order": correct_order,
@@ -465,6 +485,7 @@ async def migrate_tasks():
                 task_instructions=task_data["task_instructions"],
                 description=task_data["description"],
                 task_type=task_data["task_type"],
+                faded=task_data["faded"],
                 code_blocks=task_data["code_blocks"],
                 correct_solution=task_data["correct_solution"],
                 is_public=True,

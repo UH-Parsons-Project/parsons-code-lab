@@ -3,54 +3,34 @@ export function buildReprFromBlocks(taskData) {
   const solutionCode = (taskData.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
   const modelAnswer = (taskData.model_answer || '').replace(/\r\n/g, '\n');
   const INDENT = '    ';
-
-  const solLinesList = solutionCode.split('\n').map(l => l.trimRight());
-  const ansLinesList = modelAnswer.split('\n').map(l => l.trimRight());
-
-  // Create a list of solution line objects for sequential matching
-  const solLines = solLinesList.map((solLine, idx) => ({
-    solLine,
-    ansLine: ansLinesList[idx] || '',
-    matched: false,
-  }));
+  const solutionLines = solutionCode.split('\n').map((line) => line.trimRight());
+  const answerLines = modelAnswer.split('\n').map((line) => line.trimRight());
+  let solutionLineIndex = 0;
 
   return blocks.map((block) => {
     const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
-    const indented = INDENT.repeat(block.indent) + block.code;
+    const indentedCode = INDENT.repeat(block.indent) + block.code;
+    const solutionLine = solutionLines[solutionLineIndex] || '';
+    const answerLine = answerLines[solutionLineIndex] || '';
+    let blankValues = '';
 
-    // Find the first unmatched solution line that matches this block's indented code
-    const matchItem = solLines.find(item => {
-      if (item.matched) return false;
-      return item.solLine.replace(/!BLANK/g, '___') === indented;
-    });
-
-    if (matchItem) {
-      matchItem.matched = true;
-      let blanksSuffix = '';
-      const solLine = matchItem.solLine;
-      const ansLine = matchItem.ansLine;
-
-      if (solLine.includes('!BLANK') && ansLine) {
-        // Extract values using regex matching
-        const segments = solLine.trim().split('!BLANK');
-        const escapedSegments = segments.map(seg => seg.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
-        const regexStr = '^' + escapedSegments.join('(.*?)') + '$';
-        const regex = new RegExp(regexStr);
-        const match = ansLine.trim().match(regex);
+    const normalizedSolutionLine = solutionLine.replace(/!BLANK/g, '___');
+    if (normalizedSolutionLine === indentedCode) {
+      solutionLineIndex += 1;
+      if (normalizedSolutionLine.includes('___') && answerLine) {
+        const segments = normalizedSolutionLine.trim().split('___');
+        const escapedSegments = segments.map((segment) => segment.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
+        const match = answerLine.trim().match(new RegExp(`^${escapedSegments.join('(.*?)')}$`));
         if (match) {
-          const values = match.slice(1);
-          blanksSuffix = values.map(val => ' #blank' + val).join('');
+          blankValues = match.slice(1).map((value) => ` #blank${value}#`).join('');
         }
       }
-
-      let line = `${codeWithBlanks}${blanksSuffix} #${block.indent}given`;
-      if (block.given) {
-        line += ' #preplace';
-      }
-      return line;
     }
 
-    return codeWithBlanks;
+    if (block.given) {
+      return `${INDENT.repeat(block.indent)}${codeWithBlanks}${blankValues} #${block.indent}given #preplace`;
+    }
+    return `${INDENT.repeat(block.indent)}${codeWithBlanks}${blankValues}`;
   }).join('\n');
 }
 
@@ -140,7 +120,7 @@ export function buildCustomRepr(parsonsWidget, normalizeSourceCode = (s) => s, g
     let reprLine = `${lineText} #${indent}given`;
     const blankValues = typeof getLineInputValues === 'function' ? getLineInputValues(line.id) : [];
     if (blankValues.length) {
-      reprLine += blankValues.map((value) => ` #blank${value}`).join('');
+      reprLine += blankValues.map((value) => ` #blank${value}#`).join('');
     }
     if (line.studentGiven) {
       reprLine += ' #preplace';
@@ -191,9 +171,11 @@ export function renderParsonsBoard(initialText, options) {
     },
   });
 
+  parsonsWidget.id_prefix = options.idPrefix || parsonsWidget.id_prefix;
   parsonsWidget.init(initialText);
 
-  const solutionIds = parsonsWidget.given.map((line) => line.id);
+  const initialSolutionLines = options.useStudentGiven ? parsonsWidget.studentGiven : parsonsWidget.given;
+  const solutionIds = initialSolutionLines.map((line) => line.id);
   const solutionSet = new Set(solutionIds);
   const sourceIds = parsonsWidget.modified_lines
     .filter((line) => !solutionSet.has(line.id))

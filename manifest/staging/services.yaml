@@ -11,5 +11,6 @@ spec:
     app: faded-parsons-staging
 
   ports:
-    - port: 8000
-      targetPort: 8000
+    - name: http
+      port: 8080
+      targetPort: 8080

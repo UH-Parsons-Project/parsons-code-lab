@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Parsons Code Lab</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
+    <link rel="stylesheet" href="/css/base/main.css"/>
+	<link rel="stylesheet" href="/css/legacy/home.css"/>
+</head>
+<body>
+	{% include 'common/nav-teacher.html' %}
+
+	<div class="title-with-logo mt-4">
+		<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="index-logo">
+		<h1 class="text-center title-main">Welcome to Parsons Code Lab!</h1>
+		<b>You're using an early version of our software—thank you for your patience as we continue to improve it!</b>
+	</div>
+	<h4 class="mt-4 text-center text-muted">
+		<i class="fas fa-info-circle"></i> This page is for teacher use only.
+		<br>If you are a student, your teacher will provide an access link.
+	</h4>
+
+    <div class="container mt-5 text-center">
+
+		<h4 class="mb-4">About the software</h4>
+
+		<div class="main-page-text-block">
+
+		<p>
+			Parsons Code Lab offers educators a simple way to observe and understand student progress at one glance.
+			By providing a diverse set of statistics on learning outcomes and the challenges students most commonly
+			encounter, the tool helps educators form a clearer picture of individual and class development. Its aim
+			is to support reflective teaching practices by making meaningful patterns in student learning easier to
+			recognize and interpret.
+		</p>
+
+		<p>This website lets students practice programming basics by solving Faded Parsons Problems, a type of
+		programming exercise where you rearrange blocks of code and fill in blanks
+		to create a working program. You can learn more about Faded Parsons Problems
+		in <a target="_blank" href="https://dl.acm.org/doi/10.1145/3411764.3445228">
+			Nate Weinman's CHI 2021 paper</a>.
+		</div>
+
+		<h4 class="mb-4 mt-5">Build a customized task set!</h4>
+
+		<div class="main-page-text-block mt-3 mb-5">
+
+		<p>
+			The coding problems hosted in Parsons Code Lab are currently written in Python 3, and student submissions
+			are checked for correctness using <a target="_blank" href="https://docs.python.org/3/library/doctest.html">doctests</a>.
+			The software is straightforward to use; educators can build task sets from a library of ready-made exercises or
+			include their own custom tasks. Each task set can be shared with students through a unique URL, making the whole
+			process easy and smooth.
+	    </p>
+		<p>If you're a teacher and would like to use Parsons Code Lab,
+			check the
+			<a target="blank" href="https://github.com/UH-Parsons-Project/parsons-code-lab">
+				Github repository
+			</a>
+			for more instructions.
+		</p>
+
+		</div>
+
+		<footer>Parsons Code Lab is being developed within the University of Helsinki.</footer>
+    </div>
+	<script type="module">
+		import { initLoginPage, initNavbarExercisesButton, initBurgerMenu } from '/js/core/auth-ui.js';
+		initLoginPage();
+		initNavbarExercisesButton();
+		initBurgerMenu();
+	</script>
+{% include 'common/footer.html' %}
+</body>
+</html>

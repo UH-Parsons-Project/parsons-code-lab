@@ -19,7 +19,7 @@ async function setupStudentTask(page, browser, unique) {
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskSetWithTasks(
@@ -44,16 +44,12 @@ async function setupStudentTask(page, browser, unique) {
   const studentEmail = `student_err_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
   const loginResponsePromise = studentPage.waitForResponse(
     r => r.url().includes('/api/student_login')
   );
 
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
   const loginResponse = await loginResponsePromise;
   expect(loginResponse.status()).toBe(200);
 
@@ -147,10 +143,10 @@ test('student task displays a friendly error for an infinite loop', async ({ pag
   await studentPage.getByRole('button', { name: 'Run Tests' }).click();
 
   // Wait for results element
-  await studentPage.waitForSelector('test-results-element', { timeout: 10000 });
+  await expect(studentPage.locator('problem-element')).toHaveAttribute('resultsstatus', /.+/, { timeout: 10000 });
 
   // Assert results show the infinite loop error
-  const summary = studentPage.locator('test-results-element .test-result-summary');
+  const summary = studentPage.locator('.test-result-badge');
   const details = studentPage.locator('test-results-element .test-results-details');
 
   await expect(summary).toHaveText('Infinite loop');
@@ -225,10 +221,10 @@ test('student task displays a syntax error when code has invalid syntax', async 
   await studentPage.getByRole('button', { name: 'Run Tests' }).click();
 
   // Wait for results element
-  await studentPage.waitForSelector('test-results-element', { timeout: 10000 });
+  await expect(studentPage.locator('problem-element')).toHaveAttribute('resultsstatus', /.+/, { timeout: 10000 });
 
   // Assert results show the SyntaxError
-  const summary = studentPage.locator('test-results-element .test-result-summary');
+  const summary = studentPage.locator('.test-result-badge');
   const details = studentPage.locator('test-results-element .test-results-details');
 
   await expect(summary).toHaveText('SyntaxError');

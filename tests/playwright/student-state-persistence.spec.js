@@ -19,7 +19,7 @@ async function setupStudentTask(page, browser, unique) {
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskSetWithTasks(
@@ -44,16 +44,12 @@ async function setupStudentTask(page, browser, unique) {
   const studentEmail = `student_sp_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
   const loginResponsePromise = studentPage.waitForResponse(
     r => r.url().includes('/api/student_login')
   );
 
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
   const loginResponse = await loginResponsePromise;
   expect(loginResponse.status()).toBe(200);
 

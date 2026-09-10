@@ -22,7 +22,7 @@ class TestTeacherProfileApi:
         # Login
         login_resp = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
         assert login_resp.status_code == 200
 
@@ -40,7 +40,7 @@ class TestTeacherProfileApi:
         # Login
         await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
 
         # Update Email
@@ -68,7 +68,7 @@ class TestTeacherProfileApi:
         # Login test_teacher
         await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
 
         # 1. Incorrect password
@@ -100,7 +100,7 @@ class TestTeacherProfileApi:
         # Login
         await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
 
         # Update Password
@@ -121,14 +121,14 @@ class TestTeacherProfileApi:
         # Login with old password should fail
         login_fail = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
         assert login_fail.status_code == status.HTTP_400_BAD_REQUEST
 
         # Login with new password should succeed
         login_success = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "newpassword123"},
+            data={"username": "test@example.com", "password": "newpassword123"},
         )
         assert login_success.status_code == 200
 
@@ -137,7 +137,7 @@ class TestTeacherProfileApi:
         # Login
         await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
 
         # 1. Incorrect current password

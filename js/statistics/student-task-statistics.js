@@ -7,13 +7,14 @@ initBurgerMenu();
 
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
+const studentId = params.get('student_id');
 const taskId = params.get('task_id');
 const setId = params.get('set_id');
 
-if (!studentUsername || !taskId || !setId) {
+if (!studentId || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
-document.getElementById('student-name-badge').href = `/student-attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`;
+document.getElementById('student-name-badge').href = `/student-attempts?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentUsername || '')}&set_id=${encodeURIComponent(setId)}`;
 
 
 
@@ -52,9 +53,11 @@ function renderHeader(data) {
 
 	const backBtn = document.getElementById('back-btn');
 	if (backBtn) {
-		const taskSetCode = data.task_set_code || '';
-		const taskSetQuery = taskSetCode ? `&task_set=${encodeURIComponent(taskSetCode)}` : '';
-		backBtn.href = `/task-statistics?id=${encodeURIComponent(taskId)}${taskSetQuery}&set_id=${encodeURIComponent(setId)}`;
+		backBtn.href = "#";
+		backBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			history.back();
+		});
 	}
 }
 
@@ -463,7 +466,7 @@ function renderReplayStep(states, events, stepIndex, startTime) {
 	renderReplayBoard(states[stepIndex], event.block_id);
 }
 
-async function initReplay(studentUsername, taskId, setId) {
+async function initReplay(studentId, taskId, setId) {
 	const loadingEl  = document.getElementById('replay-loading');
 	const boardEl    = document.getElementById('replay-board');
 	const controlsEl = document.getElementById('replay-controls');
@@ -471,7 +474,7 @@ async function initReplay(studentUsername, taskId, setId) {
 
 	try {
 		const response = await fetch(
-			`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/moves?set_id=${setId}`,
+			`/api/students/${encodeURIComponent(studentId)}/tasks/${taskId}/moves?set_id=${setId}`,
 			{ credentials: 'include' }
 		);
 
@@ -542,7 +545,7 @@ setupCollapsible('model-toggle',    'model-body',     'model-chevron');
 
 // ── Load data ──────────────────────────────────────────────────────────────
 
-fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/statistics?set_id=${setId}`, {
+fetch(`/api/students/${encodeURIComponent(studentId)}/tasks/${taskId}/statistics?set_id=${setId}`, {
 	credentials: 'include'
 })
 	.then(r => {
@@ -559,7 +562,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 		renderAttempts(data.attempts_detail);
 		renderSessions(data.sessions || []);
 		renderStatistics(data);
-		initReplay(studentUsername, taskId, setId);
+		initReplay(studentId, taskId, setId);
 		document.getElementById('content-container').style.display = 'block';
 	})
 	.catch(err => {

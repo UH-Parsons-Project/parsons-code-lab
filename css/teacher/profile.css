@@ -1,0 +1,13 @@
+.profile-page .card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-right: 0.5rem;
+  text-decoration: none;
+}
+
+.flex-grow-1 {
+  flex-grow: 1;
+}

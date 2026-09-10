@@ -86,7 +86,7 @@ async def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return await _get_user_from_token(token, db)
 
 
@@ -98,7 +98,7 @@ async def get_current_user_optional(
     token = _get_token_from_request(request)
     if not token:
         return None
-        
+
     return await _get_user_from_token(token, db)
 
 

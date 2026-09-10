@@ -18,7 +18,7 @@ test('student role is redirected to home page when attempting to access teacher 
   // 1. Create a teacher account to make a task set
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskSet(
@@ -39,13 +39,11 @@ test('student role is redirected to home page when attempting to access teacher 
   const studentEmail = `student_sec_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
 
   const loginResponsePromise = studentPage.waitForResponse(
     r => r.url().includes('/api/student_login')
   );
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
   const loginResponse = await loginResponsePromise;
   expect(loginResponse.status()).toBe(200);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -95,7 +93,7 @@ test('teacher role (non-admin) can access teacher pages but is redirected when a
   // 1. Register and login as a normal teacher (non-admin)
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // 2. Verify they can access teacher pages

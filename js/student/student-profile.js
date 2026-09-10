@@ -11,7 +11,6 @@ const profileUsernameEl = document.getElementById('profile-username');
 const profileCreatedEl = document.getElementById('profile-created');
 const profileEmailEl = document.getElementById('profile-email');
 const enrolledSetsContainer = document.getElementById('enrolled-sets-container');
-const backToSetsBtn = document.getElementById('back-to-sets');
 
 const changeEmailForm = document.getElementById('change-email-form');
 const emailAlertPlaceholder = document.getElementById('email-alert-placeholder');
@@ -20,6 +19,12 @@ const changePasswordForm = document.getElementById('change-password-form');
 const passwordAlertPlaceholder = document.getElementById(
 	'password-alert-placeholder'
 );
+const backButton = document.getElementById('page-back-btn');
+
+if (backButton) {
+	const lastTaskSetUrl = localStorage.getItem('last_task_set_url');
+	backButton.href = lastTaskSetUrl || '/';
+}
 
 let taskSetNavigationModal = null;
 let taskSetNavigationKeyHandler = null;
@@ -43,8 +48,8 @@ if (enrolledSetsContainer) {
 // Helpers for alerts
 
 
-function buildTaskSetUrl(username, uniqueLinkCode) {
-	return `/${encodeURIComponent(username)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
+function buildTaskSetUrl(teacherUsername, uniqueLinkCode) {
+	return `/${encodeURIComponent(teacherUsername)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
 }
 
 function normalizePath(path) {
@@ -115,7 +120,7 @@ function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	const completedSets = taskSets.filter((taskSet) => taskSet.is_completed);
 	const normalizedLastSetUrl = normalizePath(lastSetUrl);
 	const currentSet = taskSets.find(
-		(taskSet) => normalizePath(buildTaskSetUrl(username, taskSet.unique_link_code)) === normalizedLastSetUrl
+		(taskSet) => normalizePath(buildTaskSetUrl(taskSet.teacher_username, taskSet.unique_link_code)) === normalizedLastSetUrl
 	);
 	const currentSetIncomplete = Boolean(currentSet && !currentSet.is_completed);
 
@@ -123,7 +128,7 @@ function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	enrolledSetsContainer.dataset.currentSetIncomplete = String(currentSetIncomplete);
 
 	const renderSetItem = (taskSet) => {
-		const taskSetUrl = buildTaskSetUrl(username, taskSet.unique_link_code);
+		const taskSetUrl = buildTaskSetUrl(taskSet.teacher_username, taskSet.unique_link_code);
 		const buttonLabel = normalizePath(taskSetUrl) === normalizedLastSetUrl ? 'Current set' : 'Open set';
 
 		return `
@@ -190,14 +195,18 @@ async function loadProfile() {
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
 
+		// Show the navbar user-info section (contains burger menu and logout)
+		const userInfoEl = document.getElementById('user-info');
+		if (userInfoEl) userInfoEl.style.display = 'flex';
+		// Hide login form since student is authenticated
+		const loginFormEl = document.getElementById('login-form');
+		if (loginFormEl) loginFormEl.style.display = 'none';
+
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);
 
-		// Setup back button and navbar link
+		// Keep profile navigation focused on the active task-set context when available.
 		const lastSetUrl = localStorage.getItem('last_task_set_url') || '/';
-		if (backToSetsBtn) {
-			backToSetsBtn.href = lastSetUrl;
-		}
 		const profileLink = document.getElementById('profile-link');
 		if (profileLink) {
 			profileLink.href = lastSetUrl;

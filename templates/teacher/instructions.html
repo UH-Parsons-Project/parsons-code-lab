@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Instructions - Parsons Code Lab</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
+	<link rel="stylesheet" href="/css/base/main.css"/>
+	<link rel="stylesheet" href="/css/legacy/legacy-pages.css"/>
+</head>
+<body>
+	{% include 'common/nav-teacher.html' %}
+	<div>
+		<div class="instructions">
+			<h2>A brief introduction to Parsons Code Lab's functionality</h2>
+			<p>
+				Login, Register, Instructions, Statistics, Exercises and Logout buttons as well as the login form can be
+				found on the navigation bar at the top of the page. By clicking on the Parsons Code Lab logo the teacher
+				is able to return to the homepage. To register your Parsons Code Lab account, please enter your username, email and password.
+				You will also need to enter a registration token. Registration grants you access to the teacher dashboard, where you can create and manage 
+				task sets, as well as all available functionality. Logging in to your account also allows you to see the rest of the instructions available
+				on this page.
+			</p>
+		</div>
+		<div id="teacher-only-instructions" style="display: none;">
+			<div class="instructions">
+				<p class="mb-0 text-muted">Log in to view the teacher-only instructions.</p>
+			</div>
+		</div>
+	</div>
+	<script type="module">
+		import { initLoginPage, initNavbarExercisesButton, initBurgerMenu } from '/js/core/auth-ui.js';
+		initLoginPage();
+		initNavbarExercisesButton();
+		initBurgerMenu();
+	</script>
+<style>
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

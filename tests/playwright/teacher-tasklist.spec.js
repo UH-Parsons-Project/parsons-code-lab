@@ -15,7 +15,7 @@ test('teacher can create a new task set by clicking "Create New Task Set"', asyn
   await registerTeacher(page, username, email, password);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, username, password);
+  await loginTeacher(page, email, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Create a new task set
@@ -39,7 +39,7 @@ test('teacher can add a new task', async ({ page }) => {
   await registerTeacher(page, username, email, password);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, username, password);
+  await loginTeacher(page, email, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Click the "New Task" link and wait for navigation together
@@ -140,7 +140,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   await registerTeacher(page, teacher1_username, teacher1_email, teacher1_password);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, teacher1_username, teacher1_password);
+  await loginTeacher(page, teacher1_email, teacher1_password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
     // Create a new task set
@@ -160,7 +160,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   await logoutTeacher(page);
 
   // Login as teacher 2
-  await loginTeacher(page, teacher2_username, teacher2_password);
+  await loginTeacher(page, teacher2_email, teacher2_password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Verify the shared task set is visible on teacher 2's dashboard
@@ -170,7 +170,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   await logoutTeacher(page);
 
   // Login as teacher 1 again to remove shared task list)
-  await loginTeacher(page, teacher1_username, teacher1_password);
+  await loginTeacher(page, teacher1_email, teacher1_password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Click on the task set again

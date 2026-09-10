@@ -49,6 +49,17 @@ spec:
               value: "https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi,https://parsonscodelab.web.helsinki.fi"
             - name: COOKIE_SECURE
               value: "true"
+          envFrom:
+            - secretRef:
+                name: saml-config-production
+                optional: true
+          volumeMounts:
+            - name: saml-certificates
+              mountPath: /etc/saml
+              readOnly: true
+            - name: saml-idp-certificate
+              mountPath: /etc/saml/idp
+              readOnly: true
           ports:
             - containerPort: 8000
 
@@ -61,3 +72,16 @@ spec:
             httpGet:
               path: /
               port: 8000
+      volumes:
+        - name: saml-certificates
+          secret:
+            secretName: cert-and-private-key
+            items:
+              - key: shib.crt
+                path: sp.crt
+              - key: shib.key
+                path: sp.key
+        - name: saml-idp-certificate
+          secret:
+            secretName: saml-idp-certificate-production
+            optional: true

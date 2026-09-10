@@ -135,15 +135,9 @@ async def authenticate_student(identifier: str, password: str, db: AsyncSession)
     Returns the Student object if valid, None otherwise.
     """
     result = await db.execute(
-        select(Student).where(Student.username == identifier)
+        select(Student).where(Student.email == identifier)
     )
     student = result.scalar_one_or_none()
-
-    if not student:
-        result = await db.execute(
-            select(Student).where(Student.email == identifier)
-        )
-        student = result.scalar_one_or_none()
 
     if not student or not student.is_active:
         return None

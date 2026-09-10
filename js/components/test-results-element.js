@@ -13,51 +13,120 @@ export class TestResultsElement extends LitElement {
 		return this;
 	}
 
+	parseDetails(details) {
+		const blocks = details.split(/(?=✅ Passed|❌ Failed|Summary:)/);
+		return blocks.map(block => block.trim()).filter(Boolean).map(block => {
+			if (block.startsWith('Summary:')) {
+				return { type: 'summary', text: block };
+			}
+			if (block.startsWith('✅') || block.startsWith('❌')) {
+				const isPass = block.startsWith('✅');
+				
+				let input = '', expected = '', got = '', output = '';
+				
+				const inputMatch = block.match(/Test input:\n\s*([\s\S]*?)(?=\nExpected:|\nGot:|\nOutput:|$)/);
+				if (inputMatch) input = inputMatch[1].trim();
+				
+				const expectedMatch = block.match(/Expected:\n\s*([\s\S]*?)(?=\nGot:|\nOutput:|$)/);
+				if (expectedMatch) expected = expectedMatch[1].trim();
+				
+				const gotMatch = block.match(/Got:\n\s*([\s\S]*?)(?=\nOutput:|$)/);
+				if (gotMatch) got = gotMatch[1].trim();
+				
+				const outputMatch = block.match(/Output:\n\s*([\s\S]*?)$/);
+				if (outputMatch) output = outputMatch[1].trim();
+				
+				if (!input && !expected && !got && !output) {
+					return { type: 'test', status: isPass ? 'pass' : 'fail', raw: block };
+				}
+				
+				return {
+					type: 'test',
+					status: isPass ? 'pass' : 'fail',
+					input,
+					expected,
+					got,
+					output,
+					raw: block
+				};
+			}
+			
+			return { type: 'error', raw: block };
+		});
+	}
+
 	renderDetails() {
 		const details = this.details || '';
-		const lines = details.split('\n');
+		if (!details) return '';
 
-		return lines.map((line) => {
-			let lineClass = 'test-details-line';
-			if (line.startsWith('✅')) {
-				lineClass += ' test-details-line-pass';
-			} else if (line.startsWith('❌')) {
-				lineClass += ' test-details-line-fail';
+		const parsedBlocks = this.parseDetails(details);
+
+		return parsedBlocks.map((block) => {
+			if (block.type === 'summary') {
+				// The summary is already displayed in the header badge, so we skip it here
+				return html``;
 			}
-
-			return html`<div class=${lineClass}>${line}</div>`;
+			if (block.type === 'test') {
+				const icon = block.status === 'pass' ? '✅' : '❌';
+				const statusClass = block.status === 'pass' ? 'test-card-pass' : 'test-card-fail';
+				const title = block.status === 'pass' ? 'Test Passed' : 'Test Failed';
+				
+				if (!block.input && !block.expected && !block.got && !block.output) {
+					return html`<div class="test-card ${statusClass}">
+						<div class="test-card-header">
+							<span class="test-icon">${icon}</span>
+							<span class="test-title">${title}</span>
+						</div>
+						<div class="test-card-body">
+							<pre class="test-code-block">${block.raw}</pre>
+						</div>
+					</div>`;
+				}
+				
+				return html`
+					<div class="test-card ${statusClass}">
+						<div class="test-card-header">
+							<span class="test-icon">${icon}</span>
+							<span class="test-title">${title}</span>
+						</div>
+						<div class="test-card-body">
+							${block.input ? html`
+								<div class="test-section">
+									<div class="test-section-title">Test Input</div>
+									<pre class="test-code-block">${block.input}</pre>
+								</div>
+							` : ''}
+							${block.expected ? html`
+								<div class="test-section">
+									<div class="test-section-title">Expected</div>
+									<pre class="test-code-block">${block.expected}</pre>
+								</div>
+							` : ''}
+							${block.got ? html`
+								<div class="test-section">
+									<div class="test-section-title">Got</div>
+									<pre class="test-code-block">${block.got}</pre>
+								</div>
+							` : ''}
+							${block.output ? html`
+								<div class="test-section">
+									<div class="test-section-title">Output</div>
+									<pre class="test-code-block">${block.output}</pre>
+								</div>
+							` : ''}
+						</div>
+					</div>
+				`;
+			}
+			
+			return html`<div class="test-error-block">${block.raw}</div>`;
 		});
 	}
 
 	render() {
-		const header = this.header || '';
-		const summaryMatch = header.match(/^(\d+) of (\d+) tests passed$/i);
-		let summaryVariant = 'unknown';
-		if (summaryMatch) {
-			const passedCount = Number(summaryMatch[1]);
-			const totalCount = Number(summaryMatch[2]);
-			if (passedCount > 0 && passedCount === totalCount) {
-				summaryVariant = 'full-pass';
-			} else if (passedCount > 0) {
-				summaryVariant = 'partial-pass';
-			} else {
-				summaryVariant = 'no-pass';
-			}
-		} else if ((this.status || '').toLowerCase() === 'fail') {
-			summaryVariant = 'no-pass';
-		} else if ((this.status || '').toLowerCase() === 'pass') {
-			summaryVariant = 'full-pass';
-		}
-		const summaryClass = [
-			'test-result-summary',
-			summaryVariant,
-		]
-			.filter(Boolean)
-			.join(' ');
 		const teacherHint = (this.teacherhint || '').trim();
 
 		return html`<div class="test-results-panel">
-					<div class=${summaryClass}>${this.header}</div>
 					<div class="test-results-details">
 						${teacherHint
 							? html`<div class="teacher-hint-box">

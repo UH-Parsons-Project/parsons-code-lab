@@ -1,0 +1,34 @@
+.embossed-btn,
+a.embossed-btn,
+a.embossed-btn:link,
+a.embossed-btn:visited {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	background-color: #f4f7fb;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	box-shadow: 2px 2px 4px #dce0e5, -2px -2px 4px #ffffff;
+	font-weight: 600;
+	color: #0056b3 !important;
+	padding: 0.4rem 0.9rem;
+	transition: all 0.2s ease;
+	text-decoration: none !important;
+	outline: none;
+}
+
+.embossed-btn:hover,
+a.embossed-btn:hover,
+a.embossed-btn:focus {
+	box-shadow: 1px 1px 3px #dce0e5, -1px -1px 3px #ffffff;
+	color: #004494 !important;
+	text-decoration: none !important;
+}
+
+.embossed-btn:active,
+a.embossed-btn:active {
+	box-shadow: inset 2px 2px 4px #dce0e5, inset -2px -2px 4px #ffffff;
+	color: #004494 !important;
+	text-decoration: none !important;
+}

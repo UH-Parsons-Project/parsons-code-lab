@@ -144,7 +144,7 @@ function cleanupDoctestResults(resultsStr) {
 				line = line.trimStart();
 				stripNextLineIndent = false;
 			}
-			line = line.replace('Failed example:', '\n❌ Failed test');
+			line = line.replace('Failed example:', '\n❌ Failed test\nTest input:');
 			if (line.includes('❌ Failed test')) {
 				stripNextLineIndent = true;
 			}
@@ -206,7 +206,7 @@ function extractPassedExamples(resultsStr) {
 				: '<no output>';
 
 			passedExamples.push(
-				`${tryingLines.join(' ')}\nExpected:\n    ${expectedText}\nGot:\n    ${expectedText}`
+				`Test input:\n    ${tryingLines.join(' ')}\nExpected:\n    ${expectedText}\nGot:\n    ${expectedText}`
 			);
 		}
 
@@ -304,10 +304,15 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalTy
 	submittedCode += '\n';
 
 	if (evalType === 'stdout') {
+		const normalizedTeacherTests = (teacherTests || '').trim();
+		let code = submittedCode;
+		if (normalizedTeacherTests) {
+			code += '\n' + normalizedTeacherTests + '\n';
+		}
 		return {
 			status: 'success',
 			header: 'Running code...',
-			code: submittedCode,
+			code: code,
 			startLine: 1,
 		};
 	}
@@ -387,7 +392,8 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalTy
 		finalCode.push('            expected_value = eval(compile(ast.Expression(expected_expr), "<teacher-tests>", "eval"), globals(), globals())');
 		finalCode.push('            is_match = actual_value == expected_value');
 		finalCode.push('            print("✅ Passed test" if is_match else "❌ Failed test")');
-		finalCode.push('            print(actual_text)');
+		finalCode.push('            print("Test input:")');
+		finalCode.push('            print("    " + actual_text)');
 		finalCode.push('            print("Expected:")');
 		finalCode.push('            print("    " + __format_teacher_value(expected_value))');
 		finalCode.push('            print("Got:")');
@@ -434,20 +440,23 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalTy
 	};
 }
 
-export function processTestResults(outputStr, customErrorRules = [], evalType = 'unit_test', expectedOutput = '') {
+export function processTestResults(outputStr, customErrorRules = [], evalType = 'unit_test', expectedOutput = '', teacherTests = '') {
 	if (evalType === 'stdout') {
-		const actualOutput = outputStr.trim();
-		if (actualOutput === expectedOutput) {
+		const actualOutput = outputStr.replace(/\r\n/g, '\n').trim();
+		const expectedNorm = (expectedOutput || '').replace(/\r\n/g, '\n').trim();
+		const testInput = (teacherTests || '').replace(/\r\n/g, '\n').trim();
+		const testInputBlock = testInput ? `\n\nTest input:\n${testInput}` : '';
+		if (actualOutput === expectedNorm) {
 			return {
 				status: 'pass',
-				header: `Output matched expected exactly!`,
-				details: `✅ Passed\n\nOutput:\n${actualOutput}`
+				header: `Output matched expected output!`,
+				details: `✅ Passed${testInputBlock}\n\nOutput:\n${actualOutput}`
 			};
 		} else {
 			return {
 				status: 'fail',
 				header: `Output did not match expected output.`,
-				details: `❌ Failed\n\nExpected:\n${expectedOutput}\n\nGot:\n${actualOutput}`
+				details: `❌ Failed${testInputBlock}\n\nExpected:\n${expectedNorm}\n\nGot:\n${actualOutput}`
 			};
 		}
 	}
@@ -532,10 +541,12 @@ export function processTestError(error, startLine, customErrorRules = []) {
 				? `Summary: ${passedCount} passed, ${failedCount} failed.`
 				: '',
 			teacherTestBlocks.length ? teacherTestBlocks.join('\n\n') : '',
-			errorType === 'AssertionError'
+			errorType === 'AssertionError' && teacherTestBlocks.length === 0
 				? 'Your code is valid Python, but it does not satisfy all test assertions.'
 				: '',
-			errorDetails,
+			teacherTestBlocks.length === 0 || errorType !== 'AssertionError'
+				? errorDetails
+				: '',
 		]
 			.filter(Boolean)
 			.join('\n\n');

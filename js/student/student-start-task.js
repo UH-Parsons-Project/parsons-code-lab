@@ -17,8 +17,7 @@ const startBtn = document.getElementById('start-btn');
 function hidePageContent() {
 	const contentElements = [
 		document.getElementById('start-btn'),
-		document.getElementById('task-instructions'),
-		document.getElementById('back-to-list')
+		document.getElementById('task-instructions')
 	];
 	contentElements.forEach(el => {
 		if (el) el.style.display = 'none';
@@ -29,8 +28,7 @@ function hidePageContent() {
 function showPageContent() {
 	const contentElements = [
 		document.getElementById('start-btn'),
-		document.getElementById('task-instructions'),
-		document.getElementById('back-to-list')
+		document.getElementById('task-instructions')
 	];
 	contentElements.forEach(el => {
 		if (el) el.style.display = '';
@@ -61,10 +59,11 @@ async function checkAndRedirectIfStarted() {
 hidePageContent();
 checkAndRedirectIfStarted();
 
-// Set the back button to return to the task set
-const backButton = document.getElementById('back-to-list');
+// Set the page-level back button to return to the task set
+const backButton = document.getElementById('page-back-btn');
 if (backButton) {
 	backButton.href = `/${username}/set/${uniqueLinkCode}/tasks`;
+	backButton.style.display = 'inline-flex';
 }
 
 // Set the start button to create the start record and navigate to the task

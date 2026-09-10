@@ -113,7 +113,7 @@ function createTaskAttemptItem(task) {
 	card.className = 'task-set-item';
 	card.style.cursor = 'pointer';
 	const openStats = () => {
-		window.location.href = `/student-task-statistics?student=${encodeURIComponent(studentUsername)}&task_id=${task.task_id}&set_id=${task.task_set_id}`;
+		window.location.href = `/student-task-statistics?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentUsername)}&task_id=${task.task_id}&set_id=${task.task_set_id}`;
 	};
 	card.onclick = openStats;
 	makeKeyActivatable(card, openStats);
@@ -233,7 +233,7 @@ async function loadData() {
 		studentTasks = data.task_attempts || [];
 
 		overviewSetsCount.textContent = `${studentSets.length} task set${studentSets.length !== 1 ? 's' : ''}`;
-		
+
 		// Total unique tasks attempted / total completed
 		const completedCount = studentTasks.filter(t => t.success).length;
 		overviewTasksCount.textContent = `${completedCount} / ${studentTasks.length} completed`;

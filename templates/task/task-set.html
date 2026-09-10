@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Parsons Code Lab</title>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+			integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+			crossorigin="anonymous"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://use.fontawesome.com/releases/v5.6.3/css/all.css"
+		/>
+		<link rel="stylesheet" href="/js-parsons/parsons.css" />
+		<link rel="stylesheet" href="/css/base/main.css" />
+		<link rel="stylesheet" href="/css/legacy/legacy-pages.css" />
+	</head>
+	<body>
+		{% include 'common/nav-student.html' %}
+		<div class="task_set-layout">
+			<!-- Left sidebar -->
+			<div class="task_set-sidebar">
+				<div class="task_set-sidebar-sticky">
+					<h5 class="task_set-sidebar-heading">Progress</h5>
+
+					<div class="progress-card">
+						<div class="progress-count-row">
+							<div class="progress-count-label">Tasks Completed</div>
+							<div class="progress-count-value">
+								<span id="completed-count" class="progress-count-done">0</span><span class="progress-count-sep">/<span id="total-count">0</span></span>
+							</div>
+						</div>
+
+						<div class="progress task_set-progress-bar-wrap">
+							<div id="progress-bar" class="progress-bar bg-success task_set-progress-bar" role="progressbar" aria-label="Task completion progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+						</div>
+					</div>
+
+					<hr class="task_set-divider">
+
+					<div id="info-section">
+						<h6 class="task_set-info-heading">About These Tasks</h6>
+						<p class="task_set-info-text">
+							Click on a task to start it. Read the problem statement first and identify what the final program should do. Drag blocks from the left area into the solution area on the right. Use every gray block. Blue blocks are optional and can be ignored if not needed.
+						</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Right content -->
+			<div class="task_set-content">
+				<h2 class="task_set-title mb-3">Tasks</h2>
+				<p class="text-muted mb-3">Each exercise includes instructions and starter code. You can run the code as many times as needed.</p>
+				<div id="problems-list" class="loading-spinner">
+					<div class="spinner-border text-primary" role="status">
+						<span class="sr-only">Loading...</span>
+					</div>
+					<p class="mt-2">Loading tasks...</p>
+				</div>
+			</div>
+		</div>
+
+		<script type="module" src="/js/task/task-set.js"></script>
+	{% include 'common/footer.html' %}
+</body>
+</html>

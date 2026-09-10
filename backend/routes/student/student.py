@@ -10,24 +10,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...database import get_db
 from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import get_current_student_session_no_update
-from ..utils.commons import get_task_set_by_code_or_404, verify_task_in_set_or_404
+from ..utils.commons import get_task_set_by_code_or_404, verify_task_in_set_or_404, render_template
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
 
 
-def _closed_response() -> FileResponse:
-    return FileResponse(BASE_DIR / "templates" / "task_set_closed.html")
+def _closed_response(request: Request):
+    return render_template("task/task-set-closed.html", request)
 
 
-def _render_student_page(template_name: str, unique_link_code: str | None = None, task_id: int | None = None) -> FileResponse:
-    response = FileResponse(BASE_DIR / "templates" / template_name)
+def _render_student_page(template_name: str, request: Request, unique_link_code: str | None = None, task_id: int | None = None):
+    headers = {}
     if unique_link_code:
-        response.headers["X-Problemset-Code"] = unique_link_code
+        headers["X-Problemset-Code"] = unique_link_code
     if task_id is not None:
-        response.headers["X-Task-Id"] = str(task_id)
-    return response
+        headers["X-Task-Id"] = str(task_id)
+    return render_template(template_name, request, headers=headers)
 
 
 async def _check_enrollment(db: AsyncSession, student_session: Student | None, task_set: TaskSet) -> bool:
@@ -43,12 +43,20 @@ async def _check_enrollment(db: AsyncSession, student_session: Student | None, t
 
 
 def _is_expired(task_set) -> bool:
+    now = datetime.now(timezone.utc)
+    if task_set.opens_at:
+        opens = task_set.opens_at
+        if opens.tzinfo is None:
+            opens = opens.replace(tzinfo=timezone.utc)
+        if now < opens:
+            return True
+
     if not task_set.expires_at:
         return False
     expires = task_set.expires_at
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) > expires
+    return now > expires
 
 
 @router.get("/student-start-task", response_class=HTMLResponse)
@@ -60,10 +68,12 @@ async def student_start_view(
     if not student_session:
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-    index_path = BASE_DIR / "templates" / "student_start_task.html"
-    return FileResponse(index_path)
-@router.get("/{username}/set/{unique_link_code}", response_class=FileResponse)
+    return render_template("student/student-start-task.html", request)
+
+
+@router.get("/{username}/set/{unique_link_code}", response_class=HTMLResponse)
 async def task_set_page(
+    request: Request,
     username: str,
     unique_link_code: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -72,16 +82,17 @@ async def task_set_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if _is_expired(task_set):
-        return _closed_response()
+        return _closed_response(request)
 
     if await _check_enrollment(db, student_session, task_set):
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
-    return _render_student_page("student_index.html", unique_link_code)
+    return _render_student_page("student/student-index.html", request, unique_link_code)
 
 
-@router.get("/{username}/set/{unique_link_code}/tasks", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks", response_class=HTMLResponse)
 async def task_set_tasks_page(
+    request: Request,
     username: str,
     unique_link_code: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -90,16 +101,17 @@ async def task_set_tasks_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if _is_expired(task_set):
-        return _closed_response()
+        return _closed_response(request)
 
     if not await _check_enrollment(db, student_session, task_set):
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
-    return _render_student_page("task_set.html", unique_link_code)
+    return _render_student_page("task/task-set.html", request, unique_link_code)
 
 
-@router.get("/{username}/set/{unique_link_code}/tasks/{task_id:int}", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
 async def task_set_task_page(
+    request: Request,
     username: str,
     unique_link_code: str,
     task_id: int,
@@ -109,19 +121,20 @@ async def task_set_task_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if _is_expired(task_set):
-        return _closed_response()
+        return _closed_response(request)
     try:
         await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
     except HTTPException as e:
-        return FileResponse(BASE_DIR / "templates" / "not_found.html", status_code=e.status_code)
+        return render_template("common/not-found.html", request, status_code=e.status_code)
     if not await _check_enrollment(db, student_session, task_set):
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
-    return _render_student_page("student_problem.html", unique_link_code, task_id)
+    return _render_student_page("student/student-problem.html", request, unique_link_code, task_id)
 
 
-@router.get("/{username}/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
 async def task_set_task_start_page(
+    request: Request,
     username: str,
     unique_link_code: str,
     task_id: int,
@@ -131,29 +144,27 @@ async def task_set_task_start_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if _is_expired(task_set):
-        return _closed_response()
+        return _closed_response(request)
     try:
         await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
     except HTTPException as e:
-        return FileResponse(BASE_DIR / "templates" / "not_found.html", status_code=e.status_code)
+        return render_template("common/not-found.html", request, status_code=e.status_code)
     if not await _check_enrollment(db, student_session, task_set):
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
-    return _render_student_page("student_start_task.html", unique_link_code, task_id)
+    return _render_student_page("student/student-start-task.html", request, unique_link_code, task_id)
 
 
-@router.get("/demo", response_class=FileResponse)
-@router.get("/{username}/set/{unique_link_code}/tasks/demo", response_class=FileResponse)
-@router.get("/{username}/set/{unique_link_code}/tasks/demo/start", response_class=FileResponse)
-async def demo_task_page():
-    demo_path = BASE_DIR / "templates" / "demo.html"
-    return FileResponse(demo_path)
+@router.get("/demo", response_class=HTMLResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/demo", response_class=HTMLResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/demo/start", response_class=HTMLResponse)
+async def demo_task_page(request: Request):
+    return render_template("student/demo.html", request)
 
 
-@router.get("/student-register", response_class=FileResponse)
-async def student_register_page():
-    student_register_path = BASE_DIR / "templates" / "student_register.html"
-    return FileResponse(student_register_path)
+@router.get("/student-register", response_class=HTMLResponse)
+async def student_register_page(request: Request):
+    return render_template("student/student-register.html", request)
 
 
 @router.get("/student/profile", response_class=HTMLResponse)
@@ -165,5 +176,4 @@ async def student_profile_page(
     if not student_session:
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-    profile_path = BASE_DIR / "templates" / "student_profile.html"
-    return FileResponse(profile_path)
+    return render_template("student/student-profile.html", request)

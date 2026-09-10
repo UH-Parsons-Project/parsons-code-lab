@@ -1,4 +1,4 @@
-import { makeKeyActivatable, formatDate, escapeHtml } from './ui-utils.js';
+import { makeKeyActivatable, formatDate, formatDateTimeWithoutSeconds, escapeHtml } from './ui-utils.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 
 export function createTaskSetItem(taskSet, currentUsername = null) {
@@ -58,11 +58,22 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
+	const isOpened = Boolean(taskSet.opens_at && new Date(taskSet.opens_at) <= new Date());
+	const expiresSoon = Boolean(
+		taskSet.expires_at &&
+		!isExpired &&
+		new Date(taskSet.expires_at) - new Date() < 86400000
+	);
+	const openingPart = taskSet.opens_at
+		? ` &nbsp;·&nbsp; <span${isOpened ? ' class="task-set-opening-active"' : ''}><i class="far fa-calendar-alt"></i> ${isOpened ? 'Opened' : 'Opens'} ${formatDateTimeWithoutSeconds(taskSet.opens_at)}</span>`
+		: '';
 	let expiryPart = '';
 	if (taskSet.expires_at) {
 		expiryPart = isExpired
-			? ` &nbsp;·&nbsp; <span class="text-danger font-weight-bold"><i class="fas fa-exclamation-circle"></i> Expired ${formatDate(taskSet.expires_at)}</span>`
-			: ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`;
+			? ` &nbsp;·&nbsp; <span class="text-danger font-weight-bold"><i class="fas fa-exclamation-circle"></i> Expired ${formatDateTimeWithoutSeconds(taskSet.expires_at)}</span>`
+			: expiresSoon
+				? ` &nbsp;·&nbsp; <span class="task-set-expiring-soon"><i class="far fa-clock"></i> Expires ${formatDateTimeWithoutSeconds(taskSet.expires_at)}</span>`
+				: ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDateTimeWithoutSeconds(taskSet.expires_at)}`;
 	}
 	const sharedPart = (currentUsername && taskSet.owner_username && taskSet.owner_username !== currentUsername)
 		? ` &nbsp;·&nbsp; <i class="fas fa-share-alt"></i> Shared by ${escapeHtml(taskSet.owner_username)}`
@@ -74,7 +85,7 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 			`<i class="fas fa-user-graduate"></i> ${taskSet.student_count} student${taskSet.student_count !== 1 ? 's' : ''} joined`;
 	}
 
-	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}${sharedPart}${countsPart}`;
+	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${openingPart}${expiryPart}${sharedPart}${countsPart}`;
 	item.appendChild(meta);
 
 	if (taskSet.teacher_description) {

@@ -70,7 +70,13 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - .:/usr/src/app
+      - ./backend:/app/backend
+      - ./css:/app/css
+      - ./js:/app/js
+      - ./js-parsons:/app/js-parsons
+      - ./templates:/app/templates
+      - ./tests:/app/tests
+      - ./utils:/app/utils
     env_file:
       - .env
     environment:

@@ -1,8 +1,10 @@
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
+import secrets
 
 # Third-party
 from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,8 +18,39 @@ from ... import config
 from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
+from ...saml_auth import require_saml, shibboleth_identity, shibboleth_login_url
 
 router = APIRouter()
+
+
+@router.get("/auth/saml/login")
+async def saml_login(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_saml()
+    identity = shibboleth_identity(request)
+    if identity is None:
+        return RedirectResponse(shibboleth_login_url())
+    email, username = identity
+
+    result = await db.execute(select(Teacher).where(Teacher.email.ilike(email)))
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = Teacher(username=username[:100], email=email)
+        user.set_password(secrets.token_urlsafe(32))
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    response = RedirectResponse(url="/teacher-dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="access_token", value=access_token, httponly=True,
+                        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/",
+                        samesite="lax", secure=config.COOKIE_SECURE)
+    return response
 
 
 @router.post("/api/login/access-token", response_model=Token)
@@ -93,7 +126,11 @@ async def logout(response: Response):
 
 
 @router.post("/api/teacher_register")
-async def api_teacher_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def api_teacher_register(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
@@ -162,8 +199,29 @@ async def api_teacher_register(request: Request, db: Annotated[AsyncSession, Dep
     await db.commit()
     await db.refresh(teacher)
 
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": teacher.username}, expires_delta=access_token_expires
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+        samesite="lax",
+        secure=config.COOKIE_SECURE,
+    )
+
     clear_failed_attempts(reg_identifier)
-    return {"status": "success", "id": teacher.id}
+    return {
+        "status": "success",
+        "id": teacher.id,
+        "username": teacher.username,
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
 
 
 @router.get("/api/teacher/profile")
@@ -231,6 +289,9 @@ async def update_teacher_password(
 
     if new_password != new_password_confirm:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match")
+
+    if current_password == new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password cannot be the same as the current password")
 
     if len(new_password) < 8:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must have a minimum length of 8 characters")

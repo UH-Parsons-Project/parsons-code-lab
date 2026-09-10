@@ -304,7 +304,7 @@ async def test_deleted_user_cannot_login(db_session, admin_teacher, target_teach
     await db_session.commit()
 
     # Try to authenticate using authenticate_user
-    authenticated = await authenticate_user("deleted_user", "mypassword123", db_session)
+    authenticated = await authenticate_user("deleted@example.com", "mypassword123", db_session)
     assert authenticated is None
 
 @pytest.mark.asyncio

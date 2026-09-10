@@ -1,6 +1,6 @@
 # Pydantic models for request/response
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Token(BaseModel):
@@ -25,6 +25,7 @@ class TaskResponse(BaseModel):
     code_blocks: dict
     correct_solution: dict
     is_public: bool
+    faded: bool = False
     created_at: str
     model_answer: str | None = None
     submitted_order: dict | None = None
@@ -67,6 +68,7 @@ class StudentTaskResponse(BaseModel):
     code_blocks: dict
     correct_solution: dict | None = None
     is_public: bool
+    faded: bool = False
     created_at: str
     submitted_order: dict | None = None
     eval_type: str = "unit_test"
@@ -85,7 +87,8 @@ class TaskSetResponse(BaseModel):
     student_description: str | None
     teacher_description: str | None
     created_at: str
-    expires_at: str | None
+    opens_at: str | None = None
+    expires_at: str | None = None
     student_count: int = 0
     task_count: int = 0
     deletable: bool = True
@@ -99,6 +102,7 @@ class TaskSetTaskResponse(BaseModel):
     is_hidden: bool = False
     is_public: bool = True
     is_faded: bool = False
+    require_indentation: bool = True
 
 
 class ProblemSetInfoResponse(BaseModel):
@@ -113,10 +117,11 @@ class NicknameRequest(BaseModel):
 
 
 class StudentLoginRequest(BaseModel):
-    username: str
+    email: str
     password: str
     unique_link_code: str | None = None
 class StudentInTaskSetResponse(BaseModel):
+    student_id: int
     username: str
     email: str
     started_at: str
@@ -126,6 +131,7 @@ class StudentInTaskSetResponse(BaseModel):
     completed_tasks: int
     task_completion_flags: list[int]
     task_attempts: list[int]
+    task_started_flags: list[int] = []
 
 
 class StudentTaskAttemptResponse(BaseModel):
@@ -135,6 +141,7 @@ class StudentTaskAttemptResponse(BaseModel):
     attempts: int
     success_count: int
     last_attempt_at: str
+    has_started: bool = False
 
 
 class StudentTaskStatisticsResponse(BaseModel):
@@ -142,6 +149,7 @@ class StudentTaskStatisticsResponse(BaseModel):
     task_description: str | None
     task_instructions: str | None = None
     model_answer: str | None = None
+    student_id: int
     student_username: str
     total_attempts: int
     successful_attempts: int
@@ -221,6 +229,7 @@ class CreateProblemRequest(BaseModel):
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None
     is_public: bool | None = True
+    faded: bool = False
     eval_type: str = "unit_test"
     expected_output: str = ""
     require_indentation: bool = True
@@ -232,9 +241,10 @@ class UpdateModelAnswerRequest(BaseModel):
 
 
 class CreateTaskSetRequest(BaseModel):
-    title: str
+    title: str = Field(..., min_length=4)
     student_description: str | None = None
     teacher_description: str | None = None
+    opens_at: str | None = None
     expires_at: str | None = None
     task_ids: list[int]
 
@@ -243,8 +253,16 @@ class UpdateTaskSetTasksRequest(BaseModel):
     task_ids: list[int]
 
 
+class InitialEventsExportRequest(BaseModel):
+    task_ids: list[int] = Field(default_factory=list)
+
+
 class UpdateExpiresAtRequest(BaseModel):
     expires_at: str | None = None
+
+
+class UpdateOpensAtRequest(BaseModel):
+    opens_at: str | None = None
 
 
 

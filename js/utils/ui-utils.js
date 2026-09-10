@@ -20,10 +20,27 @@ export function formatDateTime(isoString) {
     return date.toLocaleString();
 }
 
+export function formatDateTimeWithoutSeconds(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleString([], {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export function showError(message) {
     const errorEl = document.getElementById('error-message');
     if (errorEl) {
-        errorEl.textContent = message;
+        const escapedMessage = escapeHtml(message);
+        const formattedMessage = escapedMessage === escapeHtml('Incorrect username, email, or password')
+            ? 'Incorrect username,<br>email, or password'
+            : escapedMessage;
+
+        errorEl.innerHTML = formattedMessage;
         errorEl.style.display = 'block';
     } else {
         alert(message);

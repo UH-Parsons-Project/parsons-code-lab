@@ -23,3 +23,9 @@ ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw.split(",") if o.strip()]
 
 # Cookies — set to true in production (requires HTTPS)
 COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+
+# Optional Haka login through a Shibboleth SP.
+SAML_ENABLED = os.getenv("SAML_ENABLED", "false").lower() == "true"
+SAML_TEST_PAGE_ENABLED = os.getenv("SAML_TEST_PAGE_ENABLED", "false").lower() == "true"
+SAML_EMAIL_ATTRIBUTE = os.getenv("SAML_EMAIL_ATTRIBUTE", "mail")
+SAML_USERNAME_ATTRIBUTE = os.getenv("SAML_USERNAME_ATTRIBUTE", "uid")

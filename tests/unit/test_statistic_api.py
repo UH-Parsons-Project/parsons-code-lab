@@ -131,7 +131,7 @@ class TestGetStudentAttempts:
         await db_session.commit()
 
         response = await client.get(
-            f"/api/students/attempt_student/attempts?set_id={task_set.id}",
+            f"/api/students/{student_with_attempts.id}/attempts?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -149,7 +149,7 @@ class TestGetStudentAttempts:
         await db_session.commit()
 
         response = await client.get(
-            f"/api/students/student1/attempts?set_id={task_set.id}",
+            f"/api/students/1/attempts?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -162,14 +162,14 @@ class TestGetStudentAttempts:
     async def test_get_student_attempts_unauthorized(self, client, task_set, student_session):
         """Test that endpoint requires authentication."""
         response = await client.get(
-            f"/api/students/student1/attempts?set_id={task_set.id}"
+            f"/api/students/1/attempts?set_id={task_set.id}"
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_get_student_attempts_invalid_task_set(self, client, test_teacher):
         """Test with non-existent task set."""
         response = await client.get(
-            f"/api/students/student1/attempts?set_id=9999",
+            f"/api/students/1/attempts?set_id=9999",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -185,7 +185,7 @@ class TestGetStudentAttempts:
         await db_session.commit()
 
         response = await client.get(
-            f"/api/students/student1/attempts?set_id={task_set.id}",
+            f"/api/students/1/attempts?set_id={task_set.id}",
             headers=_auth(other_teacher.username)
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -227,7 +227,7 @@ class TestGetStudentAttempts:
         viewer = await _create_shared_viewer(db_session, task_set.id)
 
         response = await client.get(
-            f"/api/students/attempt_student/attempts?set_id={task_set.id}",
+            f"/api/students/{student_with_attempts.id}/attempts?set_id={task_set.id}",
             headers=_auth(viewer.username),
         )
         assert response.status_code == 200
@@ -241,7 +241,7 @@ class TestGetStudentTaskStatistics:
                                                        task_set, task, student_with_attempts):
         """Test successfully retrieving student task statistics."""
         response = await client.get(
-            f"/api/students/attempt_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student_with_attempts.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -256,7 +256,7 @@ class TestGetStudentTaskStatistics:
                                                             task_set, task, student_session):
         """Test statistics for student with no attempts."""
         response = await client.get(
-            f"/api/students/student1/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/1/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -269,7 +269,7 @@ class TestGetStudentTaskStatistics:
     async def test_get_student_task_statistics_task_not_found(self, client, test_teacher, task_set):
         """Test with non-existent task."""
         response = await client.get(
-            f"/api/students/student1/tasks/9999/statistics?set_id={task_set.id}",
+            f"/api/students/1/tasks/9999/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -277,7 +277,7 @@ class TestGetStudentTaskStatistics:
     async def test_get_student_task_statistics_unauthorized(self, client, task_set, task):
         """Test that endpoint requires authentication."""
         response = await client.get(
-            f"/api/students/student1/tasks/{task.id}/statistics?set_id={task_set.id}"
+            f"/api/students/1/tasks/{task.id}/statistics?set_id={task_set.id}"
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -339,7 +339,7 @@ class TestGetStudentTaskStatistics:
         await db_session.commit()
         
         response = await client.get(
-            f"/api/students/thinking_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -391,7 +391,7 @@ class TestGetStudentTaskStatistics:
         await db_session.commit()
         
         response = await client.get(
-            f"/api/students/empty_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -451,7 +451,7 @@ class TestGetStudentTaskStatistics:
         await db_session.commit()
         
         response = await client.get(
-            f"/api/students/session_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -498,7 +498,7 @@ class TestGetStudentTaskStatistics:
         viewer = await _create_shared_viewer(db_session, task_set.id)
 
         response = await client.get(
-            f"/api/students/{student_session.username}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student_session.id}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
             headers=_auth(viewer.username),
         )
         assert response.status_code == 200
@@ -519,7 +519,7 @@ class TestStatisticAPIIntegration:
 
         # Get student attempts (should be empty)
         response = await client.get(
-            f"/api/students/student1/attempts?set_id={task_set.id}",
+            f"/api/students/1/attempts?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -559,7 +559,7 @@ class TestStatisticAPIIntegration:
 
         # Now get student attempts (should have one)
         response = await client.get(
-            f"/api/students/student1/attempts?set_id={task_set.id}",
+            f"/api/students/1/attempts?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -569,7 +569,7 @@ class TestStatisticAPIIntegration:
 
         # Get student task statistics
         response = await client.get(
-            f"/api/students/student1/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/1/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -630,7 +630,7 @@ class TestStatisticAPIIntegration:
         await db_session.commit()
         
         response = await client.get(
-            f"/api/students/null_inputs_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -655,7 +655,7 @@ class TestStatisticAPIIntegration:
                                                                      student_with_attempts):
         """Test task statistics when no model answer exists."""
         response = await client.get(
-            f"/api/students/attempt_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student_with_attempts.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
@@ -740,7 +740,7 @@ class TestStatisticAPIIntegration:
 
         # Request student-specific endpoint
         response = await client.get(
-            f"/api/students/new_analytics_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student.id}/tasks/{task.id}/statistics?set_id={task_set.id}",
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200

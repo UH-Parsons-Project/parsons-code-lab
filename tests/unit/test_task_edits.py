@@ -478,7 +478,7 @@ class TestDeleteTaskSet:
 
 
 # ---------------------------------------------------------------------------
-# DELETE /api/my_sets/{task_set_id}/students/{student_username}
+# DELETE /api/my_sets/{task_set_id}/students/{student.id}
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -572,7 +572,7 @@ class TestRemoveStudentFromTaskSet:
         await db_session.commit()
 
         response = await client.delete(
-            f"/api/my_sets/{task_set.id}/students/{student.username}",
+            f"/api/my_sets/{task_set.id}/students/{student.id}",
             headers=_auth(test_teacher.username),
         )
         assert response.status_code == 204
@@ -628,7 +628,7 @@ class TestRemoveStudentFromTaskSet:
 
     async def test_not_owner_gets_403(self, client, task_set, other_teacher):
         response = await client.delete(
-            f"/api/my_sets/{task_set.id}/students/student1",
+            f"/api/my_sets/{task_set.id}/students/1",
             headers=_auth(other_teacher.username),
         )
         assert response.status_code == 403
@@ -694,6 +694,30 @@ class TestUpdateAndReorderTaskSetTasks:
         assert response.status_code == 201
         assert response.json()["status"] == "success"
         assert response.json()["added_count"] == 1
+
+    async def test_create_stdout_problem_with_function_calls(self, client, test_teacher):
+        payload = _problem_payload(
+            taskTitle="Stdout Function Task",
+            solutionCode="def hello(target):\n    print('Hello', target)",
+            tests="hello('Emily')\nhello('Bob')",
+            eval_type="stdout",
+            expected_output="Hello Emily\nHello Bob",
+        )
+        r = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert r.status_code == 200
+        task_id = r.json()["id"]
+
+        get_res = await client.get(f"/api/tasks/{task_id}", headers=_auth(test_teacher.username))
+        assert get_res.status_code == 200
+        data = get_res.json()
+        assert data["correct_solution"]["eval_type"] == "stdout"
+        assert data["correct_solution"]["teacher_tests"] == "hello('Emily')\nhello('Bob')"
+        assert data["correct_solution"]["expected_output"] == "Hello Emily\nHello Bob"
+
 
 
 

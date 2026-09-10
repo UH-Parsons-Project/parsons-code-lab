@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Student Register - Parsons Code Lab</title>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+			crossorigin="anonymous"
+		/>
+		<link rel="stylesheet" href="/js-parsons/parsons.css" />
+		<link rel="stylesheet" href="/css/base/main.css" />
+		<link rel="stylesheet" href="/css/legacy/legacy-pages.css" />
+	</head>
+	<body>
+		{% include 'common/nav-student.html' %}
+
+		<main class="container">
+			<div class="row justify-content-center register-row">
+				<div class="col-md-6">
+					<h2 class="mb-4 register-title">Student Register</h2>
+
+					<div id="alert-placeholder"></div>
+
+					<form id="register-form">
+						<div class="form-group">
+							<label for="username">Username</label>
+					<input type="text" class="form-control" id="username" name="username" maxlength="20" required />
+						</div>
+
+						<div class="form-group">
+							<label for="email">Email</label>
+							<input type="email" class="form-control" id="email" name="email" maxlength="100" required />
+						</div>
+
+						<div class="form-group">
+							<label for="password">Password</label>
+							<input type="password" class="form-control" id="password" name="password" required />
+							<small class="form-text text-muted">Minimum 8 characters.</small>
+						</div>
+
+						<div class="form-group">
+							<label for="password_confirm">Confirm Password</label>
+							<input type="password" class="form-control" id="password_confirm" name="password_confirm" required />
+						</div>
+						<p>By creating an account, confirmation is given that the <a href="/privacy-policy" style="color: blue;">Privacy Policy</a> has been read and understood.</p>
+						<button type="submit" class="btn btn-primary">Register</button>
+					</form>
+
+					<hr />
+					<p id="login-link-container"></p>
+					<p>
+						Forgot your password? <a href="/contact">Contact us</a>
+					</p>
+				</div>
+			</div>
+		</main>
+
+		<script src="/js/student/student-register.js" type="module"></script>
+	{% include 'common/footer.html' %}
+</body>
+</html>

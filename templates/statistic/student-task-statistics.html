@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Task Statistics - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+  <link rel="stylesheet" href="/css/statistics/student-task-statistics.css">
+  <link rel="stylesheet" href="/css/statistics/task-statistics.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <!-- Back button -->
+  <div style="padding: 1.5rem 2.5rem 0;">
+    <a href="#" id="back-btn" class="embossed-btn">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
+
+  <!-- Loading / error state -->
+  <div id="page-header" class="loading-spinner">
+    <div class="spinner-border text-primary" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+    <p class="mt-2">Loading statistics...</p>
+  </div>
+
+  <!-- Page header (shown after load) -->
+  <div class="page-header" id="content-header" style="display:none;">
+    <div>
+      <div class="taskset-chip">
+        <span class="taskset-from">Task set</span>
+        <span class="taskset-name" id="taskset-name-label">—</span>
+      </div>
+      <div class="page-title" id="exercise-name">—</div>
+      <div class="page-subtitle">Student attempt review</div>
+    </div>
+    <a class="student-badge" id="student-name-badge" href="#">
+      <i class="fas fa-user-graduate"></i> <span id="student-name-text">—</span>
+    </a>
+  </div>
+
+
+
+  <!-- Main content (shown after load) -->
+  <div class="main" id="content-container" style="display:none;">
+
+    <!-- KPI strip -->
+    <div class="summary-strip">
+      <div class="kpi-card c-brand">
+        <div class="kpi-label">Total Attempts</div>
+        <div id="stat-total" class="kpi-value">—</div>
+        <div class="kpi-sub">submissions made</div>
+      </div>
+      <div class="kpi-card c-green">
+        <div class="kpi-label">Passed</div>
+        <div id="stat-success" class="kpi-value">—</div>
+        <div class="kpi-sub">successful submission</div>
+      </div>
+      <div class="kpi-card c-red">
+        <div class="kpi-label">Failed</div>
+        <div id="stat-failed" class="kpi-value">—</div>
+        <div class="kpi-sub">failed submissions</div>
+      </div>
+      <div class="kpi-card c-amber">
+        <div class="kpi-label">Total Time on Page</div>
+        <div id="kpi-time-to-pass" class="kpi-value">—</div>
+        <div class="kpi-sub">active time spent</div>
+      </div>
+    </div>
+
+    <!-- 2-col layout -->
+    <div class="content-layout">
+
+      <!-- Left: attempts + replay -->
+      <div class="left-col">
+
+        <!-- Task instructions (hidden, shown by JS if available) -->
+        <div class="card" id="task-instructions-box" style="display:none;">
+          <div class="card-header" id="instructions-toggle">
+            <span class="card-title"><i class="fas fa-info-circle mr-2"></i>Task Instructions</span>
+            <div class="card-header-right">
+              <i class="fas fa-chevron-down chevron" id="instructions-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body collapsed" id="instructions-body">
+            <div id="task-instructions-content" style="font-size: 0.9rem; line-height: 1.6; color: #334155;"></div>
+          </div>
+        </div>
+
+        <!-- Attempts (collapsible, open by default) -->
+        <div class="card">
+          <div class="card-header" id="attempts-toggle">
+            <span class="card-title">All Attempts</span>
+            <div class="card-header-right">
+              <span class="card-count" id="attempts-count">0</span>
+              <i class="fas fa-chevron-up chevron open" id="attempts-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body" id="attempts-body">
+            <div class="attempt-list" id="attempts-list"></div>
+          </div>
+        </div>
+
+        <!-- Replay (collapsible, collapsed by default) -->
+        <div class="card">
+          <div class="card-header" id="replay-toggle">
+            <span class="card-title">Replay</span>
+            <div class="card-header-right">
+              <i class="fas fa-chevron-down chevron" id="replay-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body collapsed" id="replay-body">
+            <div class="replay-event-label" id="replay-event-label"></div>
+            <div class="replay-board-wrap" id="replay-board">
+              <div class="replay-col">
+                <div class="replay-col-title">Starter</div>
+                <div id="replay-starter-blocks"></div>
+              </div>
+              <div class="replay-col solution">
+                <div class="replay-col-title">Solution</div>
+                <div id="replay-solution-blocks"></div>
+              </div>
+            </div>
+            <div id="replay-loading"><em class="text-muted">Loading replay...</em></div>
+            <div id="replay-controls" class="replay-controls mt-3">
+              <input type="range" id="replay-slider" min="0" max="0" value="0" disabled class="replay-slider" aria-label="Replay timeline">
+              <div class="replay-btns">
+                <button class="replay-btn" id="replay-prev" disabled>&#9664; Prev</button>
+                <span class="replay-step-label" id="replay-step-label">Step 0 / 0</span>
+                <button class="replay-btn" id="replay-next" disabled>Next &#9654;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: metrics + sessions + model answer -->
+      <div class="right-col">
+
+        <!-- Time metrics 2×2 -->
+        <div class="card">
+          <div class="card-header static" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; padding-bottom:.5rem;">
+            <span class="card-title">Time Metrics</span>
+            <div class="time-toggle-control" id="time-toggle-container" style="display:flex;">
+              <div class="toggle-segment" data-value="total" id="toggle-total" role="button" tabindex="0">
+                <span class="segment-title">Total / Wall-clock</span>
+                <span class="segment-desc">Includes off-page reading</span>
+              </div>
+              <div class="toggle-segment active" data-value="active" id="toggle-active" role="button" tabindex="0">
+                <span class="segment-title">Active / On-page</span>
+                <span class="segment-desc">Only active in task tab</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metric-grid">
+              <div class="metric-cell c-green">
+                <div class="metric-lbl">Time to First Success</div>
+                <div class="metric-val" id="time-to-success">—</div>
+              </div>
+              <div class="metric-cell c-red">
+                <div class="metric-lbl">Time to First Fail</div>
+                <div class="metric-val" id="time-to-fail">—</div>
+              </div>
+              <div class="metric-cell c-brand">
+                <div class="metric-lbl">Thinking Time</div>
+                <div class="metric-val" id="thinking-time" style="font-size:1rem;color:var(--gray)">—</div>
+                <div class="metric-untracked" id="thinking-time-sub">not yet tracked</div>
+              </div>
+              <div class="metric-cell c-gray">
+                <div class="metric-lbl">Moves Made</div>
+                <div class="metric-val" id="move-count">—</div>
+              </div>
+              <div class="metric-cell c-gray" style="grid-column: span 2;">
+                <div class="metric-lbl">Page Exits</div>
+                <div class="metric-val" id="page-exits">—</div>
+              </div>
+            </div>
+            <div id="empty-attempts-item" style="display:none;margin-top:.75rem;font-size:.78rem;color:var(--text-muted);">
+              Empty attempts (filtered out): <span id="stat-empty" style="font-weight:700;">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session log (collapsible, open by default) -->
+        <div class="card">
+          <div class="card-header" id="sessions-toggle">
+            <span class="card-title"><i class="fas fa-clock mr-2"></i>Session Log</span>
+            <div class="card-header-right">
+              <span class="card-count" id="sessions-count">0</span>
+              <i class="fas fa-chevron-up chevron open" id="sessions-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body" id="sessions-body">
+            <div id="sessions-list"></div>
+          </div>
+        </div>
+
+        <!-- Model answer (collapsible, collapsed by default) -->
+        <div class="card">
+          <div class="card-header" id="model-toggle">
+            <span class="card-title">Model Answer</span>
+            <div class="card-header-right">
+              <i class="fas fa-chevron-down chevron" id="model-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body collapsed" id="model-body">
+            <div id="model-answer-content">
+              <em class="text-muted">No model answer available.</em>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/statistics/student-task-statistics.js"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

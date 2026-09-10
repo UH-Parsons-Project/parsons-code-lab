@@ -23,10 +23,6 @@ function setExercisesButtonVisible(visible) {
 	if (globalStatsBtn) {
 		globalStatsBtn.style.display = visible ? 'inline-block' : 'none';
 	}
-	const burgerMenu = document.getElementById('navbar-burger-menu');
-	if (burgerMenu) {
-		burgerMenu.style.display = visible ? 'inline-block' : 'none';
-	}
 }
 
 
@@ -213,7 +209,7 @@ export function initLoginPage() {
 					method: 'POST',
 					headers: {'Content-Type': 'application/json'},
 					body: JSON.stringify({
-						username,
+						email: username,
 						password,
 						unique_link_code: code,
 					}),
@@ -356,6 +352,17 @@ export async function initProtectedPage(loginPageUrl = '/') {
 		// Token invalid, redirect to login
 		window.location.href = loginPageUrl;
 		return;
+	}
+
+	// Show the authenticated navbar state so the burger menu becomes visible.
+	const userInfo = document.getElementById('user-info');
+	if (userInfo) {
+		userInfo.style.display = 'flex';
+	}
+
+	const loginForm = document.getElementById('login-form');
+	if (loginForm) {
+		loginForm.style.display = 'none';
 	}
 
 	// Update username in nav if element exists
@@ -505,10 +512,31 @@ export async function initSignedInAs({
 		}
 	}
 
+	// Student cookie-session fallback — /api/me only covers teacher JWT tokens.
+	// Student sessions are cookie-based; check /api/student/profile instead.
+	if (!name) {
+		try {
+			const response = await fetch('/api/student/profile', {credentials: 'include'});
+			if (response.ok) {
+				const userData = await response.json();
+				if (userData?.username) {
+					name = userData.username;
+					role = 'Student';
+					localStorage.setItem('nickname', name);
+				}
+			}
+		} catch (error) {
+			console.error('Student session fallback failed:', error);
+		}
+	}
+
 	if (name) {
 		userNameEl.textContent = name;
 		displayUserRole(userRoleEl, role);
-		if (userInfoEl) userInfoEl.style.display = 'block';
+		if (userInfoEl) userInfoEl.style.display = 'flex';
+		// Hide login form when user is authenticated
+		const loginForm = document.getElementById('login-form');
+		if (loginForm) loginForm.style.display = 'none';
 	} else {
 		if (userInfoEl) userInfoEl.style.display = 'none';
 	}

@@ -4,6 +4,7 @@ import {
   registerTeacher,
   loginTeacher,
   createTaskSetWithTasks,
+  createTestStudent,
   getStudentUrl,
   registerStudent,
   loginStudent,
@@ -22,7 +23,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     // 1. Teacher registers & logs in
     await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
     await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-    await loginTeacher(page, teacherUsername, teacherPassword);
+    await loginTeacher(page, teacherEmail, teacherPassword);
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
     // 2. Teacher creates a task set with 1 initial task ('add_in_range')
@@ -117,7 +118,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     //    - 'greater_num': the newly-added task to verify visibility
     await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
     await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-    await loginTeacher(page, teacherUsername, teacherPassword);
+    await loginTeacher(page, teacherEmail, teacherPassword);
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
     await createTaskSetWithTasks(
@@ -169,18 +170,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     const studentEmail = `student_add_${unique}@example.com`;
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-    // After registration, student is redirected back to task set page for login
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
-
-    const loginResponsePromise = studentPage.waitForResponse(
-      r => r.url().includes('/api/student_login')
-    );
-    await loginStudent(studentPage, studentUsername);
-    const loginResponse = await loginResponsePromise;
-    expect(loginResponse.status()).toBe(200);
-
+    // Registration now auto-logs in and redirects directly to /tasks.
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // 5. Verify student sees BOTH tasks (initial + newly added via Edit Mode)
@@ -193,6 +183,96 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     await studentPage.locator('#start-btn').click();
 
     await submitTaskWrongThenCorrect(studentPage);
+
+    await studentContext.close();
+  });
+
+  test('teacher can reorder tasks in a task set and student sees the new order', async ({ page, browser }) => {
+    const unique = Date.now();
+    const teacherUsername = `t_reorder_${unique}`;
+    const teacherEmail = `t_reorder_${unique}@example.com`;
+    const teacherPassword = 'password123';
+    const taskSetTitle = `Task Set Reorder Test ${unique}`;
+
+    // 1. Teacher registers & logs in
+    await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
+    await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+    await loginTeacher(page, teacherEmail, teacherPassword);
+    await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+    // 2. Teacher creates a task set with 2 tasks in initial order: ['add_in_range', 'greater_num']
+    await createTaskSetWithTasks(
+      page,
+      taskSetTitle,
+      `Student description ${unique}`,
+      `Teacher description ${unique}`,
+      ['add_in_range', 'greater_num']
+    );
+    await page.waitForURL(/\/(teacher-dashboard|)$/, { timeout: 15000 });
+    if (!page.url().includes('teacher-dashboard')) {
+      await page.waitForURL(/\/teacher-dashboard$/, { timeout: 15000 });
+    }
+
+    // 3. Open Task Set Overview page
+    await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+    await page.waitForURL(/\/task-set-overview/, { timeout: 10000 });
+    await page.waitForSelector('#content-container', { state: 'visible', timeout: 10000 });
+
+    // Verify initial task order: 1. add_in_range, 2. greater_num
+    const initialTaskTitles = page.locator('#tasks-list .task-set-title');
+    await expect(initialTaskTitles.nth(0)).toHaveText('add_in_range');
+    await expect(initialTaskTitles.nth(1)).toHaveText('greater_num');
+
+    // 4. Enter Edit Mode
+    const editTasksBtn = page.locator('#edit-tasks-btn');
+    await editTasksBtn.click();
+    await expect(editTasksBtn).toHaveText(/Done Editing/);
+
+    // 5. Reorder tasks: drag second task ('greater_num') over first task ('add_in_range')
+    await page.evaluate(() => {
+      const items = document.querySelectorAll('#tasks-list-edit .task-set-item');
+      if (items.length >= 2) {
+        const first = items[0];
+        const second = items[1];
+        second.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true }));
+        first.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true }));
+        second.dispatchEvent(new DragEvent('dragend', { bubbles: true, cancelable: true }));
+      }
+    });
+
+    // Verify edit mode UI shows updated order
+    const reorderedEditTitles = page.locator('#tasks-list-edit .task-set-title');
+    await expect(reorderedEditTitles.nth(0)).toHaveText('greater_num');
+    await expect(reorderedEditTitles.nth(1)).toHaveText('add_in_range');
+
+    // 6. Click "Done Editing" to save reordered task list
+    await editTasksBtn.click();
+    await expect(editTasksBtn).toHaveText(/Edit Tasks/);
+
+    // Verify overview page displays updated order
+    const overviewTaskTitles = page.locator('#tasks-list-active .task-set-title');
+    await expect(overviewTaskTitles.nth(0)).toHaveText('greater_num');
+    await expect(overviewTaskTitles.nth(1)).toHaveText('add_in_range');
+
+    // 7. Get Student URL and verify student sees new task order
+    await page.goto('/teacher-dashboard');
+    await page.waitForSelector('.task-set-title', { timeout: 10000 });
+    const studentUrl = await getStudentUrl(page, taskSetTitle);
+
+    const studentContext = await browser.newContext();
+    const studentPage = await studentContext.newPage();
+    const studentUsername = `st_reorder_${unique % 1000000}`;
+    const studentEmail = `st_reorder_${unique}@example.com`;
+
+    await createTestStudent(studentPage, studentUsername, studentEmail);
+    await studentPage.goto(studentUrl);
+    await loginStudent(studentPage, studentEmail);
+    await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
+
+    // Verify student sees tasks in the NEW order (nth(0) is the optional warm-up demo task "Hello, stranger!")
+    const studentTaskTitles = studentPage.locator('.task-set-item .task-set-title');
+    await expect(studentTaskTitles.nth(1)).toHaveText('greater_num');
+    await expect(studentTaskTitles.nth(2)).toHaveText('add_in_range');
 
     await studentContext.close();
   });

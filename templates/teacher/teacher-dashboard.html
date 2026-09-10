@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Dashboard - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/components/action-buttons.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+</head>
+
+<body>
+
+  {% include 'common/nav-teacher.html' %}
+
+  <div class="page-header">
+    <div class="page-title">My Dashboard</div>
+    <div class="page-subtitle">Select a task set to view its statistics and analytics</div>
+  </div>
+
+  <div class="dashboard-main">
+
+    <div class="top-actions">
+      <a href="/admin-dashboard" id="all-sets-button" class="btn btn-primary" style="display: none;"><i class="fas fa-shield-alt"></i> Admin Dashboard</a>
+      <a href="/global-statistics" id="global-stats-btn" class="nav-link-btn"><i class="fas fa-database"></i> Task Database</a>
+      <a href="/instructions" id="instructions-btn" class="nav-link-btn"><i class="fas fa-info-circle"></i> Instructions</a>
+    </div>
+
+    <div class="parallel-layout">
+      <div class="parallel-col">
+        <div id="task-sets-container" class="loading-spinner">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p class="mt-2">Loading task sets...</p>
+        </div>
+      </div>
+      <div class="parallel-col" id="your-tasks-container"></div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/teacher/teacher-dashboard.js"></script>
+
+{% include 'common/footer.html' %}
+</body>
+</html>

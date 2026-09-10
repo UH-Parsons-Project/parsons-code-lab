@@ -20,7 +20,7 @@ test('teacher can see empty student submission in task set statistics under "stu
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskSetWithTasks(
@@ -44,12 +44,8 @@ test('teacher can see empty student submission in task set statistics under "stu
   const studentEmail = `student_stat_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
-
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Click on the "add_in_range" task

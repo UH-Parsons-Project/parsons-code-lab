@@ -1,0 +1,54 @@
+<nav class="navbar">
+  <div class="d-flex align-items-center">
+    <a href="/teacher-dashboard" class="title-logo-link">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <span class="ml-3 d-none d-md-inline" style="font-size: 1.2rem; color: #0056b3; white-space: nowrap; border-left: 3px solid #0056b3; padding-left: 1rem;">
+      <i class="fas fa-chalkboard-teacher"></i> <strong>Teacher Dashboard</strong>
+    </span>
+  </div>
+  <div class="ml-auto d-flex align-items-center" id="auth-section">
+{% if not request or not request.url or request.url.path not in ['/teacher-register', '/student-register'] %}
+    <form class="form-inline" id="login-form">
+      <div id="error-message" class="text-danger mr-2" style="display: none;"></div>
+      <input class="form-control mr-2" type="text" id="username" placeholder="Username or email" aria-label="Username or email" required>
+      <input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
+      <button class="btn btn-outline-dark btn-sm mr-2" id="login-btn" type="submit">Login</button>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="forgot-password-btn" href="/contact">Forgot password?</a>
+      {% if saml_enabled %}<a class="btn btn-outline-dark btn-sm mr-2" href="/auth/saml/login" id="saml-login-btn">HY Login</a>{% endif %}
+      <button class="btn btn-outline-dark btn-sm mr-2" id="register-btn" type="button">Register</button>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
+    </form>
+{% endif %}
+    <div id="user-info" class="align-items-center text-dark" style="display: none;">
+      <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
+        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
+      </a>
+      <div class="navbar-burger-menu" id="navbar-burger-menu" style="margin-left: 1rem;">
+        <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
+          <a href="/global-statistics" class="navbar-burger-item">
+            <i class="fas fa-database"></i> Task Database
+          </a>
+          <a href="/teacher-dashboard" class="navbar-burger-item">
+            <i class="fas fa-chalkboard-teacher"></i> My Dashboard
+          </a>
+          <a href="/instructions" class="navbar-burger-item">
+            <i class="fas fa-info-circle"></i> Instructions
+          </a>
+          <a href="/teacher/profile" class="navbar-burger-item">
+            <i class="fas fa-cog"></i> Profile Settings
+          </a>
+          <a href="#" class="navbar-burger-item" id="start-tour-menu-item">
+            <i class="fas fa-question-circle"></i> Start Page Tour
+          </a>
+          <a href="#" class="navbar-burger-item text-danger" id="logout-btn" style="border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

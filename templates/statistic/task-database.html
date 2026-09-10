@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Task Database - Parsons Code Lab</title>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+			integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+			crossorigin="anonymous"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://use.fontawesome.com/releases/v5.6.3/css/all.css"
+		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+		<link rel="stylesheet" href="/js-parsons/parsons.css" />
+		<link rel="stylesheet" href="/css/base/main.css" />
+		<link rel="stylesheet" href="/css/teacher/teacher-dashboard.css" />
+		<link rel="stylesheet" href="/css/statistics/global-statistics.css" />
+	</head>
+	<body>
+		{% include 'common/nav-teacher.html' %}
+		<div class="page-header">
+			<div class="page-title">Task Database</div>
+			<div class="page-subtitle">Browse tasks, view details, and favorite exercises to build task sets</div>
+		</div>
+		<div class="dashboard-main">
+			<div class="top-actions mb-3 d-flex align-items-center">
+				<a href="/teacher-dashboard" id="teacher-dashboard-btn" class="nav-link-btn mr-2"><i class="fas fa-chalkboard-teacher"></i> My Dashboard</a>
+				<a href="/instructions" id="instructions-btn" class="nav-link-btn mr-3"><i class="fas fa-info-circle"></i> Instructions</a>
+				<div id="task-count-badge" style="display: none; font-weight: 600; background-color: #f1f5f9; border: 1px solid #e2e8f0; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; color: #475569; margin-bottom: 0;"></div>
+			</div>
+			<div class="gs-layout">
+				<div class="gs-list-col">
+
+					<div class="mb-4">
+						<div id="universal-task-search"></div>
+					</div>
+				<div id="problems-list" class="loading-spinner">
+					<div class="spinner-border text-primary" role="status">
+						<span class="sr-only">Loading...</span>
+					</div>
+					<p class="mt-2">Loading exercises...</p>
+				</div>
+			</div>
+			<div class="gs-preview-col">
+				<div id="task-preview-panel">
+					<div class="preview-empty-state">
+						<i class="fas fa-mouse-pointer"></i>
+						<p>Hover over a task to see a quick overview</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script type="module" src="/js/task/task-database.js"></script>
+	{% include 'common/footer.html' %}
+</body>
+</html>

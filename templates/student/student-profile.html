@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Profile - Parsons Code Lab</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+  <link rel="stylesheet" href="/css/components/profile.css">
+  <link rel="stylesheet" href="/css/student/student-profile.css">
+</head>
+<body>
+
+  {% include 'common/nav-student.html' %}
+
+  <div class="student-page-toolbar">
+    <a href="#" id="page-back-btn" class="embossed-btn" title="Back" style="margin-left: 0;">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+  </div>
+
+  <div class="container pt-5 pb-4">
+    <div class="row">
+      <!-- Left Column: Profile Info and Change Email -->
+      <div class="col-lg-6">
+        
+        <!-- Profile Info Card -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">
+              <i class="fas fa-id-card"></i> Profile Info
+            </h2>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <div class="info-label">Nickname</div>
+                <div id="profile-username" class="info-value">—</div>
+              </div>
+              <div class="col-6 mb-3">
+                <div class="info-label">Member Since</div>
+                <div id="profile-created" class="info-value">—</div>
+              </div>
+              <div class="col-12">
+                <div class="info-label">Email</div>
+                <div id="profile-email" class="info-value">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Change Email Form -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">
+              <i class="fas fa-envelope"></i> Change Email
+            </h2>
+            <div id="email-alert-placeholder"></div>
+            <form id="change-email-form">
+              <div class="form-group">
+                <label for="new-email" class="font-weight-bold text-secondary">New Email Address</label>
+                <input type="email" class="form-control" id="new-email" name="email" maxlength="100" required>
+              </div>
+              <div class="form-group">
+                <label for="email-confirm-password" class="font-weight-bold text-secondary">Current Password</label>
+                <input type="password" class="form-control" id="email-confirm-password" name="password" required>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                Update Email
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Joined Task Sets -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">
+              <i class="fas fa-list-ul"></i> My Task Sets
+            </h2>
+            <div id="enrolled-sets-container" class="mt-3">
+              <div class="text-muted">Loading my task sets...</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Change Password -->
+      <div class="col-lg-6">
+        <!-- Change Password Form -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">
+              <i class="fas fa-key"></i> Change Password
+            </h2>
+            <div id="password-alert-placeholder"></div>
+            <form id="change-password-form">
+              <div class="form-group">
+                <label for="current-password" class="font-weight-bold text-secondary">Current Password</label>
+                <input type="password" class="form-control" id="current-password" name="current_password" required>
+              </div>
+              <div class="form-group">
+                <label for="new-password" class="font-weight-bold text-secondary">New Password</label>
+                <input type="password" class="form-control" id="new-password" name="new_password" required>
+                <small class="form-text text-muted">Minimum 8 characters.</small>
+              </div>
+              <div class="form-group">
+                <label for="new-password-confirm" class="font-weight-bold text-secondary">Confirm New Password</label>
+                <input type="password" class="form-control" id="new-password-confirm" name="new_password_confirm" required>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                Update Password
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+	{% include 'common/footer.html' %}
+
+  <script src="/js/student/student-profile.js" type="module"></script>
+</body>
+</html>

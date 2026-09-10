@@ -1,11 +1,17 @@
+from pathlib import Path
 from typing import Iterable, Callable, Any
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models import TaskSetItem
+from ... import config
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
 async def get_task_set_or_404(db: AsyncSession, task_set_model, task_set_id: int):
@@ -80,6 +86,7 @@ def build_taskset_response_list(rows: Iterable):
             "student_description": ps.student_description,
             "teacher_description": ps.teacher_description,
             "created_at": ps.created_at.isoformat(),
+            "opens_at": ps.opens_at.isoformat() if getattr(ps, "opens_at", None) else None,
             "expires_at": ps.expires_at.isoformat() if ps.expires_at else None,
             "student_count": student_count,
             "task_count": task_count,
@@ -90,6 +97,20 @@ def build_taskset_response_list(rows: Iterable):
 def set_no_cache_headers(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
+    return response
+
+
+def render_template(template_name: str, request: Request, status_code: int = 200, headers: dict | None = None):
+    response = templates.TemplateResponse(
+        request=request,
+        name=template_name,
+        status_code=status_code,
+        context={"saml_enabled": config.SAML_ENABLED},
+    )
+    set_no_cache_headers(response)
+    if headers:
+        for k, v in headers.items():
+            response.headers[k] = v
     return response
 
 
@@ -140,14 +161,19 @@ def validate_registration_basic(username: str, password: str, password_confirm: 
         )
 
 
-async def ensure_unique_user(db: AsyncSession, model, username: str, email: str):
-    stmt = select(model).where((model.username == username) | (model.email == email))
+async def ensure_unique_user(db: AsyncSession, model, username: str, email: str, check_username: bool = True):
+    if check_username:
+        stmt = select(model).where((model.username == username) | (model.email == email))
+    else:
+        stmt = select(model).where(model.email == email)
+
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
     if existing:
+        detail = "Username or email already exists" if check_username else "Email already exists"
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
+            detail=detail,
         )
 
 
