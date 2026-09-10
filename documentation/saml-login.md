@@ -70,20 +70,40 @@ The unlinked test page is available only when both `SAML_ENABLED=true` and
 It is not linked from the normal navigation and has `noindex` metadata. Open
 the page, start HY login, and verify the redirect to `/teacher-dashboard`.
 Before that, open `/Shibboleth.sso/Metadata` and verify that the XML contains
-the registered SP entity ID and certificate.
+the registered SP entity ID and certificate, and that all endpoint URLs
+(`AssertionConsumerService`, `SingleLogoutService`,
+`ArtifactResolutionService`) use `https://`. If they show `http://`, check the
+`ServerName` scheme prefix in `apache/shibboleth-proxy.conf` — Apache runs on
+plain HTTP behind the OpenShift edge-terminated route, so it cannot detect TLS
+on its own. Setting `ServerName https://<host>` makes Apache report `https` as
+its default scheme, which mod_shib then uses consistently for both matching
+`/Shibboleth.sso/*` requests and building endpoint URLs. Do not make
+`handlerURL` in `shibboleth2.xml` an absolute `https://` URL instead — that
+makes mod_shib require the actual detected connection scheme to be `https`
+before it will handle the request, which fails behind edge termination and
+causes `/Shibboleth.sso/Metadata` to 404.
 
 The Shibboleth login integration is disabled unless `SAML_ENABLED=true`.
 
 ## Build the OpenShift proxy image
 
 The Apache/Shibboleth proxy is built separately from the application image and
-runs as a sidecar. Build and push it to the image registry used by the staging
-Deployment:
+runs as a sidecar. The staging workflow (`.github/workflows/staging.yml`)
+builds and pushes it automatically on every push to `main`, alongside the
+application image. To build and push it manually instead:
 
 ```bash
 docker build -f apache/Dockerfile \
   -t quay.io/tike/ohtu-faded-parsons-shibboleth:staging apache
 docker push quay.io/tike/ohtu-faded-parsons-shibboleth:staging
+```
+
+Because there is no ImageStream trigger for the `shibboleth-proxy` container,
+a new image push does not redeploy it automatically. Roll out the deployment
+after a new image is pushed:
+
+```bash
+oc -n timed-parsons rollout restart deployment/faded-parsons-staging
 ```
 
 The existing `cert-and-private-key` Secret is used for the Shibboleth SP

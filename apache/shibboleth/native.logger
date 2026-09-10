@@ -1,0 +1,17 @@
+# Debug logging for mod_shib (the Apache-side Shibboleth SP module).
+# Apache's own "LogLevel shib:debug" does NOT work here because mod_shib
+# registers under the internal name "mod_shib", not "shib_module", so Apache
+# can't resolve a per-module log tag named "shib" and refuses to start.
+# mod_shib logs through log4shib instead, configured here, independent of
+# Apache's LogLevel — this is the safe way to get verbose SSO/handler logs.
+log4j.rootCategory=INFO, native_log
+log4j.category.XMLTooling=WARN
+log4j.category.OpenSSL=WARN
+log4j.category.Shibboleth=DEBUG
+
+log4j.appender.native_log=RollingFileAppender
+log4j.appender.native_log.fileName=/var/log/shibboleth/native.log
+log4j.appender.native_log.maxFileSize=10000KB
+log4j.appender.native_log.maxBackupIndex=1
+log4j.appender.native_log.layout=PatternLayout
+log4j.appender.native_log.layout.ConversionPattern=%d{%Y-%m-%d %H:%M:%S} %p %c %x: %m%n

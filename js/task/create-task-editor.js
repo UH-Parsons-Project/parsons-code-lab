@@ -4,10 +4,11 @@
  */
 import { FiniteWorker } from '../core/worker-manager.js';
 import { processTestError } from '../core/doctest-grader.js';
-import { initProtectedPage, initBurgerMenu } from "../core/auth-ui.js";
+import { initProtectedPage, initBurgerMenu, initSignedInAs } from "../core/auth-ui.js";
 import { escapeHtml } from '../utils/ui-utils.js';
 import { buildReprFromBlocks, buildCustomRepr, renderParsonsBoard } from '../utils/parsons-editor-utils.js';
 
+initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
 
@@ -2088,8 +2089,6 @@ initBurgerMenu();
       const evalTypeInput = document.getElementById('eval-type');
       if (evalTypeInput) {
         evalTypeInput.value = taskData.correct_solution?.eval_type || 'unit_test';
-        // Delay the dispatch slightly to ensure DOM is ready for the UI update
-        setTimeout(() => evalTypeInput.dispatchEvent(new Event('change')), 0);
       }
       
       const expectedOutputInput = document.getElementById('expected-output-input');
@@ -2235,7 +2234,6 @@ initBurgerMenu();
     if (evalTypeInput) {
       // draft.evalType takes priority: the user may have changed it on step 1
       evalTypeInput.value = draft.evalType || apiTaskData?.correct_solution?.eval_type || 'unit_test';
-      evalTypeInput.dispatchEvent(new Event('change'));
     }
     const expectedOutputInput = document.getElementById('expected-output-input');
     if (expectedOutputInput) expectedOutputInput.value = draft.expectedOutput || apiTaskData?.correct_solution?.expected_output || '';

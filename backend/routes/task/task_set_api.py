@@ -1,19 +1,17 @@
 import io
-import json
 import zipfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from sqlalchemy import and_, case, delete, func, or_, select
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import and_, case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...teacher_auth import CurrentUser, OptionalCurrentUser
+from ...teacher_auth import CurrentUser
 from ...database import get_db
 from ...models import (
     EditEvent,
-    ModelAnswer,
     MoveEvent,
     Parsons,
     Student,
@@ -25,25 +23,21 @@ from ...models import (
     TaskSetItem,
     TaskSetViewer,
     Teacher,
-    TeacherFavoriteTask,
 )
 from ...pydantic import (
     CreateProblemRequest,
     CreateTaskSetRequest,
     InitialEventsExportRequest,
     StudentInTaskSetResponse,
-    TaskResponse,
     TaskSetResponse,
     TaskSetTaskResponse,
     TaskSetViewerRequest,
     TaskSetViewerResponse,
-    TeacherLookupResponse,
     UpdateExpiresAtRequest,
     UpdateOpensAtRequest,
     UpdateTaskSetTasksRequest,
 )
-from ...utils.task import is_task_editable
-from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
+from ...utils.taskset import require_task_set_view_access
 from backend.utils import generate_slug
 from ..utils.commons import (
     build_taskset_response_list,
@@ -83,61 +77,6 @@ def _initial_events_csv(rows: list[list[str]]) -> str:
 def _safe_filename_part(value: str, fallback: str) -> str:
     safe = "".join(char if char.isalnum() or char in "-_" else "_" for char in (value or ""))
     return safe.strip("_") or fallback
-ALLOWED_TASK_TYPES = {
-    "algorithms",
-    "arithmetic",
-    "booleans",
-    "classes",
-    "comprehensions",
-    "conditionals",
-    "debugging",
-    "dictionaries",
-    "exceptions",
-    "files",
-    "functions",
-    "imports",
-    "input",
-    "lists",
-    "loops",
-    "other",
-    "printing",
-    "recursion",
-    "searching",
-    "sets",
-    "sorting",
-    "strings",
-    "testing",
-    "tuples",
-    "typecasting",
-    "variables",
-}
-
-
-def _normalize_task_type(task_type: str | None) -> str:
-    return (task_type or "").strip().lower()
-
-
-def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
-    normalized = _normalize_task_type(task_type)
-    if not normalized:
-        return "Faded" if has_faded else "normal"
-
-    if normalized in ALLOWED_TASK_TYPES:
-        return normalized
-
-    if normalized == "normal":
-        return "normal"
-
-    if normalized == "faded":
-        return "Faded"
-
-    if normalized not in ALLOWED_TASK_TYPES:
-        allowed = ", ".join(sorted(ALLOWED_TASK_TYPES))
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"task_type is required and must be one of: {allowed}",
-        )
-    return normalized
 
 
 def _validate_task_set_dates(opens_at: datetime | None, expires_at: datetime | None) -> None:
