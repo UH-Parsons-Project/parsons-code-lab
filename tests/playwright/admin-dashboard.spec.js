@@ -130,6 +130,72 @@ test('admin can view and add task type tags', async ({ page }) => {
   await expect(page.locator('#task-tag-modal')).toBeHidden();
 });
 
+test('admin-created task tag is available and persists when creating a task', async ({ page }) => {
+  await page.goto('/admin-dashboard');
+  await expect(page).toHaveURL(/\/admin-dashboard$/);
+  await page.waitForSelector('#task-types-list .task-tag-chip', { timeout: 10000 });
+
+  const unique = Date.now();
+  const tagLabel = `E2E Integration Tag ${unique}`;
+  const taskTitle = `E2E Integration Task ${unique}`;
+
+  await page.getByRole('button', { name: '+ Add tag' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add tag' })).toBeVisible();
+  await page.locator('#task-tag-name').fill(tagLabel);
+  await page.getByRole('button', { name: 'Add tag', exact: true }).last().click();
+  await expect(page.locator('#task-types-list .task-tag-chip').filter({ hasText: tagLabel })).toHaveCount(1);
+
+  await page.goto('/create-task');
+  await expect(page).toHaveURL(/\/create-task$/);
+
+  const taskCode = 'def integration_tag_task():\n    return True';
+  const taskTests = 'assert integration_tag_task() == True';
+  const blocksRepr = 'def integration_tag_task(): #0given\nreturn True #1given';
+
+  await page.locator('#eval-type').selectOption('unit_test');
+  await page.locator('#task-code').fill(taskCode);
+  await page.locator('#task-tests').fill(taskTests);
+  await page.evaluate(({ taskCode, blocksRepr }) => {
+    sessionStorage.setItem('create_task_builder_blocks', blocksRepr);
+    sessionStorage.setItem('create_task_builder_blocks_source', taskCode);
+  }, { taskCode, blocksRepr });
+
+  await page.locator('#submit-task').click();
+  await page.waitForURL(/\/create-task-editor/, { timeout: 10000 });
+
+  const taskTagOption = page.locator('#task-type option').filter({ hasText: tagLabel });
+  await expect(taskTagOption).toHaveCount(1);
+  await page.locator('#task-type').selectOption({ label: tagLabel });
+  const selectedTag = await page.locator('#task-type').inputValue();
+  expect(selectedTag).toBeTruthy();
+
+  await page.locator('#task-title').fill(taskTitle);
+  await page.locator('#problem-description').fill('Verify an admin-created task tag persists on a new task.');
+  await page.locator('#start-description').fill('Practice creating a task with an administrator-managed tag.');
+  await page.waitForSelector('#solution-sortable ul li', { timeout: 10000 });
+
+  await page.locator('#run-tests').click();
+  await expect(page.locator('#test-results')).toContainText('All tests passed!', { timeout: 30000 });
+  await page.locator('#set-model-answer').click();
+  await expect(page.locator('#model-answer-status')).toContainText('Model answer saved', { timeout: 10000 });
+
+  await page.locator('#preview-student-view').click();
+  await expect(page.locator('#student-preview-modal')).toBeVisible();
+  await page.locator('#close-student-preview').click();
+  await expect(page.locator('#student-preview-modal')).toBeHidden();
+  await expect(page.locator('#add-to-problem-list')).toBeEnabled();
+
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#add-to-problem-list').click();
+  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 15000 });
+
+  const myTasksResponse = await page.request.get('/api/my_tasks');
+  expect(myTasksResponse.ok()).toBeTruthy();
+  const myTasks = await myTasksResponse.json();
+  const savedTask = myTasks.find(task => task.title === taskTitle);
+  expect(savedTask).toMatchObject({ title: taskTitle, task_type: selectedTag });
+});
+
 test('admin can select and deactivate multiple task type tags', async ({ page }) => {
   await page.goto('/admin-dashboard');
   await page.waitForSelector('#task-types-list .task-tag-chip', { timeout: 10000 });
