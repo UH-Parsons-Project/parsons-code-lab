@@ -46,6 +46,28 @@ test('teacher cannot login with non-registered credentials', async ({ page }) =>
   );
 });
 
+test('teacher dashboard stays accessible when auth is only in cookies', async ({ page }) => {
+  const unique = Date.now();
+  const username = `teacher_cookie_${unique}`;
+  const email = `teacher_cookie_${unique}@example.com`;
+  const password = 'password123';
+
+  await registerTeacher(page, username, email, password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+  await expect(page.locator('#alert-placeholder .alert-success')).toContainText(
+    'Registration successful.'
+  );
+
+  await loginTeacher(page, email, password);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+  await expect(page.locator('#user-name')).toBeVisible();
+});
+
 test('teacher can logout after successful login', async ({ page }) => {
   const unique = Date.now();
   const username = `teacher_logout_${unique}`;
@@ -227,5 +249,35 @@ test('teacher session expiry redirects to login', async ({ page, context }) => {
   // Verify redirected to login
   await page.waitForURL(url => url.pathname === '/', { timeout: 10000 });
   await expect(page.locator('#login-form')).toBeVisible();
+});
+
+test('expired hy cookie clears stale cached auth state', async ({ page, context }) => {
+  const unique = Date.now();
+  const username = `teacher_hy_cleanup_${unique}`;
+  const email = `teacher_hy_cleanup_${unique}@example.com`;
+  const password = 'password123';
+
+  await registerTeacher(page, username, email, password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+
+  await loginTeacher(page, email, password);
+  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
+
+  await context.clearCookies();
+  await page.evaluate(() => {
+    localStorage.setItem('auth_token', 'stale-token');
+    localStorage.setItem('username', 'stale-user');
+  });
+
+  await page.reload();
+
+  await page.waitForURL(url => url.pathname === '/', { timeout: 10000 });
+  await expect(page.locator('#login-form')).toBeVisible();
+
+  const authState = await page.evaluate(() => ({
+    token: localStorage.getItem('auth_token'),
+    username: localStorage.getItem('username'),
+  }));
+  expect(authState).toEqual({ token: null, username: null });
 });
 

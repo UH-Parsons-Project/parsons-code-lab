@@ -100,12 +100,19 @@ def set_no_cache_headers(response):
     return response
 
 
-def render_template(template_name: str, request: Request, status_code: int = 200, headers: dict | None = None):
+def render_template(
+    template_name: str,
+    request: Request,
+    status_code: int = 200,
+    headers: dict | None = None,
+    context: dict | None = None,
+):
+    template_context = {"saml_enabled": config.SAML_ENABLED, **(context or {})}
     response = templates.TemplateResponse(
         request=request,
         name=template_name,
         status_code=status_code,
-        context={"saml_enabled": config.SAML_ENABLED},
+        context=template_context,
     )
     set_no_cache_headers(response)
     if headers:

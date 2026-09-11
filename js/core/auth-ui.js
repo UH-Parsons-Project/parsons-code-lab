@@ -340,16 +340,22 @@ export async function initProtectedPage(loginPageUrl = '/') {
 	const token = getAuthToken();
 	const username = getUsername();
 
-	// If no token or username, redirect immediately
-	if (!token || !username) {
-		window.location.href = loginPageUrl;
-		return;
+	// Do not redirect immediately when the browser has a valid cookie session.
+	// The backend will tell us whether the session is actually authenticated.
+	if (!token && !username) {
+		const userData = await verifyAuth();
+		if (!userData) {
+			window.location.href = loginPageUrl;
+			return;
+		}
 	}
 
-	// Verify token with backend
+	// Verify token with backend, including cookie-based sessions.
 	const userData = await verifyAuth();
 	if (!userData) {
-		// Token invalid, redirect to login
+		// Token invalid or expired; clear stale HY auth state before redirecting.
+		localStorage.removeItem('auth_token');
+		localStorage.removeItem('username');
 		window.location.href = loginPageUrl;
 		return;
 	}
