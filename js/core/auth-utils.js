@@ -28,11 +28,20 @@ export function setAuth(token, username) {
 }
 
 /**
+ * Clear cached HY login auth data stored in browser localStorage.
+ * This is used when a browser session expires and the app needs to drop
+ * stale teacher auth state without touching unrelated localStorage keys.
+ */
+export function clearHyAuth() {
+	localStorage.removeItem(AUTH_TOKEN_KEY);
+	localStorage.removeItem(USERNAME_KEY);
+}
+
+/**
  * Clear authentication data (logout)
  */
 export function clearAuth() {
-	localStorage.removeItem(AUTH_TOKEN_KEY);
-	localStorage.removeItem(USERNAME_KEY);
+	clearHyAuth();
 }
 
 /**
@@ -47,22 +56,24 @@ export function isAuthenticated() {
  */
 export async function verifyAuth() {
 	const token = getAuthToken();
-	if (!token) {
-		return null;
-	}
 
 	try {
 		const response = await fetch('/api/me', {
-			headers: {
-				'Authorization': `Bearer ${token}`
-			}
+			credentials: 'include',
+			headers: token
+				? {
+						'Authorization': `Bearer ${token}`
+					}
+				: {},
 		});
 
 		if (response.ok) {
 			return await response.json();
 		} else {
-			// Token is invalid, clear it
-			clearAuth();
+			if (token) {
+				// Token is invalid, clear stale HY auth state
+				clearHyAuth();
+			}
 			return null;
 		}
 	} catch (error) {
