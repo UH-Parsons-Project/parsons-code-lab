@@ -1,7 +1,7 @@
 """Remove task type display ordering.
 
-Revision ID: f3a4b5c6d7e8
-Revises: e2f3a4b5c6d7
+Revision ID: 8b2d6f1a4c9e
+Revises: 7a91c6e4b2d8
 Create Date: 2026-08-25
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "f3a4b5c6d7e8"
-down_revision: Union[str, Sequence[str], None] = "e2f3a4b5c6d7"
+revision: str = "8b2d6f1a4c9e"
+down_revision: Union[str, Sequence[str], None] = "7a91c6e4b2d8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

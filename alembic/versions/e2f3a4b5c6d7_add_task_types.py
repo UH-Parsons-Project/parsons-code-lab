@@ -1,6 +1,6 @@
 """Add database-backed task type tags.
 
-Revision ID: e2f3a4b5c6d7
+Revision ID: 7a91c6e4b2d8
 Revises: d1e2f3a4b5c6
 Create Date: 2026-08-17
 
@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "e2f3a4b5c6d7"
+revision: str = "7a91c6e4b2d8"
 down_revision: Union[str, Sequence[str], None] = "d1e2f3a4b5c6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
