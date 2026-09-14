@@ -63,15 +63,9 @@ def _sanitize_model_answer_code(code: str | None) -> str:
     sanitized = re.sub(r"<input[^>]*>", "", sanitized, flags=re.IGNORECASE)
 
     def _replace_blank_markers(match: re.Match[str]) -> str:
-        marker = match.group(0)
-        if marker.lower().startswith("#blank"):
-            suffix = marker[6:].strip()
-            if suffix:
-                return suffix
-            return ""
-        return marker
+        return match.group(1).strip()
 
-    sanitized = re.sub(r"#blank\w*", _replace_blank_markers, sanitized)
+    sanitized = re.sub(r"#blank([^#]*)#?", _replace_blank_markers, sanitized, flags=re.IGNORECASE)
     return sanitized.strip()
 
 
@@ -347,7 +341,7 @@ async def create_problem(
 
     given_indent_re = re.compile(r"#(\d+)given\s*")
     preplace_re = re.compile(r"#preplace\s*")
-    blank_marker_re = re.compile(r"\s#blank[^#]*")
+    blank_marker_re = re.compile(r"\s#blank[^#]*#?")
 
     blocks = []
     has_faded = False
@@ -402,6 +396,7 @@ async def create_problem(
         code_blocks={
             "blocks": blocks,
             "function_header": function_header,
+            "parsons_repr": parsons_repr,
         },
         correct_solution={
             "correct_order": [block["id"] for block in blocks],
@@ -584,7 +579,7 @@ async def update_problem(
 
     given_indent_re = re.compile(r"#(\d+)given\s*")
     preplace_re = re.compile(r"#preplace\s*")
-    blank_marker_re = re.compile(r"\s#blank[^#]*")
+    blank_marker_re = re.compile(r"\s#blank[^#]*#?")
 
     blocks = []
     has_faded = False
@@ -634,7 +629,11 @@ async def update_problem(
     task.task_instructions = task_instructions_payload
     task.description = start_description
     task.task_type = requested_task_type
-    task.code_blocks = {"blocks": blocks, "function_header": function_header}
+    task.code_blocks = {
+        "blocks": blocks,
+        "function_header": function_header,
+        "parsons_repr": parsons_repr,
+    }
     task.correct_solution = {
         "correct_order": [block["id"] for block in blocks],
         "teacher_tests": tests,

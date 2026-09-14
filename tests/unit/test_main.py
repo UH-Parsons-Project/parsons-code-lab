@@ -1542,6 +1542,34 @@ class TestCreateProblemApi:
         assert "!BLANK" not in faded_block["code"]
         assert created_task.correct_solution["solution_code"].count("!BLANK") == 1
 
+    async def test_create_problem_preserves_solution_representation_with_multiple_blanks(
+        self, client, test_teacher, db_session
+    ):
+        payload = {
+            "taskTitle": "Multiple Blanks In One Block",
+            "description": "Return the range sum.",
+            "startDescription": "Practice loops.",
+            "tests": "assert loop(1, 3) == 6",
+            "solutionCode": "def loop(start, stop):\n    while !BLANK <= !BLANK:\n        start += 1\n    return start",
+            "parsonsRepr": "def loop(start, stop): #0given #preplace\nwhile !BLANK <= !BLANK: #1given #blankstart# #blankstop#\nstart += 1 #2given\nreturn start #1given",
+            "modelAnswerCode": "def loop(start, stop):\n    while start <= stop:\n        start += 1\n    return start",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        result = await db_session.execute(
+            select(Parsons).where(Parsons.id == response.json()["id"])
+        )
+        created_task = result.scalar_one()
+        assert created_task.code_blocks["parsons_repr"] == payload["parsonsRepr"]
+        faded_block = created_task.code_blocks["blocks"][1]
+        assert faded_block["code"] == "while ___ <= ___:"
+
     async def test_create_problem_without_blank_stays_normal(self, client, test_teacher, db_session):
         payload = {
             "taskTitle": "Double Value From Editor",
