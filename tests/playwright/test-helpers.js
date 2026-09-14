@@ -71,6 +71,7 @@ export async function registerTeacher(
  */
 export async function loginTeacher(page, username, password) {
   await page.request.post('/api/logout');
+  await page.context().clearCookies();
   await page.goto('/');
   await page.evaluate(() => {
     localStorage.removeItem('auth_token');
