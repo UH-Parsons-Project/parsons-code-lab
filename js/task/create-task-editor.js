@@ -728,7 +728,7 @@ initBurgerMenu();
 
     return {
       code: sanitizeBlankInputMarkup(rawModelAnswer),
-      repr: sanitizeBlankInputMarkup(sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || ''),
+      repr: normalizeBlankMarkup(sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || ''),
       updatedAt: rawUpdatedAt || '',
     };
   }
@@ -762,7 +762,7 @@ initBurgerMenu();
 
   function setModelAnswerState(code, repr, updatedAt = '') {
     modelAnswerCode = sanitizeBlankInputMarkup(code || '');
-    modelAnswerRepr = sanitizeBlankInputMarkup(repr || '');
+    modelAnswerRepr = normalizeBlankMarkup(repr || '');
     modelAnswerUpdatedAt = updatedAt || '';
     sessionStorage.setItem(MODEL_ANSWER_KEY, modelAnswerCode);
     sessionStorage.setItem(MODEL_ANSWER_REPR_KEY, modelAnswerRepr);

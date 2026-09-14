@@ -1,6 +1,14 @@
 export function buildReprFromBlocks(taskData) {
-  const blocks = taskData.code_blocks?.blocks || [];
+  const storedRepr = taskData.code_blocks?.parsons_repr;
   const modelAnswer = (taskData.model_answer || '').replace(/\r\n/g, '\n');
+  const hasBlankPlaceholder = typeof storedRepr === 'string' && /!BLANK|___/.test(storedRepr);
+  const hasBlankMarkers = typeof storedRepr === 'string' && /#blank/i.test(storedRepr);
+  const hasModelAnswer = Boolean(modelAnswer.trim());
+  if (typeof storedRepr === 'string' && storedRepr.trim() && (!hasBlankPlaceholder || hasBlankMarkers || !hasModelAnswer)) {
+    return storedRepr.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  }
+
+  const blocks = taskData.code_blocks?.blocks || [];
   const INDENT = '    ';
   const answerLines = modelAnswer.split('\n').map((line) => line.trimRight());
   let answerLineIndex = 0;
@@ -26,7 +34,6 @@ export function buildReprFromBlocks(taskData) {
 
     if (matchedAnswer && templateSegments.length > 1) {
       blankValues = matchedAnswer.slice(1)
-        .filter((value) => value !== '')
         .map((value) => ` #blank${value}#`)
         .join('');
     }
@@ -115,7 +122,10 @@ export function buildCustomRepr(parsonsWidget, normalizeSourceCode = (s) => s, g
   });
 
   const formattedSolution = solutionLines.map((line) => {
-    const lineText = normalizeSourceCode(line.code || '').trimEnd();
+    const rawLineText = normalizeSourceCode(line.code || '');
+    const lineText = typeof getLineInputValues === 'function'
+      ? rawLineText.replace(/ ?#blank[^#]*#?/gi, '').trimEnd()
+      : rawLineText.trimEnd();
     if (!lineText) {
       return '';
     }
@@ -136,7 +146,10 @@ export function buildCustomRepr(parsonsWidget, normalizeSourceCode = (s) => s, g
   }).filter(Boolean);
 
   const formattedDistractors = distractorLines.map((line) => {
-    const lineText = normalizeSourceCode(line.code || '').trimEnd();
+    const rawLineText = normalizeSourceCode(line.code || '');
+    const lineText = typeof getLineInputValues === 'function'
+      ? rawLineText.replace(/ ?#blank[^#]*#?/gi, '').trimEnd()
+      : rawLineText.trimEnd();
     if (!lineText) {
       return '';
     }
