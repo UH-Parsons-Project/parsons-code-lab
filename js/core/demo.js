@@ -166,7 +166,7 @@ probEl = document.createElement('problem-element');
 probEl.setAttribute('name', 'demo-greet');
 probEl.setAttribute(
 	'taskInstructions',
-	'<div><strong>greet</strong> returns a greeting string. If the name is empty, it returns "Hello, stranger!". Otherwise, it returns "Hello, " followed by the name and "!".</div><br><br><div class="demo-info-note"><em>You might not yet be familiar with all the programming concepts seen in this example. Do not worry if you can not solve the problem quite yet! You can still get familiar with the exercise area by just trying moving the blocks and running the tests.</em></div>'
+	'<div>Build a greeter function which returns a greeting with the name given or "Hello, stranger! if no name is given.</div><br><br><div class="demo-info-note"><em>You might not yet be familiar with all the programming concepts seen in this example. Do not worry if you can not solve the problem quite yet! You can still get familiar with the exercise area by just trying moving the blocks and running the tests.</em></div>'
 );
 probEl.setAttribute(
 	'description',
@@ -174,6 +174,7 @@ probEl.setAttribute(
 );
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
 probEl.setAttribute('codeHeader', FUNCTION_HEADER);
+probEl.setAttribute('requireIndentation', 'true');
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
 probEl.shuffleStarterBlocks = true;
 
