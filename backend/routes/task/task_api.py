@@ -294,6 +294,10 @@ async def create_problem(
     start_description = request.startDescription.strip()
     tests = request.tests.strip()
     custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
+    blocks, correct_order, has_faded = _build_blocks_from_repr(
+        source_for_blocks,
+        solution_code,
+    )
 
     if not task_title or not solution_code or not description or not start_description:
         raise HTTPException(
@@ -307,6 +311,8 @@ async def create_problem(
         )
 
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
+    if not parsons_repr.strip():
+        correct_order = [block["id"] for block in blocks]
     source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
     is_public = True if request.is_public is None else request.is_public
 
@@ -404,7 +410,7 @@ async def create_problem(
             "function_header": function_header,
         },
         correct_solution={
-            "correct_order": [block["id"] for block in blocks],
+            "correct_order": correct_order,
             "teacher_tests": tests,
             "solution_code": solution_code,
             "custom_error_messages": custom_error_messages,
@@ -514,6 +520,10 @@ async def update_problem(
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
+    blocks, correct_order, has_faded = _build_blocks_from_repr(
+        source_for_blocks,
+        solution_code,
+    )
 
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
@@ -636,7 +646,7 @@ async def update_problem(
     task.task_type = requested_task_type
     task.code_blocks = {"blocks": blocks, "function_header": function_header}
     task.correct_solution = {
-        "correct_order": [block["id"] for block in blocks],
+        "correct_order": correct_order,
         "teacher_tests": tests,
         "solution_code": solution_code,
         "custom_error_messages": custom_error_messages,
@@ -651,6 +661,53 @@ async def update_problem(
     await db.refresh(task)
 
     return {"id": task.id, "message": "Problem updated"}
+
+def _parse_blocks_from_repr(source_for_blocks: str, solution_code: str):
+    given_indent_re = re.compile(r"#(\d+)given\s*")
+    preplace_re = re.compile(r"#preplace\s*")
+    blank_marker_re = re.compile(r"\s#blank[^#]*")
+
+    lines = [line for line in source_for_blocks.split("\n") if line.strip()]
+    blocks = []
+    correct_order = []
+    has_faded = False
+
+    for line_index, line in enumerate(lines, start=1):
+        given_match = given_indent_re.search(line)
+        preplace_match = preplace_re.search(line)
+    
+    if given_match:
+        indent_count = int(given_match.group(1)) * 4
+        correct_order.append(f"block_{line_index}")
+    else:
+        indent_count = len(line) - len(line.lstrip())
+    
+    line = given_indent_re.sub("", line)
+    line = preplace_re.sub("", line)
+    line = blank_marker_re.sub("", line)
+
+    line = re.sub(
+        r"<input[^>]*>(?:</input>)?",
+        "!BLANK",
+        line,
+        flags=re.IGNORECASE
+    )
+    line = re.sub(r"<input[^>]*/>", "!BLANK", line, flags=re.IGNORECASE)
+    LINE = re.sub(r"<[^>]+>", "", line)
+
+    clean_code = line.strip()
+    is_faded = "!BLANK" in clean_code
+    has_faded = has_faded or is_faded
+
+    blocks.append({
+        "id": f"block_{line_index}",
+        "code": clean_code.replace("!BLANK", "___"),
+        "indent": indent_count // 4,
+        "faded": is_faded,
+        "given": preplace_match is not None,
+    })
+
+    return blocks, correct_order, has_faded
 
 
 @router.delete("/api/problems/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
