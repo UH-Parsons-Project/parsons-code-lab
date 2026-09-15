@@ -300,9 +300,9 @@ async function loadTaskDetails() {
         if (isPinned) {
           badgeHtml = '<span class="block-badge badge-pin"><i class="fas fa-thumbtack"></i> Pinned / Given</span>';
         } else if (isSolution) {
-          badgeHtml = '';
+          badgeHtml = '<span class="block-badge badge-sol"> Solution Block</span>';
         } else {
-          badgeHtml = '';
+          badgeHtml = '<span class="block-badge badge-dist"> Distractor Block</span>';
         }
 
         blockEl.innerHTML = `
