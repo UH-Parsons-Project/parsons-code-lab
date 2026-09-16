@@ -39,6 +39,20 @@ async def saml_test_page(request: Request):
     return render_template("teacher/saml-test.html", request)
 
 
+@router.get("/internal/saml-registration", response_class=HTMLResponse)
+async def saml_registration_preview(request: Request):
+    """Serve the SAML registration form preview when SAML testing is enabled."""
+    require_saml()
+    if not config.SAML_TEST_PAGE_ENABLED:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return render_template(
+        "teacher/saml-registration.html",
+        request,
+        context={"registration_error": False},
+    )
+
+
 @router.get("/teacher-dashboard", response_class=HTMLResponse)
 async def teacher_selector(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]

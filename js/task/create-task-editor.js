@@ -755,7 +755,7 @@ initBurgerMenu();
 
     return {
       code: sanitizeBlankInputMarkup(rawModelAnswer),
-      repr: sanitizeBlankInputMarkup(sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || ''),
+      repr: normalizeBlankMarkup(sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || ''),
       updatedAt: rawUpdatedAt || '',
     };
   }
@@ -789,7 +789,7 @@ initBurgerMenu();
 
   function setModelAnswerState(code, repr, updatedAt = '') {
     modelAnswerCode = sanitizeBlankInputMarkup(code || '');
-    modelAnswerRepr = sanitizeBlankInputMarkup(repr || '');
+    modelAnswerRepr = normalizeBlankMarkup(repr || '');
     modelAnswerUpdatedAt = updatedAt || '';
     sessionStorage.setItem(MODEL_ANSWER_KEY, modelAnswerCode);
     sessionStorage.setItem(MODEL_ANSWER_REPR_KEY, modelAnswerRepr);
@@ -1498,7 +1498,7 @@ initBurgerMenu();
     const currentSolutionCode = getSolutionCodeWithBlanks();
     const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || currentSolutionCode;
     const solutionCodeWithBlanks = finalModelAnswerCode || currentSolutionCode;
-    const parsonsRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues);
+    const parsonsRepr = modelAnswerRepr || buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues);
     const problemData = {
       taskTitle,
       description,
@@ -2099,7 +2099,7 @@ initBurgerMenu();
       const savedModelAnswer = loadModelAnswerFromSession(solutionCode);
       persistedModelAnswerSource = fetchedModelAnswer || taskData.model_answer || taskData.correct_solution?.solution_code || '';
       if (persistedModelAnswerSource) {
-        setModelAnswerState(persistedModelAnswerSource, '', '');
+        setModelAnswerState(persistedModelAnswerSource, initialText, '');
       } else if (savedModelAnswer.code) {
         modelAnswerCode = savedModelAnswer.code;
         modelAnswerRepr = savedModelAnswer.repr;
@@ -2195,7 +2195,7 @@ initBurgerMenu();
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData.task_type || draft.taskType);
       const savedAnswer = apiTaskData.model_answer || apiTaskData.correct_solution?.solution_code || '';
       if (savedAnswer) {
-        setModelAnswerState(savedAnswer, '', '');
+        setModelAnswerState(savedAnswer, initialText, '');
       }
     } else {
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
@@ -2218,7 +2218,7 @@ initBurgerMenu();
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
       persistedModelAnswerSource = apiTaskData?.model_answer || apiTaskData?.correct_solution?.solution_code || '';
       if (persistedModelAnswerSource) {
-        setModelAnswerState(persistedModelAnswerSource, '', '');
+        setModelAnswerState(persistedModelAnswerSource, initialText, '');
       } else if (savedModelAnswer.code) {
         modelAnswerCode = savedModelAnswer.code;
         modelAnswerRepr = savedModelAnswer.repr;

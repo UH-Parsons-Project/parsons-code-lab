@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import secrets
 
 # Third-party
-from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
+from fastapi import APIRouter, Depends, Form, Response, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
@@ -16,11 +16,18 @@ from ...database import get_db
 from ...teacher_auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ... import config
 from ...pydantic import Token, UserInfo, TeacherLookupResponse
-from ..utils.commons import validate_registration_basic, ensure_unique_user
+from ..utils.commons import validate_registration_basic, ensure_unique_user, render_template
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 from ...saml_auth import require_saml, shibboleth_identity, shibboleth_login_url
 
 router = APIRouter()
+
+
+async def _get_saml_identity_or_redirect(request: Request):
+    identity = shibboleth_identity(request)
+    if identity is None:
+        return None, RedirectResponse(shibboleth_login_url())
+    return identity, None
 
 
 @router.get("/auth/saml/login")
@@ -29,14 +36,52 @@ async def saml_login(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     require_saml()
-    identity = shibboleth_identity(request)
-    if identity is None:
-        return RedirectResponse(shibboleth_login_url())
+    identity, redirect = await _get_saml_identity_or_redirect(request)
+    if redirect:
+        return redirect
     email, username = identity
 
     result = await db.execute(select(Teacher).where(Teacher.email.ilike(email)))
     user = result.scalar_one_or_none()
     if user is None:
+        return render_template(
+            "teacher/saml-registration.html",
+            request,
+            context={"registration_error": False},
+        )
+    return await _complete_saml_login(user)
+
+
+@router.post("/auth/saml/login")
+async def saml_register(
+    request: Request,
+    registration_token: Annotated[str, Form()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    require_saml()
+    identity, redirect = await _get_saml_identity_or_redirect(request)
+    if redirect:
+        return redirect
+    email, username = identity
+
+    result = await db.execute(select(Teacher).where(Teacher.email.ilike(email)))
+    user = result.scalar_one_or_none()
+    if user is None:
+        await cleanup_old_registration_tokens(db)
+        await db.commit()
+        token_hash = hash_token(registration_token.strip())
+        token_result = await db.execute(
+            select(RegistrationToken).where(RegistrationToken.token_hash == token_hash)
+        )
+        valid_token = token_result.scalar_one_or_none()
+        if not valid_token or valid_token.is_expired():
+            return render_template(
+                "teacher/saml-registration.html",
+                request,
+                status_code=403,
+                context={"registration_error": True},
+            )
+
         user = Teacher(username=username[:100], email=email)
         user.set_password(secrets.token_urlsafe(32))
         db.add(user)
@@ -45,6 +90,10 @@ async def saml_login(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
 
+    return await _complete_saml_login(user)
+
+
+async def _complete_saml_login(user: Teacher):
     access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     response = RedirectResponse(url="/teacher-dashboard", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="access_token", value=access_token, httponly=True,
