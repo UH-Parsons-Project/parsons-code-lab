@@ -135,6 +135,47 @@
 
     </div>
 
+    <!-- Task Tags Overview Section -->
+    <section class="task-tags-section" aria-labelledby="task-tags-title">
+      <div class="task-tags-header">
+        <div>
+          <h2 id="task-tags-title" class="task-tags-title">Task tags</h2>
+          <p class="task-tags-description">Add and view tags teachers can assign to tasks.</p>
+        </div>
+        <div class="task-tags-actions">
+          <button type="button" class="btn btn-primary task-tags-add-button" id="add-task-type-btn">+ Add tag</button>
+          <button type="button" class="btn btn-outline-danger task-tags-deactivate-button" id="deactivate-task-type-btn">Deactivate tag</button>
+        </div>
+      </div>
+
+      <div id="task-type-status" class="task-tags-feedback" role="status" aria-live="polite"></div>
+
+      <div id="task-tag-action-controls" class="task-tag-action-controls" hidden>
+        <p id="task-tag-action-help" class="task-tag-action-help"></p>
+        <div class="task-tag-action-buttons">
+          <button type="button" class="btn btn-outline-secondary" id="cancel-task-tag-action">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-task-tag-action" disabled></button>
+        </div>
+      </div>
+
+      <div class="task-tags-overview">
+        <div class="task-tags-group">
+          <h3 class="task-tags-group-title">Existing tags</h3>
+          <div id="task-types-list" class="task-tags-list" aria-live="polite">
+            <p class="task-tags-message">Loading tags...</p>
+          </div>
+        </div>
+
+        <details id="inactive-task-tags" class="task-tags-inactive" hidden>
+          <summary>
+            <span>Inactive tags (<span id="inactive-task-tags-count">0</span>)</span>
+            <button type="button" class="btn btn-outline-success task-tags-restore-button" id="restore-task-type-btn">Restore tag</button>
+          </summary>
+          <div id="inactive-task-types-list" class="task-tags-list task-tags-list--inactive"></div>
+        </details>
+      </div>
+    </section>
+
     <!-- Token Management Section -->
     <div class="border-top pt-4 mt-4">
       <div class="section-divider-title mb-3">
@@ -198,9 +239,29 @@
 
   </div>
 
+  <div id="task-tag-modal" class="admin-modal-overlay" hidden>
+    <div class="admin-modal task-tag-modal" role="dialog" aria-modal="true" aria-labelledby="task-tag-modal-title" aria-describedby="task-tag-modal-description">
+      <div class="task-tag-modal-header">
+        <h5 id="task-tag-modal-title">Add tag</h5>
+        <button type="button" class="task-tag-modal-close" id="task-tag-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <p id="task-tag-modal-description">Add a tag teachers can assign to tasks.</p>
+      <form id="task-tag-form">
+        <div class="form-group mb-3">
+          <label for="task-tag-name">Tag name</label>
+          <input type="text" class="form-control" id="task-tag-name" maxlength="100" autocomplete="off" aria-required="true" aria-describedby="task-tag-modal-status">
+        </div>
+        <div id="task-tag-modal-status" class="task-tags-feedback mb-3" role="alert" aria-live="polite"></div>
+        <div class="admin-modal-actions">
+          <button type="button" class="btn btn-outline-secondary" id="task-tag-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="task-tag-save">Add tag</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="/js/admin/admin-dashboard.js"></script>
 
 {% include 'common/footer.html' %}
 </body>
 </html>
-

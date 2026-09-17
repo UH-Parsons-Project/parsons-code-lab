@@ -10,6 +10,7 @@ from .database import async_session
 from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken
 from .migrate_tasks import migrate_tasks
 from backend.utils import hash_token
+from backend.utils.task_types import ensure_default_task_types
 
 
 async def seed_db():
@@ -68,6 +69,10 @@ async def seed_db():
     # Migrate tasks from parsons_probs/ directory
     print("\nMigrating tasks from parsons_probs/...")
     await migrate_tasks()
+
+    async with async_session() as session:
+        await ensure_default_task_types(session)
+        await session.commit()
 
     # Create a default task set for the test teacher
     async with async_session() as session:
@@ -145,4 +150,3 @@ async def seed_db():
                 print("Could not add starter exercises (race condition), skipping")
         else:
             print("Starter task set already has the seeded exercises")
-

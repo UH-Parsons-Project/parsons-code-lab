@@ -289,6 +289,364 @@ function loadStatistics() {
 		});
 }
 
+// ==================== Task Tags ====================
+
+let taskTagPreviousFocus = null;
+const finnishTaskTagCollator = new Intl.Collator('fi-FI');
+let taskTagActionMode = null;
+let taskTagActionBusy = false;
+const selectedTaskTagIds = new Set();
+
+function setTaskTypeStatus(message, isError = false) {
+	const status = document.getElementById('task-type-status');
+	if (!status) return;
+	status.textContent = message;
+	status.className = `task-tags-feedback ${isError ? 'is-error' : 'is-success'}`;
+}
+
+function setTaskTagModalStatus(message, isError = false) {
+	const status = document.getElementById('task-tag-modal-status');
+	if (!status) return;
+	status.textContent = message;
+	status.className = `task-tags-feedback mb-3 ${isError ? 'is-error' : 'is-success'}`;
+}
+
+function setTaskTagsMessage(containerId, message, isError = false) {
+ const container = document.getElementById(containerId);
+ if (!container) return;
+ container.innerHTML = '';
+ const messageElement = document.createElement('p');
+ messageElement.className = `task-tags-message${isError ? ' is-error' : ''}`;
+ messageElement.textContent = message;
+ container.appendChild(messageElement);
+}
+
+function updateTaskTagActionControls() {
+ const addButton = document.getElementById('add-task-type-btn');
+ const deactivateButton = document.getElementById('deactivate-task-type-btn');
+ const restoreButton = document.getElementById('restore-task-type-btn');
+ const controls = document.getElementById('task-tag-action-controls');
+ const help = document.getElementById('task-tag-action-help');
+ const cancelButton = document.getElementById('cancel-task-tag-action');
+ const confirmButton = document.getElementById('confirm-task-tag-action');
+ if (!addButton || !deactivateButton || !restoreButton || !controls || !help || !cancelButton || !confirmButton) return;
+
+ const selectedCount = selectedTaskTagIds.size;
+ const isDeactivationMode = taskTagActionMode === 'deactivate';
+ const isRestoreMode = taskTagActionMode === 'restore';
+ addButton.disabled = taskTagActionMode !== null || taskTagActionBusy;
+ deactivateButton.disabled = taskTagActionBusy || isRestoreMode;
+ deactivateButton.textContent = isDeactivationMode ? 'Cancel deactivation' : 'Deactivate tag';
+ deactivateButton.classList.toggle('btn-outline-danger', !isDeactivationMode);
+ deactivateButton.classList.toggle('btn-outline-secondary', isDeactivationMode);
+ restoreButton.disabled = taskTagActionBusy || isDeactivationMode;
+ restoreButton.textContent = isRestoreMode ? 'Cancel restoration' : 'Restore tag';
+ restoreButton.classList.toggle('btn-outline-success', !isRestoreMode);
+ restoreButton.classList.toggle('btn-outline-secondary', isRestoreMode);
+ controls.hidden = taskTagActionMode === null;
+ help.textContent = isDeactivationMode
+  ? 'Select one or more tags to deactivate. Selected tags turn red.'
+  : isRestoreMode
+   ? 'Select one or more inactive tags to restore. Selected tags turn red.'
+   : '';
+ cancelButton.disabled = taskTagActionBusy;
+ confirmButton.disabled = taskTagActionBusy || selectedCount === 0;
+ confirmButton.classList.toggle('btn-danger', isDeactivationMode);
+ confirmButton.classList.toggle('btn-success', isRestoreMode);
+ confirmButton.textContent = selectedCount
+  ? `${isRestoreMode ? 'Restore' : 'Deactivate'} selected tags (${selectedCount})`
+  : `${isRestoreMode ? 'Restore' : 'Deactivate'} selected tags`;
+}
+
+function updateTaskTagChipState(chip) {
+ const taskTypeId = Number(chip.dataset.taskTypeId);
+ const isInactive = chip.classList.contains('task-tag-chip--inactive');
+ const isSelectable = taskTagActionMode === (isInactive ? 'restore' : 'deactivate');
+ const isSelected = isSelectable && selectedTaskTagIds.has(taskTypeId);
+
+ chip.classList.toggle('task-tag-chip--selectable', isSelectable);
+ chip.classList.toggle('task-tag-chip--selected', isSelected);
+ if (isSelectable) {
+  chip.setAttribute('role', 'button');
+  chip.tabIndex = 0;
+  chip.setAttribute('aria-pressed', String(isSelected));
+  chip.setAttribute('aria-label', `${isSelected ? 'Deselect' : 'Select'} tag ${chip.textContent}`);
+ } else {
+  chip.removeAttribute('role');
+  chip.removeAttribute('tabindex');
+  chip.removeAttribute('aria-pressed');
+  chip.removeAttribute('aria-label');
+ }
+}
+
+function updateTaskTagChips() {
+ document.querySelectorAll('#task-types-list .task-tag-chip, #inactive-task-types-list .task-tag-chip').forEach(updateTaskTagChipState);
+}
+
+function toggleTaskTagSelection(chip) {
+ if (!taskTagActionMode) return;
+
+ const taskTypeId = Number(chip.dataset.taskTypeId);
+ if (!Number.isInteger(taskTypeId)) return;
+ const isInactive = chip.classList.contains('task-tag-chip--inactive');
+ const isSelectable = taskTagActionMode === (isInactive ? 'restore' : 'deactivate');
+ if (!isSelectable) return;
+
+ if (selectedTaskTagIds.has(taskTypeId)) {
+  selectedTaskTagIds.delete(taskTypeId);
+ } else {
+  selectedTaskTagIds.add(taskTypeId);
+ }
+ updateTaskTagChipState(chip);
+ updateTaskTagActionControls();
+}
+
+function startTaskTagActionMode(mode) {
+ taskTagActionMode = mode;
+ selectedTaskTagIds.clear();
+ updateTaskTagChips();
+ updateTaskTagActionControls();
+ setTaskTypeStatus('');
+}
+
+function cancelTaskTagActionMode() {
+ taskTagActionMode = null;
+ taskTagActionBusy = false;
+ selectedTaskTagIds.clear();
+ updateTaskTagChips();
+ updateTaskTagActionControls();
+ setTaskTypeStatus('');
+}
+
+async function applySelectedTaskTagAction() {
+ if (!taskTagActionMode || selectedTaskTagIds.size === 0) return;
+
+ const selectedChips = [...document.querySelectorAll('.task-tag-chip--selected')];
+ const selectedTags = selectedChips.map(chip => ({
+  id: Number(chip.dataset.taskTypeId),
+  label: chip.textContent.trim(),
+ }));
+ if (!selectedTags.length) return;
+
+ const tagNames = selectedTags.map(tag => `“${tag.label}”`).join(', ');
+ const isRestoreMode = taskTagActionMode === 'restore';
+ const actionLabel = isRestoreMode ? 'restore' : 'deactivate';
+ const confirmed = window.confirm(
+  isRestoreMode
+   ? `Are you sure you want to restore tags ${tagNames}? They will be available for new tasks again.`
+   : `Are you sure you want to deactivate tags ${tagNames}? They will no longer be available for new tasks.`,
+ );
+ if (!confirmed) return;
+
+ taskTagActionBusy = true;
+ updateTaskTagActionControls();
+ try {
+  await Promise.all(selectedTags.map(async (tag) => {
+   const response = await fetch(`/api/admin/task-types/${encodeURIComponent(tag.id)}`, {
+    method: isRestoreMode ? 'PATCH' : 'DELETE',
+    ...(isRestoreMode ? {
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ is_active: true }),
+    } : {}),
+    credentials: 'include',
+   });
+   if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || `Failed to ${actionLabel} tag “${tag.label}”`);
+   }
+  }));
+
+  cancelTaskTagActionMode();
+  setTaskTypeStatus(`${isRestoreMode ? 'Restored' : 'Deactivated'} tags ${tagNames}.`);
+  await loadTaskTypes();
+ } catch (error) {
+  console.error(`Error trying to ${actionLabel} tags:`, error);
+  taskTagActionBusy = false;
+  updateTaskTagActionControls();
+  setTaskTypeStatus(error.message || `Failed to ${actionLabel} selected tags.`, true);
+ }
+}
+
+async function loadTaskTypes() {
+ if (!document.getElementById('task-types-list')) return;
+
+ setTaskTagsMessage('task-types-list', 'Loading tags...');
+ try {
+  const response = await fetch('/api/admin/task-types', { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to load tags');
+  renderTaskTypes(await response.json());
+ } catch (error) {
+  console.error('Error loading tags:', error);
+  setTaskTagsMessage('task-types-list', 'Failed to load tags', true);
+ }
+}
+
+function renderTaskTagChips(container, taskTypes, isInactive = false) {
+ container.innerHTML = '';
+ if (!taskTypes.length) {
+  setTaskTagsMessage(container.id, isInactive ? 'No inactive tags.' : 'No tags configured.');
+  return;
+ }
+
+ taskTypes.forEach((taskType) => {
+  const chip = document.createElement('span');
+  chip.className = `task-tag-chip${isInactive ? ' task-tag-chip--inactive' : ''}`;
+  chip.dataset.taskTypeId = String(taskType.id);
+  chip.textContent = taskType.label;
+  chip.addEventListener('click', () => toggleTaskTagSelection(chip));
+  chip.addEventListener('keydown', (event) => {
+   if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    toggleTaskTagSelection(chip);
+   }
+  });
+  updateTaskTagChipState(chip);
+  container.appendChild(chip);
+ });
+}
+
+function renderTaskTypes(taskTypes) {
+ const activeList = document.getElementById('task-types-list');
+ const inactiveList = document.getElementById('inactive-task-types-list');
+ const inactiveSection = document.getElementById('inactive-task-tags');
+ const inactiveCount = document.getElementById('inactive-task-tags-count');
+ if (!activeList || !inactiveList || !inactiveSection || !inactiveCount) return;
+
+ const configuredTaskTypes = Array.isArray(taskTypes) ? taskTypes : [];
+ const activeTaskTypes = configuredTaskTypes
+  .filter(taskType => taskType.is_active)
+  .sort((first, second) => finnishTaskTagCollator.compare(first.label, second.label));
+ const inactiveTaskTypes = configuredTaskTypes
+  .filter(taskType => !taskType.is_active)
+  .sort((first, second) => finnishTaskTagCollator.compare(first.label, second.label));
+
+ renderTaskTagChips(activeList, activeTaskTypes);
+ renderTaskTagChips(inactiveList, inactiveTaskTypes, true);
+ inactiveCount.textContent = String(inactiveTaskTypes.length);
+ inactiveSection.hidden = inactiveTaskTypes.length === 0;
+}
+
+function openTaskTagModal() {
+ const modal = document.getElementById('task-tag-modal');
+ const title = document.getElementById('task-tag-modal-title');
+ const description = document.getElementById('task-tag-modal-description');
+ const input = document.getElementById('task-tag-name');
+	const saveButton = document.getElementById('task-tag-save');
+	if (!modal || !title || !description || !input || !saveButton) return;
+
+ taskTagPreviousFocus = document.activeElement;
+ title.textContent = 'Add tag';
+ description.textContent = 'Add a tag teachers can assign to tasks.';
+ saveButton.textContent = 'Add tag';
+ input.value = '';
+ setTaskTagModalStatus('');
+ modal.hidden = false;
+ input.focus();
+}
+
+function closeTaskTagModal() {
+	const modal = document.getElementById('task-tag-modal');
+	const input = document.getElementById('task-tag-name');
+ if (!modal) return;
+
+ modal.hidden = true;
+ if (input) input.value = '';
+	setTaskTagModalStatus('');
+	if (taskTagPreviousFocus instanceof HTMLElement) taskTagPreviousFocus.focus();
+	taskTagPreviousFocus = null;
+}
+
+async function saveTaskTag() {
+	const input = document.getElementById('task-tag-name');
+	const saveButton = document.getElementById('task-tag-save');
+ const label = input?.value.trim() || '';
+ if (!input || !saveButton) return;
+	if (!label) {
+		setTaskTagModalStatus('Enter a tag name.', true);
+		input.focus();
+		return;
+	}
+
+ saveButton.disabled = true;
+ try {
+  const response = await fetch('/api/admin/task-types', {
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   credentials: 'include',
+   body: JSON.stringify({ label }),
+  });
+  if (!response.ok) {
+   const payload = await response.json().catch(() => ({}));
+   throw new Error(payload.detail || 'Failed to add tag');
+  }
+
+  closeTaskTagModal();
+  setTaskTypeStatus(`Added “${label}”.`);
+  await loadTaskTypes();
+	} catch (error) {
+		console.error('Error saving tag:', error);
+		setTaskTagModalStatus(error.message, true);
+	} finally {
+		saveButton.disabled = false;
+	}
+}
+
+function initTaskTypeManagement() {
+	const addButton = document.getElementById('add-task-type-btn');
+ const deactivateButton = document.getElementById('deactivate-task-type-btn');
+	const restoreButton = document.getElementById('restore-task-type-btn');
+	const modal = document.getElementById('task-tag-modal');
+	const cancelButton = document.getElementById('task-tag-cancel');
+ const closeButton = document.getElementById('task-tag-modal-close');
+ const form = document.getElementById('task-tag-form');
+ const saveButton = document.getElementById('task-tag-save');
+ const input = document.getElementById('task-tag-name');
+ if (!addButton || !deactivateButton || !restoreButton || !modal || !cancelButton || !closeButton || !form || !saveButton || !input) return;
+
+ addButton.addEventListener('click', openTaskTagModal);
+ deactivateButton.addEventListener('click', () => {
+  if (taskTagActionMode === 'deactivate') {
+   cancelTaskTagActionMode();
+  } else {
+   startTaskTagActionMode('deactivate');
+  }
+ });
+
+ restoreButton.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (taskTagActionMode === 'restore') {
+   cancelTaskTagActionMode();
+  } else {
+   startTaskTagActionMode('restore');
+  }
+ });
+
+ document.getElementById('cancel-task-tag-action')?.addEventListener('click', cancelTaskTagActionMode);
+ document.getElementById('confirm-task-tag-action')?.addEventListener('click', applySelectedTaskTagAction);
+ cancelButton.addEventListener('click', closeTaskTagModal);
+ closeButton.addEventListener('click', closeTaskTagModal);
+ form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  saveTaskTag();
+ });
+ modal.addEventListener('click', (event) => {
+  if (event.target === modal) closeTaskTagModal();
+ });
+ document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+   if (!modal.hidden) {
+    closeTaskTagModal();
+   } else if (taskTagActionMode) {
+    cancelTaskTagActionMode();
+   }
+  }
+ });
+
+	updateTaskTagActionControls();
+	loadTaskTypes();
+}
+
 // ==================== Token Management ====================
 
 function initTokenManagement() {
@@ -459,6 +817,7 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 		}
 		if (r.ok) {
 			initTokenManagement();
+			initTaskTypeManagement();
 			loadStatistics();
 		}
 	})

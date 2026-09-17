@@ -23,35 +23,6 @@ initBurgerMenu();
   const MODEL_ANSWER_REPR_KEY = 'create_task_builder_model_answer_repr';
   const MODEL_ANSWER_SOURCE_KEY = 'create_task_builder_model_answer_source';
   const MODEL_ANSWER_UPDATED_AT_KEY = 'create_task_builder_model_answer_updated_at';
-  const TASK_TYPE_OPTIONS = [
-    'algorithms',
-    'arithmetic',
-    'booleans',
-    'classes',
-    'comprehensions',
-    'conditionals',
-    'debugging',
-    'dictionaries',
-    'exceptions',
-    'files',
-    'functions',
-    'imports',
-    'input',
-    'lists',
-    'loops',
-    'other',
-    'printing',
-    'recursion',
-    'searching',
-    'sets',
-    'sorting',
-    'strings',
-    'testing',
-    'tuples',
-    'typecasting',
-    'variables',
-  ];
-
   let draftPayload = null;
   let parsonsWidget = null;
   let previewParsonsWidget = null;
@@ -61,7 +32,8 @@ initBurgerMenu();
   let persistedModelAnswerSource = '';
   let hasOpenedStudentPreview = false;
   let testsPassed = false;
-
+  let taskTypeOptions = new Map();
+  
   function clearTaskDraftStorage() {
     [localStorage, sessionStorage].forEach((storage) => {
       Object.keys(storage)
@@ -69,6 +41,7 @@ initBurgerMenu();
         .forEach((key) => storage.removeItem(key));
     });
   }
+
 
   function updateAddToListState() {
     const addToListBtn = document.getElementById('add-to-problem-list');
@@ -149,21 +122,75 @@ initBurgerMenu();
 
   function normalizeTaskTypeValue(taskType) {
     const normalized = (taskType || '').trim();
-    return TASK_TYPE_OPTIONS.includes(normalized) ? normalized : '';
+    return taskTypeOptions.get(normalized.toLowerCase()) || '';
   }
 
-  function populateTaskTypeOptions() {
+  function addTaskTypeOption(value, label, isLegacy = false) {
     const taskTypeInput = document.getElementById('task-type');
     if (!taskTypeInput) {
       return;
     }
 
-    const currentValue = normalizeTaskTypeValue(taskTypeInput.value);
-    taskTypeInput.innerHTML = [
-      '<option value="" disabled>Select a task tag</option>',
-      ...TASK_TYPE_OPTIONS.map((taskType) => `<option value="${taskType}">${formatTaskTypeLabel(taskType)}</option>`),
-    ].join('');
-    taskTypeInput.value = currentValue;
+    const normalized = (value || '').trim();
+    if (!normalized || taskTypeOptions.has(normalized.toLowerCase())) {
+      return;
+    }
+
+    taskTypeOptions.set(normalized.toLowerCase(), normalized);
+    const option = document.createElement('option');
+    option.value = normalized;
+    option.textContent = isLegacy ? `${label} (legacy)` : label;
+    taskTypeInput.appendChild(option);
+  }
+
+  async function populateTaskTypeOptions() {
+    const taskTypeInput = document.getElementById('task-type');
+    const status = document.getElementById('task-type-load-status');
+    if (!taskTypeInput) {
+      return;
+    }
+
+    taskTypeOptions = new Map();
+    taskTypeInput.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a task tag';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    taskTypeInput.appendChild(placeholder);
+
+    try {
+      const response = await fetch('/api/task-types', { credentials: 'same-origin' });
+      if (!response.ok) {
+        throw new Error(`Task types request failed (${response.status})`);
+      }
+
+      const taskTypes = await response.json();
+      taskTypes.forEach((taskType) => {
+        addTaskTypeOption(taskType.slug, taskType.label);
+      });
+
+      if (status) {
+        status.textContent = `${taskTypes.length} task tag${taskTypes.length === 1 ? '' : 's'} available.`;
+        status.className = 'form-text text-muted';
+      }
+    } catch (error) {
+      console.error('Failed to load task types:', error);
+      if (status) {
+        status.textContent = 'Failed to load task tags. Please refresh the page.';
+        status.className = 'form-text text-danger';
+      }
+    }
+  }
+
+  function ensureTaskTypeOption(taskType) {
+    const normalized = (taskType || '').trim();
+    if (!normalized || taskTypeOptions.has(normalized.toLowerCase())) {
+      return;
+    }
+
+    addTaskTypeOption(normalized, formatTaskTypeLabel(normalized), true);
   }
 
   function openStudentPreview() {
@@ -1981,7 +2008,7 @@ initBurgerMenu();
     const visibilityInput = document.getElementById('task-visibility-public');
     const taskTypeInput = document.getElementById('task-type');
 
-    populateTaskTypeOptions();
+    await populateTaskTypeOptions();
 
     if (urlTaskId) {
       // Direct edit mode: load task from API, model answer on right, leftover blocks on left
@@ -2000,6 +2027,7 @@ initBurgerMenu();
           return;
         }
         taskData = await taskResp.json();
+        ensureTaskTypeOption(taskData.task_type);
 
         if (modelAnswerResp.ok) {
           const modelAnswerPayload = await modelAnswerResp.json();
@@ -2119,6 +2147,7 @@ initBurgerMenu();
     }
 
     draftPayload = draft;
+    ensureTaskTypeOption(draft.taskType);
     const editTaskId = draft.taskId || null;
     const cachedRepr = getCachedParsonsRepr(draft.taskCode);
     const meta = loadMetaFromSession(draft.taskCode, editTaskId);
@@ -2134,6 +2163,7 @@ initBurgerMenu();
         const response = await fetch(`/api/tasks/${editTaskId}`);
         if (response.ok) {
           apiTaskData = await response.json();
+          ensureTaskTypeOption(apiTaskData.task_type);
           fetchedFromApi = true;
           persistedModelAnswerSource = apiTaskData?.model_answer || apiTaskData?.correct_solution?.solution_code || '';
           if (!cachedRepr) {

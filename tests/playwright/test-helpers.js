@@ -60,7 +60,28 @@ export async function registerTeacher(
   await page.locator('#password').fill(password);
   await page.locator('#password_confirm').fill(password);
   await page.locator('#registration_token').fill(registrationToken);
+
+  const registrationResult = Promise.race([
+    page.locator('#alert-placeholder .alert-success').waitFor({
+      state: 'visible',
+      timeout: 15000,
+    }).then(() => 'success'),
+    page.locator('#alert-placeholder .alert-danger').waitFor({
+      state: 'visible',
+      timeout: 15000,
+    }).then(() => 'error'),
+  ]);
+
   await page.locator('#register-form button[type="submit"]').click();
+
+  const result = await registrationResult;
+  if (result === 'success') {
+    await page.waitForFunction(
+      () => Boolean(localStorage.getItem('auth_token')),
+      null,
+      { timeout: 10000 }
+    );
+  }
 }
 
 /**
@@ -72,12 +93,16 @@ export async function registerTeacher(
 export async function loginTeacher(page, username, password) {
   await page.request.post('/api/logout');
   await page.context().clearCookies();
+
+  if (page.url() !== 'about:blank') {
+    await page.evaluate(() => {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('username');
+    });
+    await page.goto('about:blank');
+  }
+
   await page.goto('/');
-  await page.evaluate(() => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('username');
-  });
-  await page.reload();
   await page.waitForSelector('#login-form', { state: 'visible', timeout: 10000 });
 
   const usernameInput = page.locator('#login-form #username');

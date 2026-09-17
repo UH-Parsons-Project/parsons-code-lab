@@ -6,15 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel
 from sqlalchemy import select, func, or_, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from ...teacher_auth import CurrentUser
 from ...database import get_db
-from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
+from ...models import RegistrationToken, TaskSet, TaskType, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
 from ...pydantic import (
+    CreateTaskTypeRequest,
+    AdminTaskTypeResponse,
     TaskSetResponse,
     CreateRegistrationTokenRequest,
     RegistrationTokenResponse,
     RegistrationTokenListItem,
+    UpdateTaskTypeRequest,
     UserActivityResponse,
     UserActivityStats,
     DailyActiveUser,
@@ -22,6 +26,7 @@ from ...pydantic import (
     UserListItem,
 )
 from backend.utils import generate_token, hash_token, cleanup_old_registration_tokens
+from backend.utils.task_types import normalize_label, slugify_task_type
 import backend.config as config
 from ..utils.commons import build_taskset_response_list
 
@@ -46,6 +51,149 @@ AdminUser = Annotated[Teacher, Depends(require_admin)]
 class AdminPasswordRequest(BaseModel):
     """Body model for operations that require admin password confirmation."""
     admin_password: str
+
+
+def _task_type_response(task_type: TaskType, task_count: int = 0) -> AdminTaskTypeResponse:
+    return AdminTaskTypeResponse(
+        id=task_type.id,
+        slug=task_type.slug,
+        label=task_type.label,
+        is_active=task_type.is_active,
+        created_at=task_type.created_at.isoformat(),
+        task_count=task_count,
+    )
+
+
+@router.get("/api/admin/task-types", response_model=list[AdminTaskTypeResponse])
+async def list_task_types(
+    current_user: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """List all task type tags, including inactive legacy tags."""
+    result = await db.execute(
+        select(TaskType, func.count(Parsons.id).label("task_count"))
+        .outerjoin(
+            Parsons,
+            func.lower(Parsons.task_type) == func.lower(TaskType.slug),
+        )
+        .group_by(TaskType.id)
+        .order_by(TaskType.label)
+    )
+    return [_task_type_response(task_type, task_count) for task_type, task_count in result.all()]
+
+
+@router.post("/api/admin/task-types", response_model=AdminTaskTypeResponse, status_code=status.HTTP_201_CREATED)
+async def create_task_type(
+    request: CreateTaskTypeRequest,
+    current_user: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Create a task type tag. Admin only."""
+    label = normalize_label(request.label)
+    slug = slugify_task_type(request.slug or label)
+
+    if not label:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="label is required")
+    if len(label) > 100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="label is too long")
+    if not slug:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="slug must contain at least one letter or number",
+        )
+    if len(slug) > 50:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="slug is too long")
+
+    duplicate_result = await db.execute(
+        select(TaskType).where(
+            or_(
+                func.lower(TaskType.slug) == slug.lower(),
+                func.lower(TaskType.label) == label.lower(),
+            )
+        )
+    )
+    if duplicate_result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task type already exists")
+
+    task_type = TaskType(
+        slug=slug,
+        label=label,
+        is_active=True,
+    )
+    db.add(task_type)
+    try:
+        await db.commit()
+        await db.refresh(task_type)
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task type already exists") from exc
+
+    return _task_type_response(task_type)
+
+
+@router.patch("/api/admin/task-types/{task_type_id}", response_model=AdminTaskTypeResponse)
+async def update_task_type(
+    task_type_id: int,
+    request: UpdateTaskTypeRequest,
+    current_user: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Update a task type label or active state. Admin only."""
+    result = await db.execute(select(TaskType).where(TaskType.id == task_type_id))
+    task_type = result.scalar_one_or_none()
+    if not task_type:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task type not found")
+
+    if request.label is not None:
+        label = normalize_label(request.label)
+        if not label:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="label cannot be empty")
+        if len(label) > 100:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="label is too long")
+        duplicate_result = await db.execute(
+            select(TaskType).where(
+                TaskType.id != task_type_id,
+                func.lower(TaskType.label) == label.lower(),
+            )
+        )
+        if duplicate_result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task type label already exists")
+        task_type.label = label
+
+    if request.is_active is not None:
+        task_type.is_active = request.is_active
+
+    await db.commit()
+    await db.refresh(task_type)
+    task_count_result = await db.execute(
+        select(func.count(Parsons.id)).where(
+            func.lower(Parsons.task_type) == func.lower(task_type.slug)
+        )
+    )
+    return _task_type_response(task_type, task_count_result.scalar_one())
+
+
+@router.delete("/api/admin/task-types/{task_type_id}", response_model=AdminTaskTypeResponse)
+async def deactivate_task_type(
+    task_type_id: int,
+    current_user: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Deactivate a task type without changing existing tasks. Admin only."""
+    result = await db.execute(select(TaskType).where(TaskType.id == task_type_id))
+    task_type = result.scalar_one_or_none()
+    if not task_type:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task type not found")
+
+    task_type.is_active = False
+    await db.commit()
+    await db.refresh(task_type)
+    task_count_result = await db.execute(
+        select(func.count(Parsons.id)).where(
+            func.lower(Parsons.task_type) == func.lower(task_type.slug)
+        )
+    )
+    return _task_type_response(task_type, task_count_result.scalar_one())
 
 
 @router.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)

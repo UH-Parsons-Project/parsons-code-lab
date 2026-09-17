@@ -31,6 +31,28 @@ class TaskResponse(BaseModel):
     submitted_order: dict | None = None
 
 
+class TaskTypeResponse(BaseModel):
+    id: int
+    slug: str
+    label: str
+    is_active: bool
+    created_at: str
+
+
+class AdminTaskTypeResponse(TaskTypeResponse):
+    task_count: int = 0
+
+
+class CreateTaskTypeRequest(BaseModel):
+    label: str
+    slug: str | None = None
+
+
+class UpdateTaskTypeRequest(BaseModel):
+    label: str | None = None
+    is_active: bool | None = None
+
+
 class StudentTaskResponse(BaseModel):
     """Task response for student-facing endpoints.
 
