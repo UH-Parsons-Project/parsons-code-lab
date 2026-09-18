@@ -359,13 +359,13 @@ def _parse_blocks_from_repr(source_for_blocks: str, solution_code: str):
     for line_index, line in enumerate(lines, start=1):
         given_match = given_indent_re.search(line)
         preplace_match = preplace_re.search(line)
-    
+
         if given_match:
             indent_count = int(given_match.group(1)) * 4
             correct_order.append(f"block_{line_index}")
         else:
             indent_count = len(line) - len(line.lstrip())
-        
+
         line = given_indent_re.sub("", line)
         line = preplace_re.sub("", line)
         line = blank_marker_re.sub("", line)

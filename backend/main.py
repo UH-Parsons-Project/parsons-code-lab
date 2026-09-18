@@ -31,6 +31,7 @@ from .routes.teacher.teacher import router as teacher_router
 from .routes.teacher.teacher_api import router as teacher_api_router
 from .routes.task.task import router as task_router
 from .routes.task.task_api import router as task_api_router
+from .routes.task.initial_events_api import router as initial_events_api_router
 from .routes.task.task_set_api import router as task_set_api_router
 from .routes.statistic.statistic import router as statistic_router
 from .routes.statistic.statistic_api import router as statistic_api_router
@@ -105,6 +106,7 @@ app.include_router(teacher_router)
 app.include_router(task_router)
 app.include_router(task_api_router)
 app.include_router(task_set_api_router)
+app.include_router(initial_events_api_router)
 app.include_router(statistic_router)
 app.include_router(statistic_api_router)
 app.include_router(test_router)
