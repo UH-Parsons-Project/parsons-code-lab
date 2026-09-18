@@ -24,7 +24,7 @@
 	"dependencies": {
 		"jquery": "^3.6.0",
 		"jquery-ui": "^1.13.2",
-		"js-yaml": "^4.1.0",
+		"js-yaml": "^4.3.2",
 		"lit": "^2.2.4"
 	},
 	"overrides": {
