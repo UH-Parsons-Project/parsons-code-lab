@@ -1,76 +1,15 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import {
-  registerTeacher,
-  loginTeacher,
-  createTaskSetWithTasks,
-  registerStudent,
-  loginStudent,
-  getStudentUrl,
-} from './test-helpers.js';
-
-async function setupStudentTask(page, browser, unique) {
-  const teacherUsername = `teacher_err_${unique}`;
-  const teacherEmail = `teacher_err_${unique}@example.com`;
-  const teacherPassword = 'password123';
-  const taskSetTitle = `Err Task Set ${unique}`;
-
-  // Teacher registers, logs in, and creates a task set with specific tasks
-  await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
-  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await loginTeacher(page, teacherEmail, teacherPassword);
-  await expect(page).toHaveURL(/\/teacher-dashboard$/);
-
-  await createTaskSetWithTasks(
-    page,
-    taskSetTitle,
-    `Student description for ${taskSetTitle}`,
-    `Teacher description for ${taskSetTitle}`,
-    ['add_in_range']
-  );
-  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
-
-  // Get the student-facing URL
-  const studentUrl = await getStudentUrl(page, taskSetTitle);
-
-  // Open a new browser context for the student
-  const studentContext = await browser.newContext();
-  const studentPage = await studentContext.newPage();
-  await studentPage.goto(studentUrl);
-
-  // Register and login as student (username must be ≤20 chars due to HTML maxlength)
-  const studentUsername = `st_err_${unique % 1000000}`;
-  const studentEmail = `student_err_${unique}@example.com`;
-
-  await registerStudent(studentPage, studentUsername, studentEmail);
-
-  const loginResponsePromise = studentPage.waitForResponse(
-    r => r.url().includes('/api/student_login')
-  );
-
-  await loginStudent(studentPage, studentEmail);
-  const loginResponse = await loginResponsePromise;
-  expect(loginResponse.status()).toBe(200);
-
-  await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
-
-  // Click on the "add_in_range" task
-  await studentPage.locator('.task-set-item', { hasText: 'add_in_range' }).click();
-
-  // Click "Start" on the start page
-  await studentPage.waitForSelector('#start-btn', { timeout: 10000 });
-  await studentPage.locator('#start-btn').click();
-
-  // Wait for Run Tests button to be available
-  await studentPage.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
-
-  return { studentPage, studentContext };
-}
+import { setupStudentTask } from './test-helpers.js';
 
 test('student task displays a friendly error for an infinite loop', async ({ page, browser }) => {
   const unique = Date.now();
-  const { studentPage, studentContext } = await setupStudentTask(page, browser, unique);
+  const { studentPage, studentContext } = await setupStudentTask(page, browser, {
+    unique,
+    teacherPrefix: 'teacher_err',
+    taskSetPrefix: 'Err Task Set',
+    studentPrefix: 'st_err',
+  });
 
   // Arrange blocks to form an infinite loop (omit the increment block 'start +=')
   await studentPage.evaluate(() => {

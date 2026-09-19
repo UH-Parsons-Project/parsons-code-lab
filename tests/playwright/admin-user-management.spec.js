@@ -5,6 +5,7 @@ import {
   loginTeacher,
   logoutTeacher,
   createTestStudent,
+  confirmAdminAction,
 } from './test-helpers.js';
 
 test.describe('Admin User Management E2E', () => {
@@ -36,10 +37,7 @@ test.describe('Admin User Management E2E', () => {
     await resetBtn.click();
 
     // 6. Confirm password reset in modal with admin password
-    const modal = page.locator('.admin-modal-overlay');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    await modal.locator('input[type="password"]').fill('test1234');
-    await modal.locator('.confirm-btn').click();
+    await confirmAdminAction(page);
 
     // 7. Verify Reset Result modal appears with temporary password
     const resultModal = page.locator('.admin-modal-overlay');
@@ -85,10 +83,7 @@ test.describe('Admin User Management E2E', () => {
     await makeAdminBtn.click();
 
     // 6. Confirm in modal with admin password
-    const modal = page.locator('.admin-modal-overlay');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    await modal.locator('input[type="password"]').fill('test1234');
-    await modal.locator('.confirm-btn').click();
+    await confirmAdminAction(page);
 
     // 7. Verify teacher card is re-rendered with the Admin badge
     const updatedCard = page.locator('#teachers-container .task-set-item', { hasText: teacherUsername });
@@ -131,10 +126,7 @@ test.describe('Admin User Management E2E', () => {
     await deleteBtn.click();
 
     // 6. Confirm in modal with admin password
-    const modal = page.locator('.admin-modal-overlay');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    await modal.locator('input[type="password"]').fill('test1234');
-    await modal.locator('.confirm-btn').click();
+    await confirmAdminAction(page);
 
     // 7. Verify student card is removed from DOM
     await expect(page.locator('#students-container .task-set-item', { hasText: studentUsername })).toHaveCount(0, { timeout: 10000 });
@@ -202,10 +194,7 @@ test.describe('Admin User Management E2E', () => {
     await deleteBtn.click();
 
     // 6. Confirm deletion in modal with admin password
-    const modal = page.locator('.admin-modal-overlay');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    await modal.locator('input[type="password"]').fill('test1234');
-    await modal.locator('.confirm-btn').click();
+    await confirmAdminAction(page);
 
     // 7. Verify target teacher card is removed from /all-users
     await expect(page.locator('#teachers-container .task-set-item', { hasText: teacherUsername })).toHaveCount(0, { timeout: 10000 });
