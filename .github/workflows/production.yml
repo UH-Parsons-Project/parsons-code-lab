@@ -25,7 +25,30 @@ jobs:
       - name: Run unit tests
         run: pytest tests/unit/ -v
 
+  build-test-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Playwright images once
+        run: docker compose --profile test build web-test test
+
+      - name: Save Playwright images
+        run: docker save parsons-code-lab-web-test:ci parsons-code-lab-test:ci -o playwright-images.tar
+
+      - name: Upload Playwright images
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-playwright-images
+          path: playwright-images.tar
+          retention-days: 1
+
   playwright-tests:
+    needs: build-test-images
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
@@ -35,6 +58,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download Playwright images
+        uses: actions/download-artifact@v4
+        with:
+          name: production-playwright-images
+
+      - name: Load Playwright images
+        run: docker load --input playwright-images.tar
 
       - name: Create .env file with secrets
         run: echo "TEACHER_REGISTRATION_TOKEN=${{ secrets.TEACHER_REGISTRATION_TOKEN }}" > .env
@@ -49,7 +80,7 @@ jobs:
           set -euo pipefail
           for attempt in 1 2 3; do
             echo "Starting Playwright stack (attempt ${attempt}/3)"
-            if docker compose --profile test up --build -d db web-test; then
+            if docker compose --profile test up -d db-test web-test; then
               exit 0
             fi
 

@@ -66,6 +66,7 @@ services:
 
   # Web app instance for running tests against
   web-test:
+    image: parsons-code-lab-web-test:ci
     build:
       context: .
       dockerfile: dockerfile
@@ -112,6 +113,7 @@ services:
   # Playwright test runner
   test:
     profiles: ["test"]
+    image: parsons-code-lab-test:ci
     build:
       context: .
       dockerfile: Dockerfile.test
