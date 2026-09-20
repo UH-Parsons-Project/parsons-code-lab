@@ -36,12 +36,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Set Playwright cache scope
-        run: echo "PLAYWRIGHT_CACHE_SCOPE=production-playwright-shard-${{ matrix.shard }}" >> "$GITHUB_ENV"
-      
       - name: Create .env file with secrets
         run: echo "TEACHER_REGISTRATION_TOKEN=${{ secrets.TEACHER_REGISTRATION_TOKEN }}" > .env
       
@@ -95,13 +89,15 @@ jobs:
         run: |
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
-      - name: Build docker image # Build and name the image for production
-      - name: Push to Quay # Push the docker built image to quay
-          uses: docker/build-push-action@v6
-          with:
-           context: .
-           file: Dockerfile.prod
-           push: true
-           tags: quay.io/tike/ohtu-faded-parsons:production
-           cache-from: type=gha,scope=production
-           cache-to: type=gha,mode=max,scope=production
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push docker image for production
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          tags: quay.io/tike/ohtu-faded-parsons:production
+          cache-from: type=gha,scope=production
+          cache-to: type=gha,mode=max,scope=production

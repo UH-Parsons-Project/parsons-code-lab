@@ -69,10 +69,6 @@ services:
     build:
       context: .
       dockerfile: dockerfile
-      cache_from:
-        - type=gha,scope=${PLAYWRIGHT_CACHE_SCOPE:-playwright-default}-web
-      cache_to:
-        - type=gha,mode=max,scope=${PLAYWRIGHT_CACHE_SCOPE:-playwright-default}-web
     restart: always
     ports:
       - "8001:8000"
@@ -119,10 +115,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
-      cache_from:
-        - type=gha,scope=${PLAYWRIGHT_CACHE_SCOPE:-playwright-default}-test
-      cache_to:
-        - type=gha,mode=max,scope=${PLAYWRIGHT_CACHE_SCOPE:-playwright-default}-test
     depends_on:
       - web-test
     env_file:
