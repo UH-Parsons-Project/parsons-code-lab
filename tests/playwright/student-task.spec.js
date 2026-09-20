@@ -5,6 +5,7 @@ import {
   loginTeacher,
   createTaskSetWithTasks,
   registerStudent,
+  loginStudent,
   loginStudentAndVerify,
   getStudentUrl,
   submitTaskWrongThenCorrect,

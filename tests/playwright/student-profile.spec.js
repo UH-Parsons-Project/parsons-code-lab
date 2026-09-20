@@ -124,6 +124,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await expect(studentPage.locator('#password-alert-placeholder .alert-success')).toContainText('Password successfully updated.');
 
     // Verify login works with new password
+    const toggle = studentPage.locator('#navbar-burger-toggle');
     if (await toggle.isVisible()) {
       await toggle.click();
     }
