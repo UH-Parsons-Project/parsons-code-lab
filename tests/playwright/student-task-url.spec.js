@@ -6,7 +6,7 @@ import {
   createTaskSetWithTasks,
   getStudentUrl,
   createTestStudent,
-  loginStudent,
+  loginStudentAndVerify,
   submitTaskWrongThenCorrect,
 } from './test-helpers.js';
 
@@ -78,12 +78,7 @@ test.describe('Task URL resilience and Task Reordering', () => {
     const urlParts = studentUrl.split('/set/');
     const uniqueLinkCode = urlParts.length > 1 ? urlParts[1].split('/')[0] : null;
 
-    const loginResponsePromise = studentPage.waitForResponse(
-      r => r.url().includes('/api/student_login')
-    );
-    await loginStudent(studentPage, studentEmail, 'password123', uniqueLinkCode);
-    const loginResponse = await loginResponsePromise;
-    expect(loginResponse.status()).toBe(200);
+    await loginStudentAndVerify(studentPage, studentEmail, 'password123', uniqueLinkCode);
 
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
     
@@ -191,12 +186,7 @@ test.describe('Task URL resilience and Task Reordering', () => {
     const urlParts = studentUrl.split('/set/');
     const uniqueLinkCode = urlParts.length > 1 ? urlParts[1].split('/')[0] : null;
 
-    const loginResponsePromise = studentPage.waitForResponse(
-      r => r.url().includes('/api/student_login')
-    );
-    await loginStudent(studentPage, studentEmail, 'password123', uniqueLinkCode);
-    const loginResponse = await loginResponsePromise;
-    expect(loginResponse.status()).toBe(200);
+    await loginStudentAndVerify(studentPage, studentEmail, 'password123', uniqueLinkCode);
 
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 

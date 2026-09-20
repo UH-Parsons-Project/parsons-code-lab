@@ -6,6 +6,7 @@ import {
   createTaskSetWithTasks,
   registerStudent,
   loginStudent,
+  loginStudentAndVerify,
   getStudentUrl,
   submitTaskWrongThenCorrect,
   submitGreaterNumCorrect,
@@ -49,15 +50,7 @@ test('student can open and submit a task first incorrectly and then correctly fr
   await registerStudent(studentPage, studentUsername, studentEmail);
 
   // Start listening for the login API response BEFORE triggering the login
-  const loginResponsePromise = studentPage.waitForResponse(
-    r => r.url().includes('/api/student_login')
-  );
-
-  await loginStudent(studentPage, studentEmail);
-
-  // Assert login API returned success before waiting for navigation
-  const loginResponse = await loginResponsePromise;
-  expect(loginResponse.status()).toBe(200);
+  await loginStudentAndVerify(studentPage, studentEmail);
 
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
@@ -114,14 +107,7 @@ test('student can navigate back to task list and see in-progress status', async 
   await registerStudent(studentPage, studentUsername, studentEmail);
 
   // Start listening for the login API response BEFORE triggering the login
-  const loginResponsePromise = studentPage.waitForResponse(
-    r => r.url().includes('/api/student_login')
-  );
-
-  await loginStudent(studentPage, studentEmail);
-
-  const loginResponse = await loginResponsePromise;
-  expect(loginResponse.status()).toBe(200);
+  await loginStudentAndVerify(studentPage, studentEmail);
 
   // Verify student is redirected to task list
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });

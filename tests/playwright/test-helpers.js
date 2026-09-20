@@ -243,6 +243,25 @@ export async function loginStudent(page, username, password = 'password123', uni
   ]);
 }
 
+export async function loginStudentAndVerify(page, username, password = 'password123', uniqueLinkCode = null) {
+  const loginResponsePromise = page.waitForResponse(
+    response => response.url().includes('/api/student_login')
+  );
+  await loginStudent(page, username, password, uniqueLinkCode);
+  const loginResponse = await loginResponsePromise;
+  expect(loginResponse.status()).toBe(200);
+  return loginResponse;
+}
+
+export async function openStudentProfile(page) {
+  const toggle = page.locator('#navbar-burger-toggle');
+  if (await toggle.isVisible()) {
+    await toggle.click();
+  }
+  await page.locator('#profile-link').click();
+  await page.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+}
+
 /**
  * Logout a teacher and wait for return to login page
  * @param {any} page - Playwright page object
@@ -315,12 +334,7 @@ export async function setupStudentTask(page, browser, {
   const studentEmail = `${studentPrefix}_${unique}@example.com`;
   await registerStudent(studentPage, studentUsername, studentEmail);
 
-  const loginResponsePromise = studentPage.waitForResponse(
-    response => response.url().includes('/api/student_login')
-  );
-  await loginStudent(studentPage, studentEmail);
-  const loginResponse = await loginResponsePromise;
-  expect(loginResponse.status()).toBe(200);
+  await loginStudentAndVerify(studentPage, studentEmail);
   await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
 
   await openStudentTask(studentPage, taskNames[0]);

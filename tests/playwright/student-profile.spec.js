@@ -6,6 +6,7 @@ import {
   createTaskSetWithTasks,
   registerStudent,
   loginStudent,
+  openStudentProfile,
   getStudentUrl,
 } from './test-helpers.js';
 
@@ -49,12 +50,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Fill change email form
     await studentPage.locator('#new-email').fill(newEmail);
@@ -86,12 +82,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Fill change email form with wrong password
     await studentPage.locator('#new-email').fill(newEmail);
@@ -121,12 +112,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Fill change password form
     await studentPage.locator('#current-password').fill(studentPassword);
@@ -138,6 +124,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await expect(studentPage.locator('#password-alert-placeholder .alert-success')).toContainText('Password successfully updated.');
 
     // Verify login works with new password
+    const toggle = studentPage.locator('#navbar-burger-toggle');
     if (await toggle.isVisible()) {
       await toggle.click();
     }
@@ -164,12 +151,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Fill change password form with mismatched passwords
     await studentPage.locator('#current-password').fill(studentPassword);
@@ -208,12 +190,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Fill change password form with wrong current password
     await studentPage.locator('#current-password').fill('wrongpassword');
@@ -242,12 +219,7 @@ test.describe('Student Profile - Email & Password Changes', () => {
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Fill change password form with new password same as current
     await studentPage.locator('#current-password').fill(studentPassword);
@@ -321,12 +293,7 @@ test.describe('Student Profile - My Task Sets', () => {
     await studentPage.waitForURL(set2Url + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Verify both sets are present in #enrolled-sets-container
     const set1Locator = studentPage.locator('li', { hasText: set1Title });
@@ -372,12 +339,7 @@ test.describe('Student Profile - My Task Sets', () => {
     await studentPage.waitForURL(set2Url + '/tasks', { timeout: 15000 });
 
     // Navigate to profile
-    const toggle = studentPage.locator('#navbar-burger-toggle');
-    if (await toggle.isVisible()) {
-      await toggle.click();
-    }
-    await studentPage.locator('#profile-link').click();
-    await studentPage.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+    await openStudentProfile(studentPage);
 
     // Try to open Set 1 (which is NOT the current set)
     const set1Locator = studentPage.locator('li', { hasText: set1Title });
