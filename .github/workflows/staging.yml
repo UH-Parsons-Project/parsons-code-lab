@@ -17,16 +17,25 @@ jobs:
         run: |
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
-      - name: Build docker image # Build and name the image staging
-        run: docker build -f Dockerfile.staging -t quay.io/tike/ohtu-faded-parsons:staging .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Push to Quay # Push the docker built image to quay
-        run: |
-          docker push quay.io/tike/ohtu-faded-parsons:staging
+      - name: Build docker image # Build and name the image staging
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.staging
+          push: true
+          tags: quay.io/tike/ohtu-faded-parsons:staging
+          cache-from: type=gha,scope=staging
+          cache-to: type=gha,mode=max,scope=staging
 
       - name: Build Shibboleth proxy image
-        run: docker build -f apache/Dockerfile -t quay.io/tike/ohtu-faded-parsons-shibboleth:staging apache
-
-      - name: Push Shibboleth proxy image to Quay
-        run: |
-          docker push quay.io/tike/ohtu-faded-parsons-shibboleth:staging
+        uses: docker/build-push-action@v6
+        with:
+          context: apache
+          file: apache/Dockerfile
+          push: true
+          tags: quay.io/tike/ohtu-faded-parsons-shibboleth:staging
+          cache-from: type=gha,scope=staging-shibboleth
+          cache-to: type=gha,mode=max,scope=staging-shibboleth
