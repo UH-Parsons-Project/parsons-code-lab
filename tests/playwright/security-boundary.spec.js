@@ -5,7 +5,7 @@ import {
   loginTeacher,
   createTaskSet,
   registerStudent,
-  loginStudent,
+  loginStudentAndVerify,
   getStudentUrl,
 } from './test-helpers.js';
 
@@ -40,12 +40,7 @@ test('student role is redirected to home page when attempting to access teacher 
 
   await registerStudent(studentPage, studentUsername, studentEmail);
 
-  const loginResponsePromise = studentPage.waitForResponse(
-    r => r.url().includes('/api/student_login')
-  );
-  await loginStudent(studentPage, studentEmail);
-  const loginResponse = await loginResponsePromise;
-  expect(loginResponse.status()).toBe(200);
+  await loginStudentAndVerify(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // 3. Try accessing teacher-only pages as a student
