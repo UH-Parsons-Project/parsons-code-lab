@@ -139,6 +139,27 @@ class TestGetStudentAttempts:
         assert isinstance(data, list)
         assert len(data) > 0
         assert data[0]["task_title"] == task.title
+        assert data[0]["is_deactivated"] is False
+
+    async def test_get_student_attempts_includes_deactivated_status(
+        self, client, db_session, test_teacher, task_set, task, student_session
+    ):
+        from backend.models import TaskSetItem
+
+        db_session.add(TaskSetItem(
+            task_set_id=task_set.id,
+            task_id=task.id,
+            is_hidden=True,
+        ))
+        await db_session.commit()
+
+        response = await client.get(
+            f"/api/students/{student_session.id}/attempts?set_id={task_set.id}",
+            headers=_auth(test_teacher.username),
+        )
+
+        assert response.status_code == 200
+        assert response.json()[0]["is_deactivated"] is True
 
     async def test_get_student_attempts_no_attempts(self, client, db_session, test_teacher, 
                                                      task_set, task, student_session):
