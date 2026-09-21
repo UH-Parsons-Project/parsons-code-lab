@@ -138,6 +138,7 @@ class StudentTaskAttemptResponse(BaseModel):
     task_id: int
     task_title: str
     task_type: str
+    is_deactivated: bool = False
     attempts: int
     success_count: int
     last_attempt_at: str

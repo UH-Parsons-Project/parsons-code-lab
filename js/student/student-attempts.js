@@ -164,6 +164,13 @@ function createAttemptItem(attempt) {
 	title.className = 'task-set-title';
 	title.textContent = attempt.task_title;
 
+	if (attempt.is_deactivated) {
+		const deactivatedLabel = document.createElement('div');
+		deactivatedLabel.className = 'sa-task-deactivated';
+		deactivatedLabel.textContent = 'Task deactivated';
+		title.appendChild(deactivatedLabel);
+	}
+
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
 
