@@ -126,6 +126,7 @@ services:
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js
+      - ./playwright-report:/usr/src/app/playwright-report
 
 networks:
   test-network:
