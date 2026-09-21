@@ -206,6 +206,19 @@ function createMyTaskCard(task) {
 	}
 
 	header.appendChild(titleWrap);
+
+	const copyBtn = document.createElement('button');
+	copyBtn.className = 'btn btn-sm btn-outline-secondary';
+	copyBtn.type = 'button';
+	copyBtn.title = 'Copy task';
+	copyBtn.setAttribute('aria-label', `Copy task "${task.title}"`);
+	copyBtn.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i>';
+	copyBtn.addEventListener('click', async (e) => {
+		e.stopPropagation();
+		clearTaskDraftStorage();
+		window.location.href = `/create-task-editor?task_id=${task.id}&copy=true`;
+	});
+	header.appendChild(copyBtn);
 	card.appendChild(header);
 
 	const meta = document.createElement('div');
