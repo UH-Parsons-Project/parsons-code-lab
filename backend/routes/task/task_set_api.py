@@ -100,6 +100,46 @@ def _validate_task_set_dates(opens_at: datetime | None, expires_at: datetime | N
         )
 
 
+async def _unique_copy_title(db: AsyncSession, teacher_id: int, source_title: str) -> str:
+    """Return the next available title for a copied task set."""
+    base_title = f"Copy of {source_title}"
+    title = base_title
+    suffix = 2
+
+    while True:
+        result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == teacher_id,
+                TaskSet.title == title,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            return title
+        title = f"{base_title} ({suffix})"
+        suffix += 1
+
+
+async def _unique_task_set_link_code(
+    db: AsyncSession, teacher_id: int, title: str
+) -> str:
+    """Return an owner-specific link code using create_task_set's convention."""
+    base_slug = generate_slug(title)
+    unique_link_code = base_slug
+    suffix = 1
+
+    while True:
+        result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == teacher_id,
+                TaskSet.unique_link_code == unique_link_code,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            return unique_link_code
+        unique_link_code = f"{base_slug}{suffix}"
+        suffix += 1
+
+
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
 async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     """List all task sets for the current teacher."""
@@ -167,6 +207,70 @@ async def get_task_set(
         opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
         deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
+    )
+
+
+@router.post("/api/my_sets/{task_set_id}/duplicate", response_model=TaskSetResponse)
+async def duplicate_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Create an independent copy of a task set for its owner."""
+    source_task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if source_task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to duplicate this task set",
+        )
+
+    copy_title = await _unique_copy_title(db, current_user.id, source_task_set.title)
+    unique_link_code = await _unique_task_set_link_code(
+        db, current_user.id, copy_title
+    )
+
+    source_items_result = await db.execute(
+        select(TaskSetItem)
+        .where(TaskSetItem.task_set_id == source_task_set.id)
+        .order_by(TaskSetItem.id.asc())
+    )
+    source_items = source_items_result.scalars().all()
+
+    copied_task_set = TaskSet(
+        teacher_id=current_user.id,
+        title=copy_title,
+        unique_link_code=unique_link_code,
+        student_description=source_task_set.student_description,
+        teacher_description=source_task_set.teacher_description,
+        opens_at=None,
+        expires_at=None,
+    )
+    db.add(copied_task_set)
+    await db.flush()
+
+    for source_item in source_items:
+        db.add(
+            TaskSetItem(
+                task_set_id=copied_task_set.id,
+                task_id=source_item.task_id,
+                is_hidden=source_item.is_hidden,
+            )
+        )
+
+    await db.commit()
+    await db.refresh(copied_task_set)
+
+    return TaskSetResponse(
+        id=copied_task_set.id,
+        title=copied_task_set.title,
+        unique_link_code=copied_task_set.unique_link_code,
+        teacher_id=copied_task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=copied_task_set.student_description,
+        teacher_description=copied_task_set.teacher_description,
+        created_at=copied_task_set.created_at.isoformat(),
+        opens_at=None,
+        expires_at=None,
     )
 
 

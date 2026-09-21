@@ -1508,6 +1508,170 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert body["unique_link_code"] == "brand-new-task-set"
         assert body["expires_at"] is not None
 
+    async def test_duplicate_task_set_copies_metadata_order_and_hidden_flags(
+        self, client, test_teacher, task, private_task, task_set, db_session
+    ):
+        task_set.student_description = "Student instructions"
+        task_set.teacher_description = "Teacher notes"
+        task_set.opens_at = datetime(2027, 1, 1, 9, 0, 0)
+        task_set.expires_at = datetime(2027, 1, 31, 17, 0, 0)
+        db_session.add_all([
+            TaskSetItem(task_set_id=task_set.id, task_id=private_task.id, is_hidden=True),
+            TaskSetItem(task_set_id=task_set.id, task_id=task.id, is_hidden=False),
+        ])
+        await db_session.commit()
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+
+        response = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(test_teacher.username),
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["id"] != task_set.id
+        assert body["title"] == "Copy of Week 1 Exercises"
+        assert body["unique_link_code"] == "copy-of-week-1-exercises"
+        assert body["teacher_id"] == test_teacher.id
+        assert body["owner_username"] == test_teacher.username
+        assert body["student_description"] == task_set.student_description
+        assert body["teacher_description"] == task_set.teacher_description
+        assert body["opens_at"] is None
+        assert body["expires_at"] is None
+
+        copied_items = await db_session.execute(
+            select(TaskSetItem)
+            .where(TaskSetItem.task_set_id == body["id"])
+            .order_by(TaskSetItem.id.asc())
+        )
+        assert [
+            (item.task_id, item.is_hidden) for item in copied_items.scalars().all()
+        ] == [(private_task.id, True), (task.id, False)]
+
+        source = await db_session.get(TaskSet, task_set.id)
+        assert source.title == "Week 1 Exercises"
+        assert source.unique_link_code == "WEEK1"
+        assert source.opens_at == datetime(2027, 1, 1, 9, 0, 0)
+        assert source.expires_at == datetime(2027, 1, 31, 17, 0, 0)
+
+        source_items = await db_session.execute(
+            select(TaskSetItem)
+            .where(TaskSetItem.task_set_id == task_set.id)
+            .order_by(TaskSetItem.id.asc())
+        )
+        assert [
+            (item.task_id, item.is_hidden) for item in source_items.scalars().all()
+        ] == [(private_task.id, True), (task.id, False)]
+
+        copied_viewers = await db_session.execute(
+            select(TaskSetViewer).where(TaskSetViewer.task_set_id == body["id"])
+        )
+        source_viewers = await db_session.execute(
+            select(TaskSetViewer).where(TaskSetViewer.task_set_id == task_set.id)
+        )
+        assert copied_viewers.scalars().all() == []
+        assert [viewer_row.teacher_id for viewer_row in source_viewers.scalars().all()] == [
+            viewer.id
+        ]
+
+    async def test_duplicate_task_set_does_not_copy_student_state(
+        self, client, test_teacher, task, task_set, db_session
+    ):
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=task.id))
+        student = Student(username="duplicate_student", email="duplicate_student@example.com")
+        student.set_password("studentpass123")
+        db_session.add(student)
+        await db_session.flush()
+
+        set_enrollment = StudentTaskSetEnrollment(
+            student_id=student.id, task_set_id=task_set.id
+        )
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student.id, task_id=task.id, task_set_id=task_set.id
+        )
+        db_session.add_all([set_enrollment, task_enrollment])
+        await db_session.flush()
+        session = TaskSession(student_task_enrollment_id=task_enrollment.id)
+        db_session.add(session)
+        await db_session.flush()
+        db_session.add(
+            TaskAttempt(
+                student_id=student.id,
+                task_id=task.id,
+                student_task_enrollment_id=task_enrollment.id,
+                task_session_id=session.id,
+                success=True,
+            )
+        )
+        await db_session.commit()
+
+        response = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(test_teacher.username),
+        )
+        assert response.status_code == 200
+        copied_id = response.json()["id"]
+
+        copied_set_enrollment = await db_session.execute(
+            select(StudentTaskSetEnrollment).where(
+                StudentTaskSetEnrollment.task_set_id == copied_id
+            )
+        )
+        copied_task_enrollment = await db_session.execute(
+            select(StudentTaskEnrollment).where(
+                StudentTaskEnrollment.task_set_id == copied_id
+            )
+        )
+        assert copied_set_enrollment.scalars().all() == []
+        assert copied_task_enrollment.scalars().all() == []
+
+    async def test_duplicate_task_set_repeated_copies_get_distinct_names_and_links(
+        self, client, test_teacher, task_set
+    ):
+        first = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(test_teacher.username),
+        )
+        second = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(test_teacher.username),
+        )
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert first.json()["title"] == "Copy of Week 1 Exercises"
+        assert second.json()["title"] == "Copy of Week 1 Exercises (2)"
+        assert first.json()["unique_link_code"] == "copy-of-week-1-exercises"
+        assert second.json()["unique_link_code"] == "copy-of-week-1-exercises-2"
+        assert first.json()["id"] != second.json()["id"]
+
+    async def test_duplicate_task_set_requires_owner_authentication(
+        self, client, test_teacher, task_set, db_session
+    ):
+        unauthenticated = await client.post(f"/api/my_sets/{task_set.id}/duplicate")
+        assert unauthenticated.status_code == 401
+
+        other_teacher = Teacher(
+            username="other_duplicate_teacher",
+            email="other_duplicate_teacher@example.com",
+        )
+        other_teacher.set_password("testpassword123")
+        db_session.add(other_teacher)
+        await db_session.commit()
+
+        other_teacher_response = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(other_teacher.username),
+        )
+        assert other_teacher_response.status_code == 403
+
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+        viewer_response = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(viewer.username),
+        )
+        assert viewer_response.status_code == 403
+
 
 @pytest.mark.asyncio
 class TestCreateProblemApi:
