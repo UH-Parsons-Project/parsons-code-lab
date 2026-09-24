@@ -17,6 +17,7 @@ const setId = params.get('set_id');
 let currentTaskSet = null;
 let currentTasks = [];
 let currentStudents = [];
+let isDuplicatingTaskSet = false;
 
 // Edit mode and add task modal state
 let isEditMode = false;
@@ -239,6 +240,55 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 			button.innerHTML = '<i class="fas fa-download"></i>Student data';
 		}
 	}
+}
+
+async function duplicateTaskSet(taskSet) {
+	if (isDuplicatingTaskSet) return;
+
+	const button = document.getElementById('duplicate-task-set-btn');
+	const status = document.getElementById('duplicate-task-set-status');
+	if (!button) return;
+
+	isDuplicatingTaskSet = true;
+	button.disabled = true;
+	button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Duplicating...';
+	if (status) {
+		status.textContent = '';
+		status.style.display = 'none';
+	}
+
+	try {
+		const duplicatedTaskSet = await fetchJsonWithError(
+			`/api/my_sets/${encodeURIComponent(taskSet.id)}/duplicate`,
+			'Failed to duplicate task set',
+			{ method: 'POST' }
+		);
+		if (!duplicatedTaskSet?.id) {
+			throw new Error('The duplicated task set could not be opened.');
+		}
+
+		window.location.href = `/task-set-overview?set_id=${encodeURIComponent(duplicatedTaskSet.id)}`;
+	} catch (error) {
+		console.error('Failed to duplicate task set:', error);
+		button.disabled = false;
+		button.innerHTML = '<i class="fas fa-copy"></i> Duplicate Task Set';
+		if (status) {
+			status.textContent = error.message || 'Failed to duplicate task set.';
+			status.style.display = 'block';
+		} else {
+			alert(error.message || 'Failed to duplicate task set.');
+		}
+	} finally {
+		isDuplicatingTaskSet = false;
+	}
+}
+
+function setupDuplicateTaskSetButton(taskSet, isOwner) {
+	if (!isOwner) return;
+
+	document.getElementById('duplicate-task-set-btn')?.addEventListener('click', () => {
+		duplicateTaskSet(taskSet);
+	});
 }
 
 function setupInitialEventsExport(taskSet, tasks) {
@@ -648,6 +698,10 @@ function renderListHeader(taskSet, tasks, students) {
 		}
 	}
 
+	const duplicateHTML = isOwner
+		? `<button id="duplicate-task-set-btn" type="button" class="btn btn-sm btn-outline-secondary" style="width:100%; justify-content:center; font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;border-radius:var(--radius);"><i class="fas fa-copy"></i> Duplicate Task Set</button>`
+		: '';
+
 	let descriptionsHTML = '';
 	if (taskSet.teacher_description || taskSet.student_description) {
 		descriptionsHTML += `<div class="descriptions-wrapper" style="margin-top:.25rem;">`;
@@ -710,9 +764,11 @@ function renderListHeader(taskSet, tasks, students) {
 						<i class="fas fa-download"></i> Initial events data
 					</button>
 				</div>
-				<div style="margin-top:.4rem; display:flex;">
+				<div style="margin-top:.4rem; display:flex; flex-direction:column; gap:.4rem;">
+					${duplicateHTML}
 					${deleteHTML}
 				</div>
+				<div id="duplicate-task-set-status" role="alert" class="text-danger" style="display:none; font-size:.8rem;"></div>
 			</div>
 		</div>
 	`;
@@ -776,6 +832,7 @@ function renderListHeader(taskSet, tasks, students) {
 	setupViewerSharing();
 	setupOpeningEdit(taskSet, isOwner);
 	setupExpiryEdit(taskSet, isOwner);
+	setupDuplicateTaskSetButton(taskSet, isOwner);
 	if (isOwner) {
 		loadViewers();
 	}
