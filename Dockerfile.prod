@@ -11,10 +11,10 @@ ENV PATH="/app/venv/bin:$PATH"
 COPY package*.json ./
 COPY requirements.txt ./
 
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 
 COPY . .
 

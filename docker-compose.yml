@@ -30,7 +30,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/usr/src/app
+      - .:/app
+      - /app/node_modules
+      - /app/venv
     env_file:
       - .env
     environment:
@@ -40,6 +42,7 @@ services:
       DEVELOPMENT_MODE: "true"
       TEST_MODE: "true"
       SECRET_KEY: "${SECRET_KEY:-test-secret-key-for-local-dev-only}"
+    command: npm run dev
     depends_on:
       db:
         condition: service_healthy
@@ -123,6 +126,7 @@ services:
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js
+      - ./playwright-report:/usr/src/app/playwright-report
 
 networks:
   test-network:

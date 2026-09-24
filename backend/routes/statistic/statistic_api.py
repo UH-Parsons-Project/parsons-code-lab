@@ -139,6 +139,7 @@ async def get_student_attempts(
                 Parsons.id,
                 Parsons.title,
                 Parsons.task_type,
+                TaskSetItem.is_hidden.label('is_deactivated'),
                 func.count(TaskAttempt.id).label('attempts'),  # pylint: disable=not-callable
                 func.coalesce(func.sum(func.cast(TaskAttempt.success, Integer)), 0).label('success_count'),  # pylint: disable=not-callable
                 func.max(TaskAttempt.completed_at).label('last_attempt_at'),
@@ -157,7 +158,13 @@ async def get_student_attempts(
                 & (TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
             )
             .where(Parsons.id.in_(task_ids))
-            .group_by(Parsons.id, Parsons.title, Parsons.task_type, TaskSetItem.id)
+            .group_by(
+                Parsons.id,
+                Parsons.title,
+                Parsons.task_type,
+                TaskSetItem.id,
+                TaskSetItem.is_hidden,
+            )
             .order_by(TaskSetItem.id.asc())
         )
 
@@ -169,6 +176,7 @@ async def get_student_attempts(
                 task_id=attempt.id,
                 task_title=attempt.title,
                 task_type=attempt.task_type,
+                is_deactivated=attempt.is_deactivated,
                 attempts=attempt.attempts,
                 success_count=attempt.success_count or 0,
                 last_attempt_at=attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else "",

@@ -255,6 +255,13 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.sa-task-deactivated {
+  color: #dc3545;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
 #attempts-list .task-set-meta {
   font-size: 0.875rem;
   color: #6c757d;

@@ -8,9 +8,16 @@
 	<link rel="stylesheet" href="/js-parsons/parsons.css"/>
 	<link rel="stylesheet" href="/css/base/main.css"/>
 	<link rel="stylesheet" href="/css/legacy/legacy-pages.css"/>
+	<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4"/>
 </head>
 <body>
 	{% include 'common/nav-student.html' %}
+
+	<div class="student-page-toolbar">
+		<a href="#" id="back-to-list" class="embossed-btn" title="Back" style="margin-left: 0;">
+			<i class="fas fa-arrow-left"></i> Back
+		</a>
+	</div>
 
 	<div class="container-fluid px-4 px-xl-5 student-problem-page">
 		<div id="problem-wrapper"></div>

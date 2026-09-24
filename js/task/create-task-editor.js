@@ -1514,9 +1514,11 @@ initBurgerMenu();
       eval_type: evalType,
       expected_output: expectedOutput,
       require_indentation: document.getElementById('allow-indent') ? document.getElementById('allow-indent').checked : true,
+      modelAnswerCode: finalModelAnswerCode,
     };
 
-    const editTaskId = draftPayload?.taskId || null;
+    const isCopyMode = new URLSearchParams(window.location.search).get('copy') === 'true';
+    const editTaskId = isCopyMode ? null : (draftPayload?.taskId || null);
     const fetchUrl = editTaskId ? `/api/problems/${editTaskId}` : '/api/problems';
     const fetchMethod = editTaskId ? 'PUT' : 'POST';
 
@@ -1999,6 +2001,11 @@ initBurgerMenu();
   async function initializeBuilder() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlTaskId = urlParams.get('task_id') ? parseInt(urlParams.get('task_id'), 10) : null;
+    const isCopyMode = urlParams.get('copy') === 'true';
+
+    if (isCopyMode) {
+      clearTaskDraftStorage();
+    }
 
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
@@ -2016,7 +2023,9 @@ initBurgerMenu();
       let fetchedModelAnswer = '';
       try {
         const [editableResp, taskResp, modelAnswerResp] = await Promise.all([
-          fetch(`/api/problems/${urlTaskId}/editable`, { credentials: 'same-origin' }),
+          isCopyMode
+            ? Promise.resolve({ ok: true })
+            : fetch(`/api/problems/${urlTaskId}/editable`, { credentials: 'same-origin' }),
           fetch(`/api/tasks/${urlTaskId}`, { credentials: 'same-origin' }),
           fetch(`/api/problems/${urlTaskId}/model-answer`, { credentials: 'same-origin' }),
         ]);
@@ -2034,7 +2043,7 @@ initBurgerMenu();
           fetchedModelAnswer = modelAnswerPayload?.model_answer || '';
         }
 
-        if (editableResp.ok) {
+        if (!isCopyMode && editableResp.ok) {
           const { editable } = await editableResp.json();
           if (!editable) {
             alert('This task cannot be edited because it is used in a task set with enrolled students, or another teacher has added it to their task set.');
@@ -2056,17 +2065,21 @@ initBurgerMenu();
         taskTests: teacherTests,
         taskType: normalizeTaskTypeValue(taskData.task_type),
         savedAt: new Date().toISOString(),
-        taskId: urlTaskId,
+        taskId: isCopyMode ? null : urlTaskId,
       };
 
       const cachedRepr = getCachedParsonsRepr(solutionCode);
-      const meta = loadMetaFromSession(solutionCode, urlTaskId);
+      const meta = loadMetaFromSession(solutionCode, isCopyMode ? null : urlTaskId);
       const defaultTitle = extractDefaultTitleFromCode(solutionCode);
       const initialText = cachedRepr || buildReprFromBlocks(taskData);
 
       let instructions = {};
       try { instructions = JSON.parse(taskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
-      if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || taskData.title || defaultTitle;
+      if (taskTitleInput) {
+        taskTitleInput.value = (meta.taskTitle || '').trim()
+          || (isCopyMode ? `${taskData.title} (Copy)` : taskData.title)
+          || defaultTitle;
+      }
       if (descriptionInput) descriptionInput.value = meta.description || instructions.task_instructions || '';
       const examplesInput = document.getElementById('examples-input');
       if (examplesInput) examplesInput.value = meta.examples !== undefined && meta.examples !== '' ? meta.examples : (instructions.examples || '');
@@ -2114,7 +2127,7 @@ initBurgerMenu();
       }
 
       const addToListBtn = document.getElementById('add-to-problem-list');
-      if (addToListBtn) addToListBtn.textContent = 'Update Task';
+      if (addToListBtn) addToListBtn.textContent = isCopyMode ? 'Create Task' : 'Update Task';
 
       const backBtn = document.getElementById('back-to-code');
       if (backBtn) backBtn.style.display = 'none';

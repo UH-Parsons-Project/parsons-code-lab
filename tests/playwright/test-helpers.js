@@ -131,22 +131,28 @@ export async function createTaskSet(
   studentDescription,
   teacherDescription
 ) {
+  await createTaskSetForm(page, taskSetTitle, studentDescription, teacherDescription, async (taskItems) => {
+    const tasksToSelect = Math.min(3, taskItems.length);
+    const selectedIndices = new Set();
+
+    while (selectedIndices.size < tasksToSelect) {
+      selectedIndices.add(Math.floor(Math.random() * taskItems.length));
+    }
+
+    for (const index of selectedIndices) {
+      await taskItems[index].click();
+    }
+  });
+}
+
+async function createTaskSetForm(page, taskSetTitle, studentDescription, teacherDescription, selectTasks) {
   await page.locator('a[href="/create-task-set"]').click();
   await page.locator('#task-set-title').fill(taskSetTitle);
   await page.locator('#student-description').fill(studentDescription);
   await page.locator('#teacher-description').fill(teacherDescription);
   await page.waitForSelector('.task-item', { timeout: 10000 });
   const taskItems = await page.locator('.task-item').all();
-  const tasksToSelect = Math.min(3, taskItems.length);
-  const selectedIndices = new Set();
-
-  while (selectedIndices.size < tasksToSelect) {
-    selectedIndices.add(Math.floor(Math.random() * taskItems.length));
-  }
-
-  for (const index of selectedIndices) {
-    await taskItems[index].click();
-  }
+  await selectTasks(taskItems);
 
   await Promise.all([
     page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 }),
@@ -155,20 +161,11 @@ export async function createTaskSet(
 }
 
 export async function createTaskSetWithTasks(page, taskSetTitle, studentDescription, teacherDescription, taskNames) {
-  await page.locator('a[href="/create-task-set"]').click();
-  await page.locator('#task-set-title').fill(taskSetTitle);
-  await page.locator('#student-description').fill(studentDescription);
-  await page.locator('#teacher-description').fill(teacherDescription);
-  await page.waitForSelector('.task-item', { timeout: 10000 });
-
-  for (const name of taskNames) {
-    await page.locator('.task-item', { has: page.locator('.task-item-title', { hasText: name }) }).click();
-  }
-
-  await Promise.all([
-    page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 }),
-    page.locator('#create-task-set-form button[type="submit"]').click(),
-  ]);
+  await createTaskSetForm(page, taskSetTitle, studentDescription, teacherDescription, async () => {
+    for (const name of taskNames) {
+      await page.locator('.task-item', { has: page.locator('.task-item-title', { hasText: name }) }).click();
+    }
+  });
 }
 
 export async function registerStudent(page, username, email, password = 'password123') {
@@ -246,6 +243,25 @@ export async function loginStudent(page, username, password = 'password123', uni
   ]);
 }
 
+export async function loginStudentAndVerify(page, username, password = 'password123', uniqueLinkCode = null) {
+  const loginResponsePromise = page.waitForResponse(
+    response => response.url().includes('/api/student_login')
+  );
+  await loginStudent(page, username, password, uniqueLinkCode);
+  const loginResponse = await loginResponsePromise;
+  expect(loginResponse.status()).toBe(200);
+  return loginResponse;
+}
+
+export async function openStudentProfile(page) {
+  const toggle = page.locator('#navbar-burger-toggle');
+  if (await toggle.isVisible()) {
+    await toggle.click();
+  }
+  await page.locator('#profile-link').click();
+  await page.waitForURL(/\/student\/profile$/, { timeout: 10000 });
+}
+
 /**
  * Logout a teacher and wait for return to login page
  * @param {any} page - Playwright page object
@@ -265,6 +281,116 @@ export async function getStudentUrl(page, taskSetTitle) {
   await page.waitForSelector('#link-code', { timeout: 10000 });
   const studentUrl = (await page.locator('#link-code').textContent()).trim();
   return studentUrl;
+}
+
+export async function openStudentTask(page, taskName) {
+  await page.locator('.task-set-item', { hasText: taskName }).click();
+  await page.waitForSelector('#start-btn', { timeout: 10000 });
+  await page.locator('#start-btn').click();
+  await page.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
+}
+
+export async function confirmAdminAction(page, password = 'test1234') {
+  const modal = page.locator('.admin-modal-overlay');
+  await expect(modal).toBeVisible({ timeout: 5000 });
+  await modal.locator('input[type="password"]').fill(password);
+  await modal.locator('.confirm-btn').click();
+}
+
+export async function setupStudentTask(page, browser, {
+  unique,
+  teacherPrefix,
+  taskSetPrefix,
+  studentPrefix,
+  taskNames = ['add_in_range'],
+  studentDescription = null,
+  teacherDescription = null,
+}) {
+  const teacherUsername = `${teacherPrefix}_${unique}`;
+  const teacherEmail = `${teacherPrefix}_${unique}@example.com`;
+  const teacherPassword = 'password123';
+  const taskSetTitle = `${taskSetPrefix} ${unique}`;
+
+  await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
+  await expect(page.locator('#alert-placeholder .alert-success')).toBeVisible({ timeout: 10000 });
+  await loginTeacher(page, teacherEmail, teacherPassword);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  await createTaskSetWithTasks(
+    page,
+    taskSetTitle,
+    studentDescription || `Student description for ${taskSetTitle}`,
+    teacherDescription || `Teacher description for ${taskSetTitle}`,
+    taskNames
+  );
+  await expect(page).toHaveURL(/\/teacher-dashboard$/, { timeout: 10000 });
+
+  const studentUrl = await getStudentUrl(page, taskSetTitle);
+  const studentContext = await browser.newContext();
+  const studentPage = await studentContext.newPage();
+  await studentPage.goto(studentUrl);
+
+  const studentUsername = `${studentPrefix}_${unique % 1000000}`;
+  const studentEmail = `${studentPrefix}_${unique}@example.com`;
+  await registerStudent(studentPage, studentUsername, studentEmail);
+
+  await loginStudentAndVerify(studentPage, studentEmail);
+  await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
+
+  await openStudentTask(studentPage, taskNames[0]);
+  return { studentPage, studentContext, studentUrl };
+}
+
+export async function arrangeParsonsSolution(page, lines) {
+  return page.evaluate((lineDefinitions) => {
+    const pe = document.querySelector('problem-element');
+    const widget = pe?.parsonsWidget;
+    if (!widget) return;
+
+    const findId = (match, occurrence = 0) => {
+      const matches = widget.modified_lines.filter(line => line.code && line.code.includes(match));
+      return matches[occurrence]?.id || null;
+    };
+
+    const ids = lineDefinitions.map(({ match, occurrence }) => findId(match, occurrence));
+    const ordered = ids.filter(Boolean);
+    const indentMap = {};
+    const inputMap = {};
+
+    lineDefinitions.forEach((definition, index) => {
+      const id = ids[index];
+      if (!id) return;
+      if (definition.indent !== undefined) indentMap[id] = definition.indent;
+      if (definition.inputs) inputMap[id] = definition.inputs;
+    });
+
+    Object.entries(indentMap).forEach(([id, indent]) => {
+      const line = widget.getLineById(id);
+      if (line) line.indent = indent;
+    });
+
+    widget.createHTMLFromLists(ordered, widget.modified_lines.map(line => line.id).filter(id => !ordered.includes(id)));
+    ordered.forEach(id => widget.updateHTMLIndent(id));
+
+    Object.entries(inputMap).forEach(([id, values]) => {
+      const li = document.getElementById(id);
+      if (!li) return;
+      const inputs = Array.from(li.querySelectorAll('input.text-box'));
+      values.forEach((value, index) => {
+        if (!inputs[index]) return;
+        inputs[index].value = value;
+        inputs[index].dispatchEvent(new Event('input', { bubbles: true }));
+        inputs[index].dispatchEvent(new Event('blur', { bubbles: true }));
+      });
+    });
+
+    const arrangement = pe.getCurrentArrangement();
+    pe.dispatchEvent(new CustomEvent('arrangement-changed', {
+      detail: { arrangement },
+      bubbles: true,
+    }));
+    return arrangement;
+  }, lines);
 }
 
 /**

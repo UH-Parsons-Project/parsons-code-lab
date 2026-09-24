@@ -16,6 +16,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -33,7 +35,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Create .env file with secrets
         run: echo "TEACHER_REGISTRATION_TOKEN=${{ secrets.TEACHER_REGISTRATION_TOKEN }}" > .env
       
@@ -87,9 +89,15 @@ jobs:
         run: |
           echo "${{ secrets.QUAY_TOKEN }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
 
-      - name: Build docker image # Build and name the image for production
-        run: docker build -f Dockerfile.prod -t quay.io/tike/ohtu-faded-parsons:production .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Push to Quay # Push the docker built image to quay
-        run: |
-          docker push quay.io/tike/ohtu-faded-parsons:production
+      - name: Build and push docker image for production
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          tags: quay.io/tike/ohtu-faded-parsons:production
+          cache-from: type=gha,scope=production
+          cache-to: type=gha,mode=max,scope=production
