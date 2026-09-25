@@ -58,14 +58,20 @@ async def test_set_json_serializes_value_with_ttl(fake_redis):
 async def test_invalidate_task_statistics_removes_public_and_task_set_keys(fake_redis):
     public_key = "stats:task:7:set:public:v1"
     task_set_key = "stats:task:7:set:12:v1"
+    aggregate_key = "stats:taskset:aggregate:12:v1"
+    student_key = "stats:student:4:task:7:set:12:v1"
     fake_redis.values[public_key] = "public"
     fake_redis.values[task_set_key] = "task-set"
+    fake_redis.values[aggregate_key] = "aggregate"
+    fake_redis.values[student_key] = "student"
 
-    await cache.invalidate_task_statistics(7, 12)
+    await cache.invalidate_task_statistics(7, 12, 4)
 
     assert public_key not in fake_redis.values
     assert task_set_key not in fake_redis.values
-    assert fake_redis.deleted_keys == [public_key, task_set_key]
+    assert aggregate_key not in fake_redis.values
+    assert student_key not in fake_redis.values
+    assert fake_redis.deleted_keys == [public_key, aggregate_key, task_set_key, student_key]
 
 
 async def test_cache_helpers_fail_open_when_redis_is_unavailable(fake_redis):

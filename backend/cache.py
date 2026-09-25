@@ -33,17 +33,26 @@ async def set_json(key: str, value: Any, ttl_seconds: int = 30) -> None:
             pass
 
 
-async def invalidate_task_statistics(task_id: int, task_set_id: int | None = None) -> None:
-    """Remove cached aggregate statistics affected by a task data change."""
+async def invalidate_task_statistics(
+    task_id: int,
+    task_set_id: int | None = None,
+    student_id: int | None = None,
+) -> None:
+    """Remove cached statistics affected by a task data change."""
     if redis is None:
         return
 
-    keys = [f"stats:task:{task_id}:set:public:v1"]
+    keys = [
+        f"stats:task:{task_id}:set:public:v1",
+        f"stats:taskset:aggregate:{task_set_id}:v1" if task_set_id is not None else None,
+    ]
     if task_set_id is not None:
         keys.append(f"stats:task:{task_id}:set:{task_set_id}:v1")
+    if student_id is not None and task_set_id is not None:
+        keys.append(f"stats:student:{student_id}:task:{task_id}:set:{task_set_id}:v1")
 
     try:
-        await redis.delete(*keys)
+        await redis.delete(*(key for key in keys if key is not None))
     except RedisError:
         pass
 
