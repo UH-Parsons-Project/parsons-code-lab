@@ -8,6 +8,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...teacher_auth import CurrentUser
 from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse, StudentTaskResponse
+from ...cache import invalidate_task_statistics
 from ...database import get_db
 from ...models import (
     EditEvent,
@@ -672,6 +673,7 @@ async def start_task(
     task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
     enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
     session = await _create_task_session(db, enrollment)
+    await invalidate_task_statistics(resolved_task_id, task_set.id)
 
     return StartTaskResponse(
         started_at=enrollment.started_at.isoformat(),
@@ -756,6 +758,7 @@ async def submit_test_result(
             db.add(edit)
 
     await db.commit()
+    await invalidate_task_statistics(resolved_task_id, task_set.id)
 
     return {
         "status": "success",
@@ -780,6 +783,7 @@ async def enter_task(
     task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
     enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
     session = await _create_task_session(db, enrollment)
+    await invalidate_task_statistics(resolved_task_id, task_set.id)
 
     return EnterTaskResponse(
         session_id=session.id,
@@ -820,6 +824,7 @@ async def record_task_exit(
     session.exited_at = datetime.fromisoformat(body.exited_at)
     session.exit_reason = body.exit_reason
     await db.commit()
+    await invalidate_task_statistics(resolved_task_id, task_set.id)
     return {"status": "success"}
 
 
