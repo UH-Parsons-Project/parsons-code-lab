@@ -33,6 +33,21 @@ async def set_json(key: str, value: Any, ttl_seconds: int = 30) -> None:
             pass
 
 
+async def invalidate_task_statistics(task_id: int, task_set_id: int | None = None) -> None:
+    """Remove cached aggregate statistics affected by a task data change."""
+    if redis is None:
+        return
+
+    keys = [f"stats:task:{task_id}:set:public:v1"]
+    if task_set_id is not None:
+        keys.append(f"stats:task:{task_id}:set:{task_set_id}:v1")
+
+    try:
+        await redis.delete(*keys)
+    except RedisError:
+        pass
+
+
 async def close() -> None:
     """Close the shared Redis connection when the application shuts down."""
     if redis is not None:
