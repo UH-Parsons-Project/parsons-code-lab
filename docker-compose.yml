@@ -21,6 +21,14 @@ services:
       retries: 5
     profiles: ["web"]
 
+  # Redis is used for short-lived application caches.
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    profiles: ["web"]
+
   # Main web application
   web:
     build:
@@ -42,10 +50,13 @@ services:
       DEVELOPMENT_MODE: "true"
       TEST_MODE: "true"
       SECRET_KEY: "${SECRET_KEY:-test-secret-key-for-local-dev-only}"
+      REDIS_URL: redis://redis:6379/0
     command: npm run dev
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     profiles: ["web"]
 
   # Isolated PostgreSQL instance used exclusively by the test profile
@@ -60,6 +71,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - test-network
+    profiles: ["test"]
+
+  redis-test:
+    image: redis:7-alpine
     networks:
       - test-network
     profiles: ["test"]
@@ -87,9 +104,12 @@ services:
       AUTO_INIT_DB: "true"
       TEST_MODE: "true"
       SECRET_KEY: "test-secret-key-for-tests-only"
+      REDIS_URL: redis://redis-test:6379/0
     depends_on:
       db-test:
         condition: service_healthy
+      redis-test:
+        condition: service_started
     networks:
       - test-network
     profiles: ["test"]  # Only starts with: docker compose --profile test
