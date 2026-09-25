@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.utils import _clean_mistake_code, _mistake_code_fingerprint, has_user_added_own_code
 
 from ...teacher_auth import CurrentUser
+from ...cache import get_json, set_json
 from ...database import get_db
 from ...models import (
     EditEvent,
@@ -516,6 +517,12 @@ async def get_task_statistics(
             )
         )
 
+    cache_scope = task_set.id if task_set else "public"
+    cache_key = f"stats:task:{task_id}:set:{cache_scope}:v1"
+    cached_statistics = await get_json(cache_key)
+    if cached_statistics is not None:
+        return cached_statistics
+
     attempts_result = await db.execute(attempts_query)
     attempts_data = attempts_result.all()
 
@@ -545,7 +552,7 @@ async def get_task_statistics(
             early_not_started = len(not_started_ids)
             early_started = len(started_ids)
             early_not_started_names = sorted([{"name": enrolled_students[i], "meta": "", "id": i} for i in not_started_ids], key=lambda x: x["name"])
-        return {
+        statistics = {
             "task_name": task.title,
             "is_public": task.is_public,
             "task_set_name": task_set.title if task_set_code and task_set else None,
@@ -574,6 +581,8 @@ async def get_task_statistics(
             "max_page_exits": None,
             "avg_page_exits": 0.0,
         }
+        await set_json(cache_key, statistics)
+        return statistics
 
     successful_attempts = [(a, ts) for a, ts in attempts_data if a.success]
     failed_attempts = [(a, ts) for a, ts in attempts_data if not a.success]
@@ -802,7 +811,7 @@ async def get_task_statistics(
         for mistake in sorted(mistake_counts.values(), key=lambda item: item["count"], reverse=True)[:5]
     ]
 
-    return {
+    statistics = {
         "task_name": task.title,
         "is_public": task.is_public,
         "model_answer": await _get_model_answer_for_task(task, db),
@@ -832,3 +841,5 @@ async def get_task_statistics(
             "not_started": not_started_student_info,
         },
     }
+    await set_json(cache_key, statistics)
+    return statistics
