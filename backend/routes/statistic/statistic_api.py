@@ -219,6 +219,11 @@ async def get_student_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
+    cache_key = f"stats:student:{student_id}:task:{task_id}:set:{task_set.id}:v1"
+    cached_statistics = await get_json(cache_key)
+    if cached_statistics is not None:
+        return cached_statistics
+
     stmt = (
         select(TaskAttempt, StudentTaskEnrollment)
         .join(Student, Student.id == TaskAttempt.student_id)
@@ -329,7 +334,7 @@ async def get_student_task_statistics(
     student_page_exits = float(max(0, len(task_sessions) - 1)) if task_sessions else 0.0
 
     if not attempts_data:
-        return StudentTaskStatisticsResponse(
+        statistics = StudentTaskStatisticsResponse(
             task_name=task.title,
             task_description=task.description,
             task_instructions=task.task_instructions,
@@ -353,6 +358,9 @@ async def get_student_task_statistics(
             task_set_code=task_set.unique_link_code,
             median_page_exits=student_page_exits,
         )
+        statistics_data = statistics.model_dump(mode="json")
+        await set_json(cache_key, statistics_data)
+        return statistics
 
     successful_attempts = sum(1 for a, _ in attempts_data if a.success)
     failed_attempts = sum(1 for a, _ in attempts_data if not a.success)
@@ -404,7 +412,7 @@ async def get_student_task_statistics(
         }
         attempts_detail.append(detail)
 
-    return StudentTaskStatisticsResponse(
+    statistics = StudentTaskStatisticsResponse(
         task_name=task.title,
         task_description=task.description,
         task_instructions=task.task_instructions,
@@ -428,6 +436,9 @@ async def get_student_task_statistics(
         task_set_code=task_set.unique_link_code,
         median_page_exits=student_page_exits,
     )
+    statistics_data = statistics.model_dump(mode="json")
+    await set_json(cache_key, statistics_data)
+    return statistics
 
 
 @router.get("/api/tasksets/{task_set_code}/tasks/statistics")
@@ -443,6 +454,11 @@ async def get_taskset_tasks_statistics(
 
     await require_task_set_view_access(task_set, current_user, db)
 
+    cache_key = f"stats:taskset:aggregate:{task_set.id}:v1"
+    cached_statistics = await get_json(cache_key)
+    if cached_statistics is not None:
+        return cached_statistics
+
     stmt = select(TaskSetItem.task_id).where(
         (TaskSetItem.task_set_id == task_set.id) &
         (TaskSetItem.is_hidden == False)
@@ -456,6 +472,7 @@ async def get_taskset_tasks_statistics(
             results[str(t_id)] = stats
         except Exception:
             pass
+    await set_json(cache_key, results)
     return results
 
 
