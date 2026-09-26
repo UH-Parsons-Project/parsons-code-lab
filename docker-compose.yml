@@ -40,7 +40,6 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/venv
     env_file:
       - .env
     environment:
