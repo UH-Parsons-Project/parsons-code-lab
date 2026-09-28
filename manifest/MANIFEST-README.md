@@ -7,3 +7,14 @@ Note that the files in the manifest folder do not automatically get applied to O
 ```bash
 oc apply -f deployment.yaml
 ```
+
+For production Redis caching, apply the Redis resources before restarting the
+application deployment:
+
+```bash
+oc apply -f manifest/production/redis.yaml
+oc apply -f manifest/production/deployment.yaml
+```
+
+The Redis service is internal to the OpenShift namespace and is not exposed
+through a Route. It is an ephemeral cache, so no persistent volume is used.
