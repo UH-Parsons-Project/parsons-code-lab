@@ -1031,7 +1031,6 @@ initBurgerMenu();
         const btn = document.createElement('button');
         btn.className = 'block-edit-btn';
         btn.setAttribute('aria-label', 'Edit block');
-        btn.textContent = 'Edit';
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           editBlock(li.id);
@@ -1147,6 +1146,7 @@ initBurgerMenu();
     element.replaceWith(newElement);
 
     injectDeleteButtons(newElement.parentElement);
+    injectEditButtons(newElement.parentElement);
     injectGivenToggles(newElement.parentElement);
   }
 
@@ -1184,7 +1184,7 @@ initBurgerMenu();
       
     const editor = document.createElement('textarea');
     editor.className = 'block-edit-textarea';
-    editor.value = el.code || '';
+    editor.value = line.code || '';
 
     const saveButton = document.createElement('button');
     saveButton.type = 'button';
@@ -1203,7 +1203,7 @@ initBurgerMenu();
     });
 
     cancelButton.addEventListener('click', () => {
-      redrawBlock(el);
+      redrawBlock(el, line);
     });
 
     editor.focus();

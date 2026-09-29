@@ -327,7 +327,7 @@ html, body {
   content: '\00D7';
 }
 .block-edit-btn::before {
-  content: '\270F';
+  content: '\270E';
 }
 
 #source-sortable li:hover .block-delete-btn,
@@ -349,7 +349,7 @@ html, body {
 
 .block-edit-btn {
   position: absolute;
-  right: 5px;
+  right: 30px;
   top: 50%;
   transform: translateY(-50%);
   width: 20px;
@@ -371,7 +371,7 @@ html, body {
 
 #solution-sortable li.student-given .block-edit-btn,
 #preview-solution-sortable li.student-given .block-edit-btn {
-  right: 20px;
+  right: 100px;
 }
 
 #source-sortable li:hover .block-edit-btn,
