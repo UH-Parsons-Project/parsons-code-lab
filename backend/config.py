@@ -24,6 +24,9 @@ ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw.split(",") if o.strip()]
 # Cookies — set to true in production (requires HTTPS)
 COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
+# Optional Redis connection used by application caches.
+REDIS_URL = os.getenv("REDIS_URL")
+
 # Optional Haka login through a Shibboleth SP.
 SAML_ENABLED = os.getenv("SAML_ENABLED", "false").lower() == "true"
 SAML_TEST_PAGE_ENABLED = os.getenv("SAML_TEST_PAGE_ENABLED", "false").lower() == "true"

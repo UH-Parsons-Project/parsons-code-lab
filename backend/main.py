@@ -19,6 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from .database import init_db, async_session
+from .cache import close as close_cache
 from . import seed as seed_module
 from . import config
 from .utils.token_utils import cleanup_old_registration_tokens
@@ -50,7 +51,10 @@ async def lifespan(_app: FastAPI):
     async with async_session() as session:
         await cleanup_old_registration_tokens(session)
         await session.commit()
-    yield
+    try:
+        yield
+    finally:
+        await close_cache()
 
 app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)
 app.state.limiter = limiter

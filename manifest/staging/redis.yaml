@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faded-parsons-redis-staging
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-redis-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faded-parsons-redis-staging
+  template:
+    metadata:
+      labels:
+        app: faded-parsons-redis-staging
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          args: ["redis-server", "--save", "", "--appendonly", "no"]
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: faded-parsons-redis-staging
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-redis-staging
+spec:
+  type: ClusterIP
+  selector:
+    app: faded-parsons-redis-staging
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

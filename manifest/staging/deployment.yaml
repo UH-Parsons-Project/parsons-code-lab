@@ -45,6 +45,8 @@ spec:
               value: "https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi"
             - name: COOKIE_SECURE
               value: "true"
+            - name: REDIS_URL
+              value: "redis://faded-parsons-redis-staging:6379/0"
           envFrom:
             - secretRef:
                 name: saml-config-staging

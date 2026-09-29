@@ -1,12 +1,12 @@
-FROM node:20
+FROM node:24
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-RUN python3 -m venv /app/venv
-ENV PATH="/app/venv/bin:$PATH"
+# Create virtual environment outside the bind-mounted application directory.
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY package*.json ./
 COPY requirements.txt ./
