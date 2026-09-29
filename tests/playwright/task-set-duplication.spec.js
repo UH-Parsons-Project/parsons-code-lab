@@ -37,9 +37,26 @@ test.describe('Task Set Duplication', () => {
     expect(sourceSetId).toBeTruthy();
     await expect(page.locator('#duplicate-task-set-btn')).toBeVisible();
 
-    await page.locator('#duplicate-task-set-btn').click();
+    const cancelDialogPromise = page.waitForEvent('dialog');
+    const cancelClickPromise = page.locator('#duplicate-task-set-btn').click();
+    const cancelDialog = await cancelDialogPromise;
+    expect(cancelDialog.type()).toBe('confirm');
+    expect(cancelDialog.message()).toContain(`Do you want to duplicate "${sourceTitle}"?`);
+    await cancelDialog.dismiss();
+    await cancelClickPromise;
+    await expect(page).toHaveURL(new RegExp(`set_id=${sourceSetId}$`));
+    await expect(page.locator('#duplicate-task-set-btn')).toBeEnabled();
+
+    const acceptDialogPromise = page.waitForEvent('dialog');
+    const acceptClickPromise = page.locator('#duplicate-task-set-btn').click();
+    const acceptDialog = await acceptDialogPromise;
+    await acceptDialog.accept();
+    await acceptClickPromise;
     await expect(page.locator('#duplicate-task-set-btn')).toBeDisabled();
-    await page.waitForURL(/\/task-set-overview\?set_id=/, { timeout: 15000 });
+    await page.waitForURL(
+      url => url.pathname === '/task-set-overview' && url.searchParams.get('set_id') !== sourceSetId,
+      { timeout: 15000 }
+    );
     await page.waitForSelector('#content-container', { state: 'visible', timeout: 10000 });
 
     const copySetId = new URL(page.url()).searchParams.get('set_id');

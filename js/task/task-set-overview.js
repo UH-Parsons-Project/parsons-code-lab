@@ -249,6 +249,11 @@ async function duplicateTaskSet(taskSet) {
 	const status = document.getElementById('duplicate-task-set-status');
 	if (!button) return;
 
+	const shouldDuplicate = window.confirm(
+		`Do you want to duplicate "${taskSet.title}"? A new copy will be created without students, attempts, dates, or shared viewers.`
+	);
+	if (!shouldDuplicate) return;
+
 	isDuplicatingTaskSet = true;
 	button.disabled = true;
 	button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Duplicating...';
