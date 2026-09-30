@@ -196,6 +196,33 @@
   letter-spacing: -0.02em;
   margin-bottom: .5rem;
 }
+.taskset-title-edit-row,
+.taskset-title-edit-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.taskset-title-edit-row .taskset-page-title {
+  margin-bottom: .25rem;
+}
+.taskset-title-edit-button {
+  color: var(--text-muted);
+  padding: .1rem .25rem;
+  margin-bottom: .25rem;
+}
+.taskset-title-edit-button:hover,
+.taskset-title-edit-button:focus {
+  color: var(--brand, #4a5cb8);
+}
+.taskset-title-edit-form input {
+  width: min(28rem, 100%);
+  min-width: 14rem;
+}
+.taskset-title-edit-form #title-edit-error {
+  flex-basis: 100%;
+  font-size: .8rem;
+}
 .taskset-link-box {
   display: inline-flex;
   align-items: center;
@@ -1071,4 +1098,3 @@ h3.mb-3 {
     padding: 0.5rem;
   }
 }
-

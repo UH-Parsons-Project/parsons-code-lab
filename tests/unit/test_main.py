@@ -1574,6 +1574,60 @@ class TestAdditionalProblemsetAndTaskSetApis:
             viewer.id
         ]
 
+    async def test_duplicate_task_set_accepts_custom_title(
+        self, client, test_teacher, task_set
+    ):
+        response = await client.post(
+            f"/api/my_sets/{task_set.id}/duplicate",
+            headers=_auth(test_teacher.username),
+            json={"title": "Week 2 Exercises"},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["title"] == "Week 2 Exercises"
+        assert body["unique_link_code"] == "week-2-exercises"
+
+    async def test_rename_task_set_preserves_link_code(
+        self, client, test_teacher, task_set
+    ):
+        response = await client.patch(
+            f"/api/my_sets/{task_set.id}/title",
+            headers=_auth(test_teacher.username),
+            json={"title": "Renamed Week 1"},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["title"] == "Renamed Week 1"
+        assert body["unique_link_code"] == "WEEK1"
+
+        persisted = await client.get(
+            f"/api/my_sets/{task_set.id}",
+            headers=_auth(test_teacher.username),
+        )
+        assert persisted.json()["title"] == "Renamed Week 1"
+        assert persisted.json()["unique_link_code"] == "WEEK1"
+
+    async def test_rename_task_set_rejects_duplicate_title(
+        self, client, test_teacher, task_set, db_session
+    ):
+        other_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Already Used",
+            unique_link_code="already-used",
+        )
+        db_session.add(other_set)
+        await db_session.commit()
+
+        response = await client.patch(
+            f"/api/my_sets/{task_set.id}/title",
+            headers=_auth(test_teacher.username),
+            json={"title": "Already Used"},
+        )
+
+        assert response.status_code == 409
+
     async def test_duplicate_task_set_does_not_copy_student_state(
         self, client, test_teacher, task, task_set, db_session
     ):

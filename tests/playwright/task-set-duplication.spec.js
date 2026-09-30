@@ -37,22 +37,20 @@ test.describe('Task Set Duplication', () => {
     expect(sourceSetId).toBeTruthy();
     await expect(page.locator('#duplicate-task-set-btn')).toBeVisible();
 
-    const cancelDialogPromise = page.waitForEvent('dialog');
-    const cancelClickPromise = page.locator('#duplicate-task-set-btn').click();
-    const cancelDialog = await cancelDialogPromise;
-    expect(cancelDialog.type()).toBe('confirm');
-    expect(cancelDialog.message()).toContain(`Do you want to duplicate "${sourceTitle}"?`);
-    await cancelDialog.dismiss();
-    await cancelClickPromise;
-    await expect(page).toHaveURL(new RegExp(`set_id=${sourceSetId}$`));
-    await expect(page.locator('#duplicate-task-set-btn')).toBeEnabled();
+    const duplicateModal = page.locator('#duplicate-task-set-modal');
+    await page.locator('#duplicate-task-set-btn').click();
+    await expect(duplicateModal).toBeVisible();
+    await expect(page.locator('#duplicate-task-set-title-input')).toHaveValue(`Copy of ${sourceTitle}`);
 
-    const acceptDialogPromise = page.waitForEvent('dialog');
-    const acceptClickPromise = page.locator('#duplicate-task-set-btn').click();
-    const acceptDialog = await acceptDialogPromise;
-    await acceptDialog.accept();
-    await acceptClickPromise;
-    await expect(page.locator('#duplicate-task-set-btn')).toBeDisabled();
+    await duplicateModal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(duplicateModal).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`set_id=${sourceSetId}$`));
+
+    const copyTitle = `Week 2 Exercises ${unique}`;
+    await page.locator('#duplicate-task-set-btn').click();
+    await page.locator('#duplicate-task-set-title-input').fill(copyTitle);
+    await page.locator('#confirm-duplicate-task-set-btn').click();
+    await expect(page.locator('#confirm-duplicate-task-set-btn')).toBeDisabled();
     await page.waitForURL(
       url => url.pathname === '/task-set-overview' && url.searchParams.get('set_id') !== sourceSetId,
       { timeout: 15000 }
@@ -62,10 +60,24 @@ test.describe('Task Set Duplication', () => {
     const copySetId = new URL(page.url()).searchParams.get('set_id');
     expect(copySetId).toBeTruthy();
     expect(copySetId).not.toBe(sourceSetId);
-    await expect(page.locator('.taskset-page-title')).toHaveText(`Copy of ${sourceTitle}`);
+    await expect(page.locator('.taskset-page-title')).toHaveText(copyTitle);
 
     const copiedTaskTitles = page.locator('#tasks-list-active .task-set-title');
     await expect(copiedTaskTitles).toHaveText(['add_in_range', 'greater_num']);
+
+    const linkCodeBeforeRename = (await page.locator('#link-code').textContent()).trim();
+    const renamedTitle = `Renamed Task Set ${unique}`;
+    await page.locator('#edit-title-btn').click();
+    await page.locator('#task-set-title-input').fill(renamedTitle);
+    await page.locator('#save-title-btn').click();
+    await expect(page.locator('#task-set-title-display')).toHaveText(renamedTitle);
+    await expect(page.locator('#link-code')).toHaveText(linkCodeBeforeRename);
+
+    const renamedResponse = await page.request.get(`/api/my_sets/${copySetId}`);
+    expect(renamedResponse.ok()).toBeTruthy();
+    const renamedTaskSet = await renamedResponse.json();
+    expect(renamedTaskSet.title).toBe(renamedTitle);
+    expect(renamedTaskSet.unique_link_code).toBe(linkCodeBeforeRename.split('/').pop());
 
     // Update the copy through the overview UI and verify that the source stays unchanged.
     await page.locator('#edit-opening-btn').click();
@@ -123,5 +135,6 @@ test.describe('Task Set Duplication', () => {
     await page.waitForSelector('#content-container', { state: 'visible', timeout: 10000 });
 
     await expect(page.locator('#duplicate-task-set-btn')).toHaveCount(0);
+    await expect(page.locator('#edit-title-btn')).toHaveCount(0);
   });
 });
