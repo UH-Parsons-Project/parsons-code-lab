@@ -1145,6 +1145,8 @@ initBurgerMenu();
 
     element.replaceWith(newElement);
 
+    parsonsWidget.updateHTMLIndent(newElement.id);
+
     injectDeleteButtons(newElement.parentElement);
     injectEditButtons(newElement.parentElement);
     injectGivenToggles(newElement.parentElement);
@@ -1188,11 +1190,11 @@ initBurgerMenu();
 
     const saveButton = document.createElement('button');
     saveButton.type = 'button';
-    saveButton.textContent = 'Save';
+    saveButton.className = 'block-edit-save-btn';
 
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
-    cancelButton.textContent = 'Cancel';
+    cancelButton.className = 'block-edit-cancel-btn';
 
     el.replaceChildren(editor, saveButton, cancelButton);
 
