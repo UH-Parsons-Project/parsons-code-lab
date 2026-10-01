@@ -80,3 +80,7 @@ async def test_cache_helpers_fail_open_when_redis_is_unavailable(fake_redis):
     assert await cache.get_json("example") is None
     await cache.set_json("example", {"value": 42})
     await cache.invalidate_task_statistics(7, 12)
+
+async def test_close_redis_when_application_shuts_down(fake_redis):
+    await cache.close()
+    assert fake_redis.deleted_keys == []
