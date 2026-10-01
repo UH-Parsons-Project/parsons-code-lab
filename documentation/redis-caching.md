@@ -46,7 +46,7 @@ redis[hiredis]>=5.0
 Yhteinen Redis-client on tiedostossa `backend/cache.py`. Se sisältää kolme päätoimintoa:
 
 - `get_json(key)`: hakee ja JSON-dekoodaa arvon
-- `set_json(key, value, ttl_seconds=30)`: tallentaa arvon JSON-muodossa TTL:llä
+- `set_json(key, value, ttl_seconds=3600)`: tallentaa arvon JSON-muodossa TTL:llä
 - `invalidate_task_statistics(task_id, task_set_id, student_id)`: poistaa muuttuneeseen tehtävään liittyvät avaimet
 
 Redis-kutsut ovat asynkronisia, jotta ne sopivat FastAPI- ja SQLAlchemy-async-arkkitehtuuriin.
@@ -103,10 +103,10 @@ Task set ja opiskelija ovat osa avainta, koska sama tehtävä voi näkyä eri op
 
 ## TTL
 
-Oletus-TTL on 30 sekuntia:
+Oletus-TTL on yksi tunti eli 3600 sekuntia:
 
 ```python
-await set_json(cache_key, value, ttl_seconds=30)
+await set_json(cache_key, value, ttl_seconds=3600)
 ```
 
 TTL:n tarkoitus on:
@@ -157,7 +157,7 @@ Commit tehdään ennen invalidointia, jotta Redis ei tyhjene tilanteessa, jossa 
 3. Redisistä ei löydy arvoa.
 4. API tekee tietokantakyselyt ja raskaan laskennan.
 5. Tulos serialisoidaan JSONiksi.
-6. Tulos tallennetaan Redisiin 30 sekunniksi.
+6. Tulos tallennetaan Redisiin yhdeksi tunniksi.
 7. Tulos palautetaan asiakkaalle.
 
 ### Cache hit
