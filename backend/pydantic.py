@@ -250,6 +250,14 @@ class CreateTaskSetRequest(BaseModel):
     task_ids: list[int]
 
 
+class UpdateTaskSetTitleRequest(BaseModel):
+    title: str = Field(..., max_length=255)
+
+
+class DuplicateTaskSetRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
+
+
 class UpdateTaskSetTasksRequest(BaseModel):
     task_ids: list[int]
 

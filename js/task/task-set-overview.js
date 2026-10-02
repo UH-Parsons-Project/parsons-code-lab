@@ -17,6 +17,7 @@ const setId = params.get('set_id');
 let currentTaskSet = null;
 let currentTasks = [];
 let currentStudents = [];
+let isDuplicatingTaskSet = false;
 
 // Edit mode and add task modal state
 let isEditMode = false;
@@ -239,6 +240,184 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 			button.innerHTML = '<i class="fas fa-download"></i>Student data';
 		}
 	}
+}
+
+function setDuplicateTaskSetError(message) {
+	const error = document.getElementById('duplicate-task-set-error');
+	if (!error) return;
+	error.textContent = message || '';
+	error.style.display = message ? 'block' : 'none';
+}
+
+function openDuplicateTaskSetModal(taskSet) {
+	const input = document.getElementById('duplicate-task-set-title-input');
+	if (!input) return;
+
+	input.value = `Copy of ${taskSet.title}`;
+	setDuplicateTaskSetError('');
+	$('#duplicate-task-set-modal').modal('show');
+	$('#duplicate-task-set-modal').one('shown.bs.modal', () => {
+		input.focus();
+		input.select();
+	});
+}
+
+async function duplicateTaskSet(taskSet, title) {
+	if (isDuplicatingTaskSet) return;
+
+	const button = document.getElementById('duplicate-task-set-btn');
+	const status = document.getElementById('duplicate-task-set-status');
+	const confirmButton = document.getElementById('confirm-duplicate-task-set-btn');
+	if (!button) return;
+
+	isDuplicatingTaskSet = true;
+	if (confirmButton) {
+		confirmButton.disabled = true;
+		confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+	}
+	if (status) {
+		status.textContent = '';
+		status.style.display = 'none';
+	}
+
+	try {
+		const duplicatedTaskSet = await fetchJsonWithError(
+			`/api/my_sets/${encodeURIComponent(taskSet.id)}/duplicate`,
+			'Failed to duplicate task set',
+			{
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ title }),
+			}
+		);
+		if (!duplicatedTaskSet?.id) {
+			throw new Error('The duplicated task set could not be opened.');
+		}
+
+		$('#duplicate-task-set-modal').modal('hide');
+		window.location.href = `/task-set-overview?set_id=${encodeURIComponent(duplicatedTaskSet.id)}`;
+	} catch (error) {
+		console.error('Failed to duplicate task set:', error);
+		setDuplicateTaskSetError(error.message || 'Failed to duplicate task set.');
+		if (status) {
+			status.textContent = error.message || 'Failed to duplicate task set.';
+			status.style.display = 'block';
+		}
+	} finally {
+		if (confirmButton) {
+			confirmButton.disabled = false;
+			confirmButton.innerHTML = 'Create copy';
+		}
+		isDuplicatingTaskSet = false;
+	}
+}
+
+function setupDuplicateTaskSetButton(taskSet, isOwner) {
+	if (!isOwner) return;
+
+	document.getElementById('duplicate-task-set-btn')?.addEventListener('click', () => {
+		openDuplicateTaskSetModal(taskSet);
+	});
+
+	const confirmButton = document.getElementById('confirm-duplicate-task-set-btn');
+	const input = document.getElementById('duplicate-task-set-title-input');
+	const submit = () => {
+		const title = input?.value.trim() || '';
+		if (title.length < 4) {
+			setDuplicateTaskSetError('Task set title must be at least 4 characters long.');
+			input?.focus();
+			return;
+		}
+		setDuplicateTaskSetError('');
+		duplicateTaskSet(taskSet, title);
+	};
+
+	confirmButton?.addEventListener('click', submit);
+	input?.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			submit();
+		}
+	});
+}
+
+function setupTitleEdit(taskSet, isOwner) {
+	if (!isOwner) return;
+
+	const displayRow = document.getElementById('task-set-title-display-row');
+	const editRow = document.getElementById('task-set-title-edit-row');
+	const display = document.getElementById('task-set-title-display');
+	const input = document.getElementById('task-set-title-input');
+	const editButton = document.getElementById('edit-title-btn');
+	const saveButton = document.getElementById('save-title-btn');
+	const cancelButton = document.getElementById('cancel-title-btn');
+	const error = document.getElementById('title-edit-error');
+	if (!displayRow || !editRow || !display || !input || !editButton || !saveButton || !cancelButton) return;
+
+	const setError = (message) => {
+		error.textContent = message || '';
+		error.style.display = message ? 'block' : 'none';
+	};
+
+	const showDisplay = () => {
+		input.value = taskSet.title;
+		setError('');
+		displayRow.style.display = 'flex';
+		editRow.style.display = 'none';
+	};
+
+	const showEditor = () => {
+		input.value = taskSet.title;
+		setError('');
+		displayRow.style.display = 'none';
+		editRow.style.display = 'flex';
+		input.focus();
+		input.select();
+	};
+
+	const save = async () => {
+		const title = input.value.trim();
+		if (title.length < 4) {
+			setError('Task set title must be at least 4 characters long.');
+			input.focus();
+			return;
+		}
+
+		saveButton.disabled = true;
+		cancelButton.disabled = true;
+		setError('');
+		try {
+			const updatedTaskSet = await fetchJsonWithError(
+				`/api/my_sets/${encodeURIComponent(taskSet.id)}/title`,
+				'Failed to rename task set',
+				{
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ title }),
+				}
+			);
+			taskSet.title = updatedTaskSet.title;
+			display.textContent = taskSet.title;
+			showDisplay();
+		} catch (renameError) {
+			setError(renameError.message || 'Failed to rename task set.');
+		} finally {
+			saveButton.disabled = false;
+			cancelButton.disabled = false;
+		}
+	};
+
+	editButton.addEventListener('click', showEditor);
+	cancelButton.addEventListener('click', showDisplay);
+	saveButton.addEventListener('click', save);
+	input.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			save();
+		} else if (event.key === 'Escape') {
+			showDisplay();
+		}
+	});
 }
 
 function setupInitialEventsExport(taskSet, tasks) {
@@ -648,6 +827,23 @@ function renderListHeader(taskSet, tasks, students) {
 		}
 	}
 
+	const duplicateHTML = isOwner
+		? `<button id="duplicate-task-set-btn" type="button" class="btn btn-sm btn-outline-secondary" style="width:100%; justify-content:center; font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;border-radius:var(--radius);"><i class="fas fa-copy"></i> Duplicate Task Set</button>`
+		: '';
+
+	const taskSetTitleHTML = isOwner
+		? `<div id="task-set-title-display-row" class="taskset-title-edit-row">
+			<h1 id="task-set-title-display" class="taskset-page-title">${escapeHtml(taskSet.title)}</h1>
+			<button id="edit-title-btn" type="button" class="btn btn-sm btn-link taskset-title-edit-button" title="Rename task set" aria-label="Rename task set"><i class="fas fa-pencil-alt"></i></button>
+		</div>
+		<div id="task-set-title-edit-row" class="taskset-title-edit-form" style="display:none;">
+			<input id="task-set-title-input" type="text" class="form-control form-control-sm" maxlength="255" autocomplete="off" aria-label="Task set name">
+			<button id="save-title-btn" type="button" class="btn btn-sm btn-primary">Save</button>
+			<button id="cancel-title-btn" type="button" class="btn btn-sm btn-outline-secondary">Cancel</button>
+			<div id="title-edit-error" class="text-danger" role="alert" style="display:none;"></div>
+		</div>`
+		: `<h1 id="task-set-title-display" class="taskset-page-title">${escapeHtml(taskSet.title)}</h1>`;
+
 	let descriptionsHTML = '';
 	if (taskSet.teacher_description || taskSet.student_description) {
 		descriptionsHTML += `<div class="descriptions-wrapper" style="margin-top:.25rem;">`;
@@ -710,9 +906,11 @@ function renderListHeader(taskSet, tasks, students) {
 						<i class="fas fa-download"></i> Initial events data
 					</button>
 				</div>
-				<div style="margin-top:.4rem; display:flex;">
+				<div style="margin-top:.4rem; display:flex; flex-direction:column; gap:.4rem;">
+					${duplicateHTML}
 					${deleteHTML}
 				</div>
+				<div id="duplicate-task-set-status" role="alert" class="text-danger" style="display:none; font-size:.8rem;"></div>
 			</div>
 		</div>
 	`;
@@ -721,7 +919,7 @@ function renderListHeader(taskSet, tasks, students) {
 		<div style="display:flex; flex-direction:column; gap:1.5rem; min-width:0;">
 			<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1.5rem; flex-wrap:wrap;">
 				<div style="min-width:0;">
-					<h1 class="taskset-page-title" style="margin-bottom:.25rem;">${escapeHtml(taskSet.title)}</h1>
+					${taskSetTitleHTML}
 					<div class="taskset-meta-row" style="margin-bottom:.6rem;display:flex;gap:.4rem;">
 						<span class="meta-badge"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</span>
 						<span id="opening-section" style="display:inline-flex;">${buildOpeningInnerHTML(taskSet, isOwner)}</span>
@@ -774,8 +972,10 @@ function renderListHeader(taskSet, tasks, students) {
 	}
 
 	setupViewerSharing();
+	setupTitleEdit(taskSet, isOwner);
 	setupOpeningEdit(taskSet, isOwner);
 	setupExpiryEdit(taskSet, isOwner);
+	setupDuplicateTaskSetButton(taskSet, isOwner);
 	if (isOwner) {
 		loadViewers();
 	}

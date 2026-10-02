@@ -25,6 +25,7 @@ from ...models import (
 from ...pydantic import (
     CreateProblemRequest,
     CreateTaskSetRequest,
+    DuplicateTaskSetRequest,
     StudentInTaskSetResponse,
     TaskSetResponse,
     TaskSetTaskResponse,
@@ -32,6 +33,7 @@ from ...pydantic import (
     TaskSetViewerResponse,
     UpdateExpiresAtRequest,
     UpdateOpensAtRequest,
+    UpdateTaskSetTitleRequest,
     UpdateTaskSetTasksRequest,
 )
 from ...utils.taskset import require_task_set_view_access
@@ -63,6 +65,46 @@ def _validate_task_set_dates(opens_at: datetime | None, expires_at: datetime | N
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Opening date must be before or equal to expiration date",
         )
+
+
+async def _unique_copy_title(db: AsyncSession, teacher_id: int, source_title: str) -> str:
+    """Return the next available title for a copied task set."""
+    base_title = f"Copy of {source_title}"
+    title = base_title
+    suffix = 2
+
+    while True:
+        result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == teacher_id,
+                TaskSet.title == title,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            return title
+        title = f"{base_title} ({suffix})"
+        suffix += 1
+
+
+async def _unique_task_set_link_code(
+    db: AsyncSession, teacher_id: int, title: str
+) -> str:
+    """Return an owner-specific link code using create_task_set's convention."""
+    base_slug = generate_slug(title)
+    unique_link_code = base_slug
+    suffix = 1
+
+    while True:
+        result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == teacher_id,
+                TaskSet.unique_link_code == unique_link_code,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            return unique_link_code
+        unique_link_code = f"{base_slug}{suffix}"
+        suffix += 1
 
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
@@ -132,6 +174,152 @@ async def get_task_set(
         opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
         deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
+    )
+
+
+@router.patch("/api/my_sets/{task_set_id}/title", response_model=TaskSetResponse)
+async def update_task_set_title(
+    task_set_id: int,
+    request: UpdateTaskSetTitleRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Rename a task set without changing its student link code."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to rename this task set",
+        )
+
+    title = request.title.strip()
+    if len(title) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task set title must be at least 4 characters long",
+        )
+
+    duplicate_result = await db.execute(
+        select(TaskSet).where(
+            TaskSet.teacher_id == current_user.id,
+            TaskSet.title == title,
+            TaskSet.id != task_set_id,
+        )
+    )
+    if duplicate_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"You already have a task set with the title '{title}'. Please use a different title.",
+        )
+
+    task_set.title = title
+    await db.commit()
+    await db.refresh(task_set)
+
+    enrolled_count = (await db.execute(
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+    )).scalar() or 0
+
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        deletable=enrolled_count == 0,
+    )
+
+
+@router.post("/api/my_sets/{task_set_id}/duplicate", response_model=TaskSetResponse)
+async def duplicate_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    request: DuplicateTaskSetRequest | None = None,
+):
+    """Create an independent copy of a task set for its owner."""
+    source_task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if source_task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to duplicate this task set",
+        )
+
+    requested_title = request.title.strip() if request and request.title is not None else None
+    if requested_title is not None and len(requested_title) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task set title must be at least 4 characters long",
+        )
+
+    if requested_title is not None:
+        duplicate_result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == current_user.id,
+                TaskSet.title == requested_title,
+            )
+        )
+        if duplicate_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"You already have a task set with the title '{requested_title}'. Please use a different title.",
+            )
+
+    copy_title = requested_title or await _unique_copy_title(
+        db, current_user.id, source_task_set.title
+    )
+    unique_link_code = await _unique_task_set_link_code(
+        db, current_user.id, copy_title
+    )
+
+    source_items_result = await db.execute(
+        select(TaskSetItem)
+        .where(TaskSetItem.task_set_id == source_task_set.id)
+        .order_by(TaskSetItem.id.asc())
+    )
+    source_items = source_items_result.scalars().all()
+
+    copied_task_set = TaskSet(
+        teacher_id=current_user.id,
+        title=copy_title,
+        unique_link_code=unique_link_code,
+        student_description=source_task_set.student_description,
+        teacher_description=source_task_set.teacher_description,
+        opens_at=None,
+        expires_at=None,
+    )
+    db.add(copied_task_set)
+    await db.flush()
+
+    for source_item in source_items:
+        db.add(
+            TaskSetItem(
+                task_set_id=copied_task_set.id,
+                task_id=source_item.task_id,
+                is_hidden=source_item.is_hidden,
+            )
+        )
+
+    await db.commit()
+    await db.refresh(copied_task_set)
+
+    return TaskSetResponse(
+        id=copied_task_set.id,
+        title=copied_task_set.title,
+        unique_link_code=copied_task_set.unique_link_code,
+        teacher_id=copied_task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=copied_task_set.student_description,
+        teacher_description=copied_task_set.teacher_description,
+        created_at=copied_task_set.created_at.isoformat(),
+        opens_at=None,
+        expires_at=None,
     )
 
 
