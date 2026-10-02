@@ -27,6 +27,23 @@
 /* ── Main content area ───────────────────────────────── */
 .dashboard-main { padding: .75rem 2rem 3rem; }
 
+#task-set-title.field-validation-invalid,
+#task-set-title.field-validation-invalid:focus {
+  border-color: #c62828;
+  box-shadow: 0 0 0 2px rgba(198, 40, 40, 0.16);
+}
+
+.task-set-title-error {
+  display: block;
+  margin-top: 0.25rem;
+  color: #b42318;
+  font-size: 0.82rem;
+}
+
+.task-set-title-error[hidden] {
+  display: none;
+}
+
 /* ── Search box ──────────────────────────────────────── */
 .search-box {
   display: flex;
