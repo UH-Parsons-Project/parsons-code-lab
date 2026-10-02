@@ -20,6 +20,17 @@ let draggedElement = null;
 let currentTeacherUsername = '';
 let searchFilter = null;
 
+function setTaskSetTitleError(message) {
+  const input = document.getElementById('task-set-title');
+  const error = document.getElementById('task-set-title-error');
+  const isInvalid = Boolean(message);
+
+  input.classList.toggle('field-validation-invalid', isInvalid);
+  input.setAttribute('aria-invalid', String(isInvalid));
+  error.textContent = message;
+  error.hidden = !isInvalid;
+}
+
 /**
  * Initialize the page when DOM is ready
  */
@@ -457,39 +468,42 @@ function closeDuplicateTitleModal() {
 window.closeDuplicateTitleModal = closeDuplicateTitleModal;
 
 /**
- * Show success message
- */
-function showSuccess(message) {
-  const container = document.getElementById('error-container');
-  container.innerHTML = `<div class="success-message"><i class="fas fa-check-circle"></i> ${message}</div>`;
-  // Scroll to success message
-  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  setTimeout(() => {
-    container.innerHTML = '';
-  }, 3000);
-}
-
-
-
-/**
  * Setup form submission
  */
 function setupFormSubmission() {
+  const titleInput = document.getElementById('task-set-title');
+  titleInput.addEventListener('input', () => {
+    if (titleInput.value.trim()) {
+      setTaskSetTitleError('');
+    }
+  });
+
   document.getElementById('create-task-set-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const title = document.getElementById('task-set-title').value.trim();
+    const title = titleInput.value.trim();
     const studentDescription = document.getElementById('student-description').value.trim();
     const teacherDescription = document.getElementById('teacher-description').value.trim();
     const openingDate = document.getElementById('opening-date')?.value || null;
     const expirationDate = document.getElementById('expiration-date').value || null;
 
     const viewersToShare = [...validatedViewers];
+    document.getElementById('error-container').replaceChildren();
 
-    if (!title || title.length < 4) {
-      showError('Task set title must be at least 4 characters long');
+    if (!title) {
+      const fieldName = titleInput.labels?.[0]?.textContent.trim().toLowerCase() || 'task set title';
+      setTaskSetTitleError(`Please fill ${fieldName}`);
+      titleInput.focus();
       return;
     }
+
+    if (title.length < 4) {
+      setTaskSetTitleError('Task set title must be at least 4 characters long.');
+      titleInput.focus();
+      return;
+    }
+
+    setTaskSetTitleError('');
 
     if (selectedTaskIds.length === 0) {
       window.alert('Please select at least one task before creating the task set.');
@@ -560,15 +574,13 @@ function setupFormSubmission() {
         }
       }
 
-      let successMessage = 'Task list created successfully!';
+      let successMessage = 'Task set successfully created!';
       if (viewerErrors.length > 0) {
         successMessage += ` Viewers not added: ${viewerErrors.join(', ')}.`;
       }
-      showSuccess(successMessage);
+      window.alert(successMessage);
 
-      setTimeout(() => {
-        window.location.href = `/teacher-dashboard`;
-      }, 1500);
+      window.location.href = '/teacher-dashboard';
     } catch (error) {
       console.error('Error creating task set:', error);
       showError(error.message || 'Failed to create task set');
