@@ -1,0 +1,17 @@
+problem_name: make_tea
+
+problem_description: |
+  In this exercise you will practice putting steps of a procedure in the correct order.
+
+task_type: other
+eval_type: order_only
+
+task_instructions: |
+  Arrange the steps of making a cup of tea in the correct order.
+
+code_lines: |
+  Boil water
+  Put a tea bag in a cup
+  Pour the water into the cup
+  Wait for three minutes
+  Remove the tea bag

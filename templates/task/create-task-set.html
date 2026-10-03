@@ -73,7 +73,7 @@
       </div>
     </div>
 
-    <form id="create-task-set-form" class="task-set-form">
+    <form id="create-task-set-form" class="task-set-form" novalidate>
       <div class="parallel-layout" style="gap: 3rem;">
         <!-- Left Column: Info & Submit -->
         <div class="parallel-col" style="flex: 1; position: sticky; top: 100px; align-self: flex-start;">
@@ -87,6 +87,7 @@
                      placeholder="e.g., Python Basics - Week 1"
                      minlength="4"
                      required>
+              <small id="task-set-title-error" class="task-set-title-error" role="alert" hidden></small>
               <small class="form-text text-muted">Give your task set a name</small>
             </div>
 
