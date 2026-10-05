@@ -92,7 +92,8 @@ test.describe('Task Set Duplication', () => {
     await page.goto(`/task-set-overview?set_id=${sourceSetId}`);
     await page.waitForSelector('#content-container', { state: 'visible', timeout: 10000 });
     await expect(page.locator('.taskset-page-title')).toHaveText(sourceTitle);
-    await expect(page.locator('#opening-section')).toContainText('Set opening date');
+    await expect(page.locator('#opening-section')).toContainText('Open');
+    await expect(page.locator('#edit-opening-btn')).toHaveAttribute('title', 'Edit opening date');
   });
 
   test('shared viewers do not see the duplicate action', async ({ page }) => {

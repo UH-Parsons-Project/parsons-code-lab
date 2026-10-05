@@ -6,6 +6,7 @@ import { fetchJsonWithError } from '../utils/api-utils.js';
 import { loadHeatmap } from './task-set-heatmap.js';
 import { setupPreviewModalClose } from './task-preview.js';
 import { createAvailableTaskElement } from './task-helpers.js';
+import { getTaskSetOpeningStatus } from '../utils/task-set-status.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -627,20 +628,23 @@ async function removeViewer(teacherId) {
 }
 
 function buildOpeningInnerHTML(taskSet, isOwner) {
-	if (taskSet.opens_at) {
-		const isNotOpenYet = new Date(taskSet.opens_at) > new Date();
-		const icon = 'fas fa-calendar-alt';
-		const label = isNotOpenYet ? 'Opens' : 'Opened';
-		const openingClass = isNotOpenYet ? '' : ' class="task-set-opening-active"';
-		const editBtn = isOwner
-			? ` <button id="edit-opening-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;color:inherit;" title="Edit opening date"><i class="fas fa-pencil-alt"></i></button>`
-			: '';
-		return `<span class="meta-badge"><span${openingClass}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.opens_at))}</span>${editBtn}</span>`;
+	const openingStatus = getTaskSetOpeningStatus(taskSet);
+	const editBtn = isOwner
+		? ` <button id="edit-opening-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;color:inherit;" title="Edit opening date"><i class="fas fa-pencil-alt"></i></button>`
+		: '';
+
+	if (openingStatus.status === 'expired') {
+		if (isOwner && !taskSet.opens_at) {
+			return `<button id="edit-opening-btn" type="button" class="meta-badge meta-badge-missing"><i class="fas fa-calendar-alt"></i> Set opening date</button>`;
+		}
+		return '';
 	}
-	if (isOwner) {
-		return `<button id="edit-opening-btn" type="button" class="meta-badge meta-badge-missing"><i class="fas fa-calendar-alt"></i> Set opening date</button>`;
-	}
-	return '';
+
+	const openingDate = openingStatus.date
+		? ` ${escapeHtml(formatDateTime(openingStatus.date))}`
+		: '';
+	const openingClass = openingStatus.status === 'open' ? ' class="task-set-opening-active"' : '';
+	return `<span class="meta-badge"><span${openingClass}><i class="fas fa-calendar-alt"></i> ${openingStatus.label}${openingDate}</span>${editBtn}</span>`;
 }
 
 function validateTaskSetDateOrder(opensAt, expiresAt) {
