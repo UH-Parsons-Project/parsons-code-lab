@@ -33,6 +33,7 @@ from ...pydantic import (
     TaskSetViewerResponse,
     UpdateExpiresAtRequest,
     UpdateOpensAtRequest,
+    UpdateTaskSetDescriptionsRequest,
     UpdateTaskSetTitleRequest,
     UpdateTaskSetTasksRequest,
 )
@@ -213,6 +214,49 @@ async def update_task_set_title(
         )
 
     task_set.title = title
+    await db.commit()
+    await db.refresh(task_set)
+
+    enrolled_count = (await db.execute(
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+    )).scalar() or 0
+
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        deletable=enrolled_count == 0,
+    )
+
+
+@router.patch("/api/my_sets/{task_set_id}/descriptions", response_model=TaskSetResponse)
+async def update_task_set_descriptions(
+    task_set_id: int,
+    request: UpdateTaskSetDescriptionsRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Update the teacher/student description fields in a task set."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to modify this task set",
+        )
+
+    if request.student_description is not None:
+        task_set.student_description = request.student_description.strip() or None
+    if request.teacher_description is not None:
+        task_set.teacher_description = request.teacher_description.strip() or None
+
     await db.commit()
     await db.refresh(task_set)
 
