@@ -254,6 +254,11 @@ class UpdateTaskSetTitleRequest(BaseModel):
     title: str = Field(..., max_length=255)
 
 
+class UpdateTaskSetDescriptionsRequest(BaseModel):
+    student_description: str | None = None
+    teacher_description: str | None = None
+
+
 class DuplicateTaskSetRequest(BaseModel):
     title: str | None = Field(default=None, max_length=255)
 

@@ -28,6 +28,19 @@ function truncate(text, maxLength) {
 const taskDetailCache = new Map();
 let currentPreviewTaskId = null;
 
+function renderPreviewPlaceholder(message = 'Hover over a task to see a quick overview') {
+	const panel = document.getElementById('task-preview-panel');
+	if (!panel) return;
+
+	panel.innerHTML = `
+		<div class="preview-empty-state">
+			<i class="fas fa-mouse-pointer"></i>
+			<p>${escapeHtml(message)}</p>
+		</div>
+	`;
+	currentPreviewTaskId = null;
+}
+
 async function fetchTaskDetail(id) {
 	if (!taskDetailCache.has(id)) {
 		const promise = fetch('/api/tasks/' + encodeURIComponent(id), { credentials: 'include' })
@@ -72,9 +85,14 @@ function renderPreviewSkeleton(item) {
 							${item.creator_username ? '<i class="fas fa-user"></i> Teacher ' + escapeHtml(item.creator_username) : ''}
 						</div>
 					</div>
-					<button type="button" class="task-favorite-button ${isFav ? 'is-favorite' : ''}" id="preview-fav-btn" title="${isFav ? 'Remove from favorites' : 'Add to favorites'}">
-						${isFav ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'}
-					</button>
+					<div class="preview-header-actions">
+						<button type="button" class="preview-close-btn" id="preview-close-btn" aria-label="Close preview" title="Close preview">
+							<i class="fas fa-times"></i>
+						</button>
+						<button type="button" class="task-favorite-button ${isFav ? 'is-favorite' : ''}" id="preview-fav-btn" title="${isFav ? 'Remove from favorites' : 'Add to favorites'}">
+							${isFav ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'}
+						</button>
+					</div>
 				</div>
 			</div>
 
@@ -112,6 +130,15 @@ function renderPreviewSkeleton(item) {
 			</div>
 		</div>
 	`;
+
+	const closeBtn = document.getElementById('preview-close-btn');
+	if (closeBtn) {
+		closeBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			renderPreviewPlaceholder('Preview closed. Hover over a task to reopen it.');
+		});
+	}
 
 	const favBtn = document.getElementById('preview-fav-btn');
 	if (favBtn) {

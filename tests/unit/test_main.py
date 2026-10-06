@@ -1609,6 +1609,34 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert persisted.json()["title"] == "Renamed Week 1"
         assert persisted.json()["unique_link_code"] == "WEEK1"
 
+    async def test_update_task_set_descriptions(
+        self, client, test_teacher, task_set, db_session
+    ):
+        task_set.student_description = "Old student instructions"
+        task_set.teacher_description = "Old teacher notes"
+        await db_session.commit()
+
+        response = await client.patch(
+            f"/api/my_sets/{task_set.id}/descriptions",
+            headers=_auth(test_teacher.username),
+            json={
+                "student_description": "Updated student instructions",
+                "teacher_description": "Updated teacher notes",
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["student_description"] == "Updated student instructions"
+        assert body["teacher_description"] == "Updated teacher notes"
+
+        persisted = await client.get(
+            f"/api/my_sets/{task_set.id}",
+            headers=_auth(test_teacher.username),
+        )
+        assert persisted.json()["student_description"] == "Updated student instructions"
+        assert persisted.json()["teacher_description"] == "Updated teacher notes"
+
     async def test_rename_task_set_rejects_duplicate_title(
         self, client, test_teacher, task_set, db_session
     ):
