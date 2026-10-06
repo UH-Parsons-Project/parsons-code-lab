@@ -634,10 +634,13 @@ function buildOpeningInnerHTML(taskSet, isOwner) {
 		: '';
 
 	if (openingStatus.status === 'expired') {
-		if (isOwner && !taskSet.opens_at) {
+		if (!taskSet.opens_at) {
+			if (!isOwner) return '';
 			return `<button id="edit-opening-btn" type="button" class="meta-badge meta-badge-missing"><i class="fas fa-calendar-alt"></i> Set opening date</button>`;
 		}
-		return '';
+
+		const openingDate = ` ${escapeHtml(formatDateTime(taskSet.opens_at))}`;
+		return `<span class="meta-badge"><span class="task-set-opening-active"><i class="fas fa-calendar-alt"></i> Opened${openingDate}</span>${editBtn}</span>`;
 	}
 
 	const openingDate = openingStatus.date

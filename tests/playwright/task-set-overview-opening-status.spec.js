@@ -66,11 +66,21 @@ test.describe('Task Set Overview Opening Status', () => {
 		await expect(page.locator('#edit-opening-btn')).toHaveAttribute('title', 'Edit opening date');
   });
 
-  test('shows Expired instead of Open for an expired task set', async ({ page }) => {
-    const taskSetId = await createTaskSetAndOpenOverview(page, `${Date.now()}-expired`);
-    await updateTaskSet(page, taskSetId, 'expires_at', '2020-01-01T12:00:00.000Z');
+	test('shows Expired instead of Open for an expired task set', async ({ page }) => {
+		const taskSetId = await createTaskSetAndOpenOverview(page, `${Date.now()}-expired`);
+		await updateTaskSet(page, taskSetId, 'expires_at', '2020-01-01T12:00:00.000Z');
 
-    await expect(page.locator('#expiry-section')).toContainText('Expired');
-    await expect(page.locator('#opening-section')).not.toContainText('Open');
-  });
+		await expect(page.locator('#expiry-section')).toContainText('Expired');
+		await expect(page.locator('#opening-section')).not.toContainText('Open');
+	});
+
+	test('keeps the opening date and edit control for an expired task set that was opened', async ({ page }) => {
+		const taskSetId = await createTaskSetAndOpenOverview(page, `${Date.now()}-expired-opened`);
+		await updateTaskSet(page, taskSetId, 'opens_at', '2020-01-01T12:00:00.000Z');
+		await updateTaskSet(page, taskSetId, 'expires_at', '2020-01-02T12:00:00.000Z');
+
+		await expect(page.locator('#opening-section')).toContainText('Opened');
+		await expect(page.locator('#edit-opening-btn')).toHaveAttribute('title', 'Edit opening date');
+		await expect(page.locator('#expiry-section')).toContainText('Expired');
+	});
 });
