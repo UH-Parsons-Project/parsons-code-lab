@@ -1,5 +1,6 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
-import { formatDate, escapeHtml, showError } from '../utils/ui-utils.js';
+import { formatDate, formatDateTimeWithoutSeconds, escapeHtml, showError } from '../utils/ui-utils.js';
+import { getTaskSetOpeningStatus } from '../utils/task-set-status.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -47,7 +48,8 @@ function createTaskSetItem(taskSet) {
 	const left = document.createElement('div');
 	left.className = 'task-set-item-left';
 
-	const isExpired = Boolean(taskSet.expires_at && new Date(taskSet.expires_at) < new Date());
+	const openingStatus = getTaskSetOpeningStatus(taskSet);
+	const isExpired = openingStatus.status === 'expired';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
@@ -67,6 +69,13 @@ function createTaskSetItem(taskSet) {
 			: `<br><i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`;
 	}
 
+	const openingDate = openingStatus.date
+		? ` ${formatDateTimeWithoutSeconds(openingStatus.date)}`
+		: '';
+	const openingHtml = openingStatus.status === 'expired'
+		? ''
+		: `<br><span${openingStatus.status === 'open' ? ' class="task-set-opening-active"' : ''}><i class="far fa-calendar-alt"></i> ${openingStatus.label}${openingDate}</span>`;
+
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
 	meta.innerHTML = `
@@ -74,6 +83,7 @@ function createTaskSetItem(taskSet) {
 	<i class="fas fa-tasks"></i> ${taskSet.task_count} task${taskSet.task_count !== 1 ? 's' : ''}<br>
 	<i class="fas fa-user-graduate"></i> ${taskSet.student_count} student${taskSet.student_count !== 1 ? 's' : ''} joined<br>
 	<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}
+	${openingHtml}
 	${expiryHtml}
 	`;
 
