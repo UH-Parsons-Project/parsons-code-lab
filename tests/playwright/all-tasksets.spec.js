@@ -59,4 +59,54 @@ test.describe('All Task Sets Page', () => {
     // Clear search
     await page.locator('#task-search').fill('');
   });
+
+  test('shows Open for task sets without an explicit opening date', async ({ page }) => {
+    const title = `Open status ${Date.now()}`;
+    const response = await page.request.post('/api/create_task_set', {
+      data: {
+        title,
+        student_description: null,
+        teacher_description: null,
+        opens_at: null,
+        expires_at: null,
+        task_ids: [],
+      },
+    });
+
+    expect(response.ok()).toBeTruthy();
+
+    await page.goto('/teacher-dashboard');
+    const dashboardCard = page.locator('.task-set-item').filter({ hasText: title });
+    await expect(dashboardCard).toBeVisible();
+    await expect(dashboardCard.locator('.task-set-meta')).toContainText('Open');
+    await expect(dashboardCard.locator('.task-set-meta')).not.toContainText('Opens');
+
+    await page.goto('/all-tasksets');
+    const allSetsCard = page.locator('.task-set-item').filter({ hasText: title });
+    await expect(allSetsCard).toBeVisible();
+    await expect(allSetsCard.locator('.task-set-meta')).toContainText('Open');
+    await expect(allSetsCard.locator('.task-set-meta')).not.toContainText('Opens');
+  });
+
+  test('shows Expired instead of Open for expired task sets', async ({ page }) => {
+    const title = `Expired status ${Date.now()}`;
+    const response = await page.request.post('/api/create_task_set', {
+      data: {
+        title,
+        student_description: null,
+        teacher_description: null,
+        opens_at: null,
+        expires_at: '2020-01-01T12:00:00.000Z',
+        task_ids: [],
+      },
+    });
+
+    expect(response.ok()).toBeTruthy();
+
+    await page.goto('/all-tasksets');
+    const card = page.locator('.task-set-item').filter({ hasText: title });
+    await expect(card).toBeVisible();
+    await expect(card.locator('.task-set-meta')).toContainText('Expired');
+    await expect(card.locator('.task-set-meta')).not.toContainText('Open');
+  });
 });

@@ -1,4 +1,5 @@
 import { makeKeyActivatable, formatDate, formatDateTimeWithoutSeconds, escapeHtml } from './ui-utils.js';
+import { getTaskSetOpeningStatus } from './task-set-status.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 
 export function createTaskSetItem(taskSet, currentUsername = null) {
@@ -18,7 +19,8 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 	titleWrap.style.gap = '.45rem';
 	titleWrap.style.minWidth = '0';
 
-	const isExpired = Boolean(taskSet.expires_at && new Date(taskSet.expires_at) < new Date());
+	const openingStatus = getTaskSetOpeningStatus(taskSet);
+	const isExpired = openingStatus.status === 'expired';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
@@ -58,15 +60,17 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	const isOpened = Boolean(taskSet.opens_at && new Date(taskSet.opens_at) <= new Date());
 	const expiresSoon = Boolean(
 		taskSet.expires_at &&
 		!isExpired &&
 		new Date(taskSet.expires_at) - new Date() < 86400000
 	);
-	const openingPart = taskSet.opens_at
-		? ` &nbsp;·&nbsp; <span${isOpened ? ' class="task-set-opening-active"' : ''}><i class="far fa-calendar-alt"></i> ${isOpened ? 'Opened' : 'Opens'} ${formatDateTimeWithoutSeconds(taskSet.opens_at)}</span>`
+	const openingDate = openingStatus.date
+		? ` ${formatDateTimeWithoutSeconds(openingStatus.date)}`
 		: '';
+	const openingPart = openingStatus.status === 'expired'
+		? ''
+		: ` &nbsp;·&nbsp; <span${openingStatus.status === 'open' ? ' class="task-set-opening-active"' : ''}><i class="far fa-calendar-alt"></i> ${openingStatus.label}${openingDate}</span>`;
 	let expiryPart = '';
 	if (taskSet.expires_at) {
 		expiryPart = isExpired
