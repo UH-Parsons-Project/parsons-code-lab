@@ -1418,12 +1418,13 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert removed.json() == {"status": "success"}
 
     async def test_student_task_status_route_counts_successful_attempts(
-        self, client, task_set_with_task, student_session, db_session, task
+        self, client, task_set_with_task, student_session, db_session
     ):
+        task_set, task = task_set_with_task
         client.cookies.set("student_session", student_session.session_token)
 
         before = await client.get(
-            f"/api/sets/{task_set_with_task.unique_link_code}/tasks-status"
+            f"/api/sets/{task_set.unique_link_code}/tasks-status"
         )
         assert before.status_code == 200
         assert before.json()[0]["student_completed"] == 0
@@ -1432,12 +1433,12 @@ class TestAdditionalProblemsetAndTaskSetApis:
             db_session,
             student_session.id,
             task.id,
-            task_set_with_task.id,
+            task_set.id,
             success=True,
         )
 
         after = await client.get(
-            f"/api/sets/{task_set_with_task.unique_link_code}/tasks-status"
+            f"/api/sets/{task_set.unique_link_code}/tasks-status"
         )
         assert after.status_code == 200
         assert after.json()[0]["student_attempts"] == 1
