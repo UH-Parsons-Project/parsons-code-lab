@@ -26,6 +26,7 @@ from .utils.token_utils import cleanup_old_registration_tokens
 
 from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
+from .routes.student.student_task_status_api import router as student_task_status_api_router
 from .routes.admin.admin_api import router as admin_router
 from .routes.utils import router as utils_router
 from .routes.teacher.teacher import router as teacher_router
@@ -34,6 +35,7 @@ from .routes.task.task import router as task_router
 from .routes.task.task_api import router as task_api_router
 from .routes.task.initial_events_api import router as initial_events_api_router
 from .routes.task.task_set_api import router as task_set_api_router
+from .routes.task.task_set_viewers_api import router as task_set_viewers_api_router
 from .routes.statistic.statistic import router as statistic_router
 from .routes.statistic.statistic_api import router as statistic_api_router
 from .routes.test.test_api import router as test_router
@@ -104,12 +106,14 @@ app.include_router(student_router)
 
 app.include_router(admin_router)
 app.include_router(student_api_router)
+app.include_router(student_task_status_api_router)
 app.include_router(utils_router)
 app.include_router(teacher_api_router)
 app.include_router(teacher_router)
 app.include_router(task_router)
 app.include_router(task_api_router)
 app.include_router(task_set_api_router)
+app.include_router(task_set_viewers_api_router)
 app.include_router(initial_events_api_router)
 app.include_router(statistic_router)
 app.include_router(statistic_api_router)

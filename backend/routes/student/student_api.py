@@ -44,6 +44,7 @@ from ..utils.commons import (
     validate_registration_basic,
     verify_task_in_set_or_404,
 )
+from .student_task_context import resolve_task_context
 
 router = APIRouter()
 
@@ -52,12 +53,6 @@ def _parse_iso_datetime(value: str):
     if value.endswith("Z"):
         value = value[:-1] + "+00:00"
     return datetime.fromisoformat(value)
-
-
-async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_id: int) -> tuple[TaskSet, int]:
-    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
-    return task_set, task_id
 
 
 @router.get("/api/student/me")
@@ -447,186 +442,6 @@ async def api_student_register(
     return {"status": "success", "id": student.id}
 
 
-@router.get("/api/sets/{unique_link_code}/tasks/{task_id}", response_model=StudentTaskResponse)
-async def get_task_for_student_set(
-    task_id: int,
-    unique_link_code: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
-):
-    if not student_session:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Student session required")
-
-    _, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
-
-    stmt = select(Parsons).where(Parsons.id == resolved_task_id)
-    result = await db.execute(stmt)
-    task = result.scalar_one_or_none()
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task with id {resolved_task_id} not found",
-        )
-
-
-    submitted_order = None
-    if student_session:
-        attempt_stmt = (
-            select(TaskAttempt)
-            .where(
-                (TaskAttempt.student_id == student_session.id) &
-                (TaskAttempt.task_id == resolved_task_id) &
-                (TaskAttempt.success.is_(True))
-            )
-            .order_by(TaskAttempt.completed_at.desc())
-            .limit(1)
-        )
-        attempt_result = await db.execute(attempt_stmt)
-        attempt = attempt_result.scalar_one_or_none()
-        if attempt and getattr(attempt, 'submitted_order', None):
-            submitted_order = attempt.submitted_order
-
-    student_correct_solution = {}
-    if isinstance(task.correct_solution, dict):
-        if "teacher_tests" in task.correct_solution:
-            student_correct_solution["teacher_tests"] = task.correct_solution["teacher_tests"]
-        if "custom_error_messages" in task.correct_solution:
-            student_correct_solution["custom_error_messages"] = task.correct_solution["custom_error_messages"]
-
-    return StudentTaskResponse(
-        id=task.id,
-        title=task.title,
-        task_instructions=task.task_instructions,
-        description=task.description,
-        task_type=task.task_type,
-        code_blocks=task.code_blocks,
-        correct_solution=student_correct_solution,
-        is_public=task.is_public,
-        faded=task.faded,
-        created_at=task.created_at.isoformat(),
-        submitted_order=submitted_order,
-        eval_type=task.correct_solution.get("eval_type", "unit_test"),
-        expected_output=task.correct_solution.get("expected_output", ""),
-        correct_order=task.correct_solution.get("correct_order", []),
-        require_indentation=task.correct_solution.get("require_indentation", True),
-    )
-
-
-@router.get("/api/sets/{unique_link_code}/tasks-status")
-async def get_all_tasks_status(
-    unique_link_code: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
-):
-    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-
-    stmt_tasks = select(TaskSetItem.task_id).where(
-        (TaskSetItem.task_set_id == task_set.id) &
-        (TaskSetItem.is_hidden == False)
-    ).order_by(TaskSetItem.id.asc())
-    result_tasks = await db.execute(stmt_tasks)
-    visible_task_ids = result_tasks.scalars().all()
-
-    statuses = []
-
-    if not student_session:
-        for t_id in visible_task_ids:
-            statuses.append({"has_started": False, "student_attempts": 0, "student_completed": 0})
-        return statuses
-
-    if not visible_task_ids:
-        return []
-
-    stmt_enrollments = select(StudentTaskEnrollment.task_id).where(
-        (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_set_id == task_set.id) &
-        (StudentTaskEnrollment.task_id.in_(visible_task_ids))
-    )
-    result_enrollments = await db.execute(stmt_enrollments)
-    started_task_ids = set(result_enrollments.scalars().all())
-
-    stmt_attempts = (
-        select(TaskAttempt.task_id, TaskAttempt.success)
-        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
-        .where(
-            (TaskAttempt.student_id == student_session.id) &
-            (StudentTaskEnrollment.task_set_id == task_set.id) &
-            (TaskAttempt.task_id.in_(visible_task_ids))
-        )
-    )
-    result_attempts = await db.execute(stmt_attempts)
-    attempts = result_attempts.all()
-
-    from collections import defaultdict
-    task_attempts_map = defaultdict(lambda: {"attempts": 0, "completed": 0})
-    for attempt in attempts:
-        task_attempts_map[attempt.task_id]["attempts"] += 1
-        if attempt.success:
-            task_attempts_map[attempt.task_id]["completed"] += 1
-
-    for t_id in visible_task_ids:
-        statuses.append({
-            "has_started": t_id in started_task_ids,
-            "student_attempts": task_attempts_map[t_id]["attempts"],
-            "student_completed": task_attempts_map[t_id]["completed"],
-        })
-
-    return statuses
-
-
-@router.get("/api/sets/{unique_link_code}/tasks/{task_id}/has-started")
-async def check_task_has_started(
-    task_id: int,
-    unique_link_code: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    student_session: Annotated[Student | None, Depends(get_current_student_session)],
-):
-    if not student_session:
-        return {"has_started": False}
-
-    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
-
-    stmt = select(StudentTaskEnrollment).where(
-        (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == resolved_task_id) &
-        (StudentTaskEnrollment.task_set_id == task_set.id)
-    )
-    result = await db.execute(stmt)
-    existing_enrollment = result.scalar_one_or_none()
-
-    return {"has_started": existing_enrollment is not None}
-
-
-@router.get("/api/sets/{unique_link_code}/tasks/{task_id}/my-completion-status")
-async def get_my_completion_status(
-    task_id: int,
-    unique_link_code: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
-):
-    if not student_session:
-        return {"student_attempts": 0, "student_completed": 0}
-
-    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
-
-    stmt = (
-        select(TaskAttempt)
-        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
-        .where(
-            (TaskAttempt.student_id == student_session.id) &
-            (TaskAttempt.task_id == resolved_task_id) &
-            (StudentTaskEnrollment.task_set_id == task_set.id)
-        )
-    )
-    result = await db.execute(stmt)
-    attempts = result.scalars().all()
-
-    student_attempts = len(attempts)
-    student_completed = sum(1 for a in attempts if a.success)
-
-    return {"student_attempts": student_attempts, "student_completed": student_completed}
-
-
 async def _get_or_create_enrollment(
     db: AsyncSession, student_id: int, task_id: int, task_set_id: int
 ) -> StudentTaskEnrollment:
@@ -670,7 +485,7 @@ async def start_task(
             detail="Student session required to start a task"
         )
 
-    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
+    task_set, resolved_task_id = await resolve_task_context(db, unique_link_code, task_id)
     enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
     session = await _create_task_session(db, enrollment)
     await invalidate_task_statistics(resolved_task_id, task_set.id, student_session.id)
@@ -696,7 +511,7 @@ async def submit_test_result(
             detail="Student session required to save results"
         )
 
-    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
+    task_set, resolved_task_id = await resolve_task_context(db, unique_link_code, task_id)
     enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
 
     open_session_stmt = (
@@ -780,7 +595,7 @@ async def enter_task(
             detail="Student session required"
         )
 
-    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
+    task_set, resolved_task_id = await resolve_task_context(db, unique_link_code, task_id)
     enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
     session = await _create_task_session(db, enrollment)
     await invalidate_task_statistics(resolved_task_id, task_set.id, student_session.id)
@@ -805,7 +620,7 @@ async def record_task_exit(
             detail="Student session required"
         )
 
-    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
+    task_set, resolved_task_id = await resolve_task_context(db, unique_link_code, task_id)
 
     stmt = (
         select(TaskSession)
