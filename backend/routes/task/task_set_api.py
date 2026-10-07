@@ -29,8 +29,6 @@ from ...pydantic import (
     StudentInTaskSetResponse,
     TaskSetResponse,
     TaskSetTaskResponse,
-    TaskSetViewerRequest,
-    TaskSetViewerResponse,
     UpdateExpiresAtRequest,
     UpdateOpensAtRequest,
     UpdateTaskSetDescriptionsRequest,

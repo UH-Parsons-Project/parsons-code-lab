@@ -1,13 +1,12 @@
 import re
 import secrets
-from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...teacher_auth import CurrentUser
-from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse, StudentTaskResponse
+from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse
 from ...cache import invalidate_task_statistics
 from ...database import get_db
 from ...models import (
@@ -40,9 +39,7 @@ from ...student_auth import (
 from ...utils.taskset import require_task_set_view_access
 from ..utils.commons import (
     ensure_unique_user,
-    get_task_set_by_code_or_404,
     validate_registration_basic,
-    verify_task_in_set_or_404,
 )
 from .student_task_context import resolve_task_context
 
