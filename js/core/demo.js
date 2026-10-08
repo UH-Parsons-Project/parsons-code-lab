@@ -1,5 +1,4 @@
 import { initStudentLogout, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
-import { getUsername } from '../core/auth-utils.js';
 import {
 	prepareCode,
 	processTestResults,
@@ -29,14 +28,11 @@ if (backBtn) {
 	backBtn.style.display = 'inline-block';
 }
 
-const FUNCTION_HEADER = 'def greet(name):\n    """\n    Returns a greeting for the given name.\n    """\n';
+const EXPECTED_OUTPUT = 'Hello, World!\nWelcome to Parsons Code Lab!';
 
 const BLOCKS = [
-	{ id: 'block_1', code: 'def greet(name):', indent: 0, given: true },
-	{ id: 'block_2', code: 'if name == "":', indent: 1, given: false },
-	{ id: 'block_3', code: 'return "Hello, stranger!"', indent: 2, given: false },
-	{ id: 'block_4', code: 'else:', indent: 1, given: false },
-	{ id: 'block_5', code: 'return "Hello, " + name + "!"', indent: 2, given: false },
+	{ code: 'print("Hello, World!")', indent: 0, given: false },
+	{ code: 'print("Welcome to Parsons Code Lab!")', indent: 0, given: false },
 ];
 
 function buildCodeLines(blocks) {
@@ -44,19 +40,7 @@ function buildCodeLines(blocks) {
 		const indent = '    '.repeat(b.indent);
 		return indent + b.code + (b.given ? ` #${b.indent}given` : '');
 	});
-	lines.push("print('DEBUG:', !BLANK)");
-	lines.push("print('DEBUG:', !BLANK)");
-	lines.push('# !BLANK');
-	lines.push('# !BLANK');
 	return lines.join('\n');
-}
-
-function buildTeacherTests() {
-	const username = localStorage.getItem('nickname') || getUsername();
-	const nameTest = username
-		? `assert greet("${username}") == "Hello, ${username}!"`
-		: `assert greet("World") == "Hello, World!"`;
-	return `${nameTest}\nassert greet("") == "Hello, stranger!"`;
 }
 
 // Instructions modal
@@ -80,21 +64,16 @@ modal.innerHTML = `
 		<h5 style="margin-bottom:1.25rem;">How this exercise works</h5>
 		<p style="margin-bottom:0.5rem;"><strong>1. Drag the code blocks</strong></p>
 		<p style="margin-bottom:1rem;color:#495057;">
-			On the left you'll see shuffled code blocks. Drag them into the solution area
-			on the right. You can drag blocks to reorder them and to change their
-			indentation — for example, the body of an <code>if</code> statement needs
-			one extra indent.
+			On the left you'll see two shuffled <code>print</code> statements. Drag them
+			into the solution area on the right in the order that produces the expected output.
 		</p>
-		<p style="margin-bottom:0.5rem;"><strong>2. Fill in the blanks</strong></p>
+		<p style="margin-bottom:0.5rem;"><strong>2. Run your solution</strong></p>
 		<p style="margin-bottom:1rem;color:#495057;">
-			Some blocks contain a blank field (<code>___</code>). Click on it and type
-			the missing piece of code directly in the block.
-		</p>
-		<p style="margin-bottom:0.5rem;"><strong>3. Run your solution</strong></p>
-		<p style="margin-bottom:1.5rem;color:#495057;">
 			When you are happy with the arrangement, click <strong>Run</strong>.
-			The result will tell you whether your solution is correct and show
-			which tests passed or failed.
+			The result will tell you whether the output is correct.
+		</p>
+		<p style="margin-bottom:1.5rem;color:#495057;">
+			No functions, conditions, or return statements are needed for this warm-up.
 		</p>
 		<button onclick="window.__closeDemoModal()"
 		        style="background:#007bff;color:#fff;border:none;border-radius:6px;
@@ -111,17 +90,17 @@ document.body.appendChild(modal);
 window.__openDemoModal = () => { modal.style.display = 'flex'; };
 window.__closeDemoModal = () => { modal.style.display = 'none'; };
 
-const LS_DEMO_REPR = 'demo-greet-repr';
+const LS_DEMO_REPR = 'demo-print-order-repr';
 let probEl;
 
-async function handleSubmit(submittedCode, codeHeader) {
-	let testResults = prepareCode(submittedCode, codeHeader, buildTeacherTests());
+async function handleSubmit(submittedCode) {
+	let testResults = prepareCode(submittedCode, '', '', 'stdout');
 
 	if (testResults.code) {
 		try {
 			const { results, error } = await new FiniteWorker(testResults.code);
 			if (typeof results === 'string') {
-				testResults = processTestResults(results);
+				testResults = processTestResults(results, [], 'stdout', EXPECTED_OUTPUT);
 			} else {
 				testResults = processTestError(error, testResults.startLine);
 			}
@@ -163,18 +142,18 @@ async function handleSubmit(submittedCode, codeHeader) {
 }
 
 probEl = document.createElement('problem-element');
-probEl.setAttribute('name', 'demo-greet');
+probEl.setAttribute('name', 'demo-print-order');
 probEl.setAttribute(
 	'taskInstructions',
-	'<div>Build a greeter function which returns a greeting with the name given or "Hello, stranger! if no name is given.</div><br><br><div class="demo-info-note"><em>You might not yet be familiar with all the programming concepts seen in this example. Do not worry if you can not solve the problem quite yet! You can still get familiar with the exercise area by just trying moving the blocks and running the tests.</em></div>'
+	'<div>Arrange the two print statements so the program prints the expected two-line output.</div><br><br><div class="demo-info-note"><em>This warm-up focuses on using the Parsons exercise area. You do not need to know functions, conditions, or return statements yet.</em></div>'
 );
 probEl.setAttribute(
 	'description',
-	'A short warm-up exercise to get familiar with the format before starting the main tasks.'
+	'A short warm-up exercise for arranging two print statements.'
 );
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
-probEl.setAttribute('codeHeader', FUNCTION_HEADER);
-probEl.setAttribute('requireIndentation', 'true');
+probEl.setAttribute('codeHeader', '');
+probEl.requireIndentation = false;
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
 probEl.shuffleStarterBlocks = true;
 
@@ -188,7 +167,7 @@ if (savedArrangementJson) {
 }
 
 probEl.addEventListener('run', (e) => {
-	handleSubmit(e.detail.code, FUNCTION_HEADER);
+	handleSubmit(e.detail.code);
 });
 
 probEl.addEventListener('arrangement-changed', (e) => {
