@@ -46,11 +46,11 @@ export async function registerTeacher(
   registrationToken = getTestRegistrationToken()
 ) {
   try {
-    await page.goto('/teacher-register');
+    await page.goto('/teacher-registration');
   } catch (err) {
     if (err.message && (err.message.includes('interrupted') || err.message.includes('ERR_ABORTED') || err.message.includes('Navigation'))) {
       await page.waitForTimeout(300);
-      await page.goto('/teacher-register');
+      await page.goto('/teacher-registration');
     } else {
       throw err;
     }
@@ -173,10 +173,10 @@ export async function registerStudent(page, username, email, password = 'passwor
 
   const currentUrl = new URL(page.url());
   const taskSetMatch = currentUrl.pathname.match(/^\/([^/]+)\/set\/([^/]+)(?:\/tasks)?\/?$/);
-  const registerUrl = taskSetMatch
-    ? `/student-register?username=${encodeURIComponent(taskSetMatch[1])}&code=${encodeURIComponent(taskSetMatch[2])}`
-    : '/student-register';
-  await page.goto(registerUrl);
+  const registrationUrl = taskSetMatch
+    ? `/student-registration?username=${encodeURIComponent(taskSetMatch[1])}&code=${encodeURIComponent(taskSetMatch[2])}`
+    : '/student-registration';
+  await page.goto(registrationUrl);
   await page.waitForSelector('#register-form', { state: 'visible', timeout: 10000 });
 
   await page.locator('#username').fill(username);

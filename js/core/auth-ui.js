@@ -307,7 +307,7 @@ export function initLoginPage() {
 			const isStudentPage = /^\/[^/]+\/set\//.test(window.location.pathname);
 			if (!isStudentPage) {
 				// console.log('Register button clicked'); // Debug log
-				window.location.href = '/teacher-register';
+				window.location.href = '/teacher-registration';
 			}
 		});
 	}

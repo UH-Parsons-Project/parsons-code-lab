@@ -8,7 +8,7 @@
     {% endif %}
   </div>
   <div class="ml-auto d-flex align-items-center" id="auth-section">
-{% if not request or not request.url or request.url.path not in ['/teacher-register', '/student-register'] %}
+{% if not request or not request.url or request.url.path not in ['/teacher-registration', '/student-registration', '/teacher-register', '/student-register'] %}
     <form class="form-inline" id="login-form">
       <div id="error-message" class="text-danger mr-2" style="display: none;"></div>
       <input class="form-control mr-2" type="text" id="username" placeholder="Email" aria-label="Email" required>

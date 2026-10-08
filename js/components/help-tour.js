@@ -40,7 +40,7 @@ async function loadDriverJSAndCSS() {
  */
 function shouldShowHelpTour(pathname) {
 	// Never show the tour on login or register pages
-	const unauthPaths = ['/', '/login', '/register', '/teacher-register', '/student-register'];
+	const unauthPaths = ['/', '/login', '/register', '/teacher-registration', '/student-registration', '/teacher-register', '/student-register'];
 	if (unauthPaths.includes(pathname.replace(/\/$/, ''))) {
 		return false;
 	}
