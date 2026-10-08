@@ -92,6 +92,7 @@ class TaskSetResponse(BaseModel):
     student_count: int = 0
     task_count: int = 0
     deletable: bool = True
+    is_pinned: bool = False
 
 
 class TaskSetTaskResponse(BaseModel):

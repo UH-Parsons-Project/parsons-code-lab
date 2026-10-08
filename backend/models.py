@@ -155,6 +155,23 @@ class TeacherFavoriteTask(Base):
     __table_args__ = (UniqueConstraint("teacher_id", "task_id"),)
 
 
+class TeacherPinnedTaskSet(Base):
+    """Task sets a teacher has pinned to the top of their list."""
+
+    __tablename__ = "teacher_pinned_task_sets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    teacher_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
+    )
+    task_set_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_sets.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (UniqueConstraint("teacher_id", "task_set_id"),)
+
+
 class Student(Base):
     """Student user model."""
 
