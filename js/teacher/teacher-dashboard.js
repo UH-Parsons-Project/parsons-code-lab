@@ -103,7 +103,7 @@ function renderTaskSets(taskSets) {
 		ownedContainer.innerHTML = '<div class="text-muted mb-3">No task sets yet.</div>';
 	} else {
 		ownedLists.forEach(taskSet => {
-			ownedContainer.appendChild(createTaskSetItem(taskSet, currentUsername));
+			ownedContainer.appendChild(createTaskSetItem(taskSet, currentUsername, togglePin));
 		});
 	}
 	ownedSection.appendChild(ownedContainer);
@@ -117,7 +117,7 @@ function renderTaskSets(taskSets) {
 		sharedContainer.innerHTML = '<div class="text-muted">No shared task sets.</div>';
 	} else {
 		sharedLists.forEach(taskSet => {
-			sharedContainer.appendChild(createTaskSetItem(taskSet, currentUsername));
+			sharedContainer.appendChild(createTaskSetItem(taskSet, currentUsername, togglePin));
 		});
 	}
 	sharedSection.appendChild(sharedContainer);
@@ -166,6 +166,17 @@ function setupSearch() {
 
 
 
+
+async function togglePin(taskSet, shouldPin) {
+	try {
+		const res = await authFetch(`/api/my_sets/${taskSet.id}/pin`, { method: shouldPin ? 'PUT' : 'DELETE' });
+		if (res && res.ok === false) throw new Error('Failed to update pin');
+		await loadTaskSets();
+	} catch (err) {
+		console.error(err);
+		showError(err.message);
+	}
+}
 
 async function loadTaskSets() {
 	try {

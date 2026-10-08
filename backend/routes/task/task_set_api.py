@@ -21,6 +21,7 @@ from ...models import (
     TaskSetItem,
     TaskSetViewer,
     Teacher,
+    TeacherPinnedTaskSet,
 )
 from ...pydantic import (
     CreateProblemRequest,
@@ -115,21 +116,65 @@ async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, De
             Teacher.username,
             func.count(func.distinct(StudentTaskSetEnrollment.student_id)).label("student_count"),
             func.count(func.distinct(TaskSetItem.id)).label("task_count"),
+            (TeacherPinnedTaskSet.id.is_not(None)).label("is_pinned"),
         )
         .join(Teacher, Teacher.id == TaskSet.teacher_id)
+        .outerjoin(
+            TeacherPinnedTaskSet,
+            (TeacherPinnedTaskSet.task_set_id == TaskSet.id)
+            & (TeacherPinnedTaskSet.teacher_id == current_user.id),
+        )
         .outerjoin(TaskSetViewer, TaskSetViewer.task_set_id == TaskSet.id)
         .outerjoin(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
         .outerjoin(TaskSetItem, TaskSetItem.task_set_id == TaskSet.id)
         .where(
             (TaskSet.teacher_id == current_user.id) | (TaskSetViewer.teacher_id == current_user.id)
         )
-        .group_by(TaskSet.id, Teacher.username)
-        .order_by(TaskSet.created_at.desc())
+        .group_by(TaskSet.id, Teacher.username, TeacherPinnedTaskSet.id)
+        .order_by(TeacherPinnedTaskSet.id.is_(None), TaskSet.created_at.desc())
     )
     result = await db.execute(stmt)
     my_sets = result.all()
 
     return build_taskset_response_list(my_sets)
+
+
+@router.put("/api/my_sets/{task_set_id}/pin")
+async def pin_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    await require_task_set_view_access(task_set, current_user, db)
+
+    existing = await db.execute(
+        select(TeacherPinnedTaskSet.id).where(
+            TeacherPinnedTaskSet.teacher_id == current_user.id,
+            TeacherPinnedTaskSet.task_set_id == task_set_id,
+        )
+    )
+    if existing.scalar_one_or_none() is None:
+        db.add(TeacherPinnedTaskSet(teacher_id=current_user.id, task_set_id=task_set_id))
+        await db.commit()
+
+    return {"task_set_id": task_set_id, "is_pinned": True}
+
+
+@router.delete("/api/my_sets/{task_set_id}/pin")
+async def unpin_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    await db.execute(
+        delete(TeacherPinnedTaskSet).where(
+            TeacherPinnedTaskSet.teacher_id == current_user.id,
+            TeacherPinnedTaskSet.task_set_id == task_set_id,
+        )
+    )
+    await db.commit()
+    return {"task_set_id": task_set_id, "is_pinned": False}
 
 
 @router.get("/api/my_sets/{task_set_id}", response_model=TaskSetResponse)
