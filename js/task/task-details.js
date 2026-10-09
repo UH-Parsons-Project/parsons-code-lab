@@ -124,8 +124,31 @@ async function loadTaskDetails() {
         const editableData = await editableResp.json();
         if (editableData.editable) {
           const editBtn = document.getElementById('action-edit-task');
+          const deleteBtn = document.getElementById('action-delete-task');
           editBtn.href = `/create-task-editor?task_id=${task.id}`;
           editBtn.style.display = 'inline-flex';
+          deleteBtn.style.display = 'inline-flex';
+          deleteBtn.addEventListener('click', async () => {
+            if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+
+            try {
+              const deleteResp = await fetch(`/api/problems/${task.id}`, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+              });
+
+              if (deleteResp.ok) {
+                window.location.href = '/teacher-dashboard';
+                return;
+              }
+
+              const errorData = await deleteResp.json().catch(() => ({}));
+              alert(errorData.detail || 'Failed to delete task.');
+            } catch (err) {
+              console.error('Delete failed:', err);
+              alert('Failed to delete task.');
+            }
+          });
         }
       }
     } catch (err) {
