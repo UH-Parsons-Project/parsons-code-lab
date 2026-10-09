@@ -1,23 +1,18 @@
+{% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Teacher Registration - Parsons Code Lab</title>
-		<link
-			rel="stylesheet"
-			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-			crossorigin="anonymous"
-		/>
-		<link rel="stylesheet" href="/js-parsons/parsons.css" />
-		<link rel="stylesheet" href="/css/base/main.css" />
-		<link rel="stylesheet" href="/css/legacy/legacy-pages.css" />
-	</head>
-	<body>
-		{% include 'common/nav-teacher.html' %}
+{% block title %}Teacher Registration - Parsons Code Lab{% endblock %}
 
-		<main class="container">
+{% block navigation %}
+  {% include 'common/nav-teacher.html' %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css" />
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css" />
+{% endblock %}
+
+{% block content %}
+<main class="container">
 			<div class="row justify-content-center register-row">
 				<div class="col-md-6">
 					<h2 class="mb-4 register-title">Teacher Registration</h2>
@@ -73,8 +68,8 @@
 				</div>
 			</div>
 		</main>
+{% endblock %}
 
-		<script src="/js/teacher/teacher-registration.js" type="module"></script>
-	{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script src="/js/teacher/teacher-registration.js" type="module"></script>
+{% endblock %}

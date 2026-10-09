@@ -1,23 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Profile - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
-  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
-  <link rel="stylesheet" href="/css/components/profile.css">
-  <link rel="stylesheet" href="/css/student/student-profile.css">
-</head>
-<body>
+{% block title %}My Profile - Parsons Code Lab{% endblock %}
 
+{% block navigation %}
   {% include 'common/nav-student.html' %}
+{% endblock %}
 
-  <div class="student-page-toolbar">
+{% block styles %}
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+<link rel="stylesheet" href="/css/components/profile.css">
+<link rel="stylesheet" href="/css/student/student-profile.css">
+{% endblock %}
+
+{% block content %}
+<div class="student-page-toolbar">
     <a href="#" id="page-back-btn" class="embossed-btn" title="Back" style="margin-left: 0;">
       <i class="fas fa-arrow-left"></i> Back
     </a>
@@ -120,9 +117,8 @@
       </div>
     </div>
   </div>
+{% endblock %}
 
-	{% include 'common/footer.html' %}
-
-  <script src="/js/student/student-profile.js" type="module"></script>
-</body>
-</html>
+{% block scripts %}
+<script src="/js/student/student-profile.js" type="module"></script>
+{% endblock %}

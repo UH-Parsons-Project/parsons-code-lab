@@ -1,37 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Task Set - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+{% block title %}Create Task Set - Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/js-parsons/parsons.css">
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/components/action-buttons.css">
-  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
-  <link rel="stylesheet" href="/css/task/create-task-editor.css">
-  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
-
-  <!-- jQuery and Bootstrap JS for modal functionality -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-
-  <!-- Task list creation form module -->
-  <script type="module" src="/js/task/create-task-set.js"></script>
-
-</head>
-
-<body>
-
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="page-header">
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css">
+<link rel="stylesheet" href="/css/components/action-buttons.css">
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+<link rel="stylesheet" href="/css/task/create-task-editor.css">
+<link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
     <div class="page-title">Create New Task Set</div>
     <div class="page-subtitle">Configure task set details, select and order exercises</div>
   </div>
@@ -270,9 +254,13 @@
       </div>
     </div>
   </div>
+{% endblock %}
 
-{% include 'common/footer.html' %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+<script type="module" src="/js/task/create-task-set.js"></script>
 <script src="/js/lib/jquery.ui.touch-punch.js"></script>
 <script src="/js-parsons/parsons.js"></script>
-</body>
-</html>
+{% endblock %}

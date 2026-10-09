@@ -1,29 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Task Details - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link class="main-css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+{% block title %}Task Details - Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/components/action-buttons.css">
-  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
-
-  <link rel="stylesheet" href="/css/task/task-details.css">
-  <link rel="stylesheet" href="/css/task/task-set-overview.css">
-  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
-</head>
-
-<body>
-
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+{% block styles %}
+<link rel="stylesheet" href="/css/components/action-buttons.css">
+<link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+<link rel="stylesheet" href="/css/task/task-details.css">
+<link rel="stylesheet" href="/css/task/task-set-overview.css">
+<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="flex-direction: column; align-items: flex-start;">
     <div class="mb-2" style="width: 100%;">
       <a href="/teacher-dashboard" class="embossed-btn">
         <i class="fas fa-arrow-left"></i> Back
@@ -139,9 +131,6 @@
 
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-  <script type="module" src="/js/task/task-details.js"></script>
 <style>
   html, body {
     height: 100%;
@@ -153,7 +142,10 @@
     flex-direction: column;
   }
 </style>
+{% endblock %}
 
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+<script type="module" src="/js/task/task-details.js"></script>
+{% endblock %}

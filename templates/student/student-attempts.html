@@ -1,27 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Student Attempts - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+{% block title %}Student Attempts - Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
-  <link rel="stylesheet" href="/css/student/student-attempts.css">
-  <link rel="stylesheet" href="/css/statistics/task-statistics.css">
-  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
-</head>
-
-<body>
-
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="container py-4">
+{% block styles %}
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+<link rel="stylesheet" href="/css/student/student-attempts.css">
+<link rel="stylesheet" href="/css/statistics/task-statistics.css">
+<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
 
     <div class="mb-3">
       <a href="#" id="back-btn" class="embossed-btn">
@@ -80,10 +73,8 @@
     </div>
 
   </div>
+{% endblock %}
 
-
-  <script src="/js/student/student-attempts.js" type="module"></script>
-
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script src="/js/student/student-attempts.js" type="module"></script>
+{% endblock %}

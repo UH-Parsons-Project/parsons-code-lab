@@ -1,18 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Parsons Code Lab</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
-    <link rel="stylesheet" href="/css/base/main.css"/>
-	<link rel="stylesheet" href="/css/legacy/home.css"/>
-</head>
-<body>
-	{% include 'common/nav-teacher.html' %}
+{% extends 'base.html' %}
 
-	<div class="title-with-logo mt-4">
+{% block title %}Parsons Code Lab{% endblock %}
+
+{% block navigation %}
+  {% include 'common/nav-teacher.html' %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css"/>
+<link rel="stylesheet" href="/css/legacy/home.css"/>
+{% endblock %}
+
+{% block content %}
+<div class="title-with-logo mt-4">
 		<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="index-logo">
 		<h1 class="text-center title-main">Welcome to Parsons Code Lab!</h1>
 		<b>You're using an early version of our software—thank you for your patience as we continue to improve it!</b>
@@ -66,12 +66,13 @@
 
 		<footer>Parsons Code Lab is being developed within the University of Helsinki.</footer>
     </div>
-	<script type="module">
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
 		import { initLoginPage, initNavbarExercisesButton, initBurgerMenu } from '/js/core/auth-ui.js';
 		initLoginPage();
 		initNavbarExercisesButton();
 		initBurgerMenu();
 	</script>
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% endblock %}

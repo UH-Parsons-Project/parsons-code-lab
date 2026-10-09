@@ -1,39 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Teacher Details - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{% block title %}Teacher Details - Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
-  <style>
-    :root {
-      --brand:        #a8b4f7;
-      --brand-dark:   #7b8df0;
-      --brand-text:   #2d3a8c;
-      --green:        #15803d;
-      --green-light:  #dcfce7;
-      --red:          #dc2626;
-      --red-light:    #fee2e2;
-      --blue:         #2563eb;
-      --blue-light:   #dbeafe;
-      --amber:        #d97706;
-      --amber-light:  #fef3c7;
-    }
-  </style>
-</head>
-
-<body>
-
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="page-header d-flex justify-content-between align-items-center flex-wrap" style="padding: 1.25rem 2rem .9rem; max-width: 1600px; margin-left: auto; margin-right: auto; gap: 1rem;">
+{% block styles %}
+<link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap" style="padding: 1.25rem 2rem .9rem; max-width: 1600px; margin-left: auto; margin-right: auto; gap: 1rem;">
     <div>
       <div class="page-title" id="page-title">Teacher Profile</div>
       <div class="page-subtitle">Viewing tasks and task sets owned by this teacher</div>
@@ -150,9 +128,8 @@
     </div>
 
   </div>
+{% endblock %}
 
-  <script type="module" src="/js/admin/admins-teacher-view.js"></script>
-
-  {% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script type="module" src="/js/admin/admins-teacher-view.js"></script>
+{% endblock %}

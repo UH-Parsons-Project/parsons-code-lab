@@ -1,31 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+{% block title %}Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+{% block navigation %}
+  {% include 'common/nav-student.html' %}
+{% endblock %}
 
-</head>
+{% block styles %}
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css">
+{% endblock %}
 
-<body class="body">
-
-	{% include 'common/nav-student.html' %}
-
-  <div class="container text-center mt-5">
+{% block content %}
+<div class="container text-center mt-5">
     <h1 class="display-4 font-weight-bold">Welcome to Parsons Code Lab!</h1>
     <h2 class="h5 text-muted welcome_text_student">Login to join the exercise packet</h2>
   </div>
+{% endblock %}
 
-  <script src="/js/student/student-index.js" type="module"></script>
-
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script src="/js/student/student-index.js" type="module"></script>
+{% endblock %}
