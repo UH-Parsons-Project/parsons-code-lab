@@ -42,6 +42,15 @@ for i in range(3):
         assert blocks[1]["faded"] is False
         assert blocks[2]["faded"] is True
         assert blocks[2]["code"] == "value = ___"
+    
+    def test_parse_code_lines_skips_marker_only_lines(self):
+        blocks, has_faded = migrate_tasks.parse_code_lines(
+            "#1given\nprint('hello world')"
+        )
+
+        assert has_faded is False
+        assert len(blocks) == 1
+        assert blocks[0]["code"] == "print('hello world')"
 
     def test_extract_function_signature_multiline_and_docstring(self):
         function_file = (
@@ -59,6 +68,20 @@ for i in range(3):
         assert "def my_func(" in signature
         assert "\"\"\"Sum values.\"\"\"" in signature
         assert "return x + y" not in signature
+
+    def test_extract_function_signature_stops_at_multiline_docstring_end(self):
+        function_file = (
+            "def my_func(): \n"
+            "    \"\"\"\n"
+            "    Sum values.\n"
+            "    \"\"\"\n"
+            "    return 42\n"
+        )
+        signature = migrate_tasks.extract_function_signature(function_file)
+
+        assert "def my_func(): " in signature
+        assert "    Sum values." in signature
+        assert "    return 42" not in signature
 
     def test_get_function_name_handles_missing_function(self):
         assert migrate_tasks.get_function_name("def sample(x):\n    pass") == "sample"
@@ -140,6 +163,37 @@ def hello():
         result = migrate_tasks.load_model_answer_file("missing")
 
         assert result is None
+    
+    def test_load_task_file_without_python_file_returns_none(self, tmp_path, monkeypatch):
+        probs_dir = tmp_path / "parsons_probs"
+        probs_dir.mkdir()
+
+        (probs_dir / "missing_source.yaml").write_text(
+            "eval_type: unit_test\n"
+        )
+
+        monkeypatch.setattr(migrate_tasks, "PARSONS_PROBS_DIR", probs_dir)
+
+        result = migrate_tasks.load_task_file("missing_source")
+
+        assert result is None
+
+    def test_load_task_file_sets_empty_description_if_not_given(self, tmp_path, monkeypatch):
+        probs_dir = tmp_path / "parsons_probs"
+        probs_dir.mkdir()
+
+        (probs_dir / "no_description.yaml").write_text(
+            "eval_type: doctest\n"
+            "problem_description: null\n"
+            "code_lines: |\n print('hello world!)\n"
+        )
+
+        monkeypatch.setattr(migrate_tasks, "PARSONS_PROBS_DIR", probs_dir)
+
+        result = migrate_tasks.load_task_file("no_description")
+
+        assert result is not None
+        assert result["description"] == ""
 
 
 class _FakeSession:
