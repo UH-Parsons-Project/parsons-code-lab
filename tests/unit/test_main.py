@@ -14,7 +14,7 @@ SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 
 import os
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from sqlalchemy import select
@@ -1711,3 +1711,40 @@ class TestContactPages:
         res = await client.get("/contact")
         assert res.status_code == 200
         assert "Contact" in res.text
+
+@pytest.mark.asyncio
+class TestLifespan:
+    async def test_lifespan_initializes_db_and_seeds_data_on_startup(self, client, monkeypatch):
+        init_db_mock = AsyncMock()
+        seed_db_mock = AsyncMock()
+        cleanup_mock = AsyncMock()
+        close_cache_mock = AsyncMock()
+        session = AsyncMock()
+
+        async def fake_async_session():
+            yield session
+
+        monkeypatch.setattr(main_module, "init_db", init_db_mock)
+        monkeypatch.setattr(main_module.seed_module, "seed_db", seed_db_mock)
+        monkeypatch.setattr(
+            main_module,
+            "cleanup_old_registration_tokens",
+            cleanup_mock)
+        monkeypatch.setattr(main_module, "close_cache", close_cache_mock)
+        monkeypatch.setattr(main_module, "AUTO_INIT_DB", True)
+        monkeypatch.setattr(main_module, "RUN_SEED_ON_STARTUP", True)
+        monkeypatch.setattr(
+            main_module,
+            "async_session",
+            lambda: fake_async_session()
+        )
+
+        async with main_module.lifespan(main_module.app):
+            pass
+
+        init_db_mock.assert_awaited_once()
+        seed_db_mock.assert_awaited_once()
+        cleanup_mock.assert_awaited_once_with(session)
+        session.commit.assert_awaited_once()
+        close_cache_mock.assert_awaited_once()
+
