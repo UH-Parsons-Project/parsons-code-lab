@@ -1,0 +1,1 @@
+Boil water\nPut a tea bag in a cup\nPour the water into the cup\nWait for three minutes\nRemove the tea bag

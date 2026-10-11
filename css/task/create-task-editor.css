@@ -326,6 +326,9 @@ html, body {
 .block-delete-btn::before {
   content: '\00D7';
 }
+.block-edit-btn::before {
+  content: '\270E';
+}
 
 #source-sortable li:hover .block-delete-btn,
 #solution-sortable li:hover .block-delete-btn,
@@ -342,6 +345,112 @@ html, body {
 #solution-sortable li.student-given .block-delete-btn,
 #preview-solution-sortable li.student-given .block-delete-btn {
   right: 28px;
+}
+
+.block-edit-btn {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.block-edit-btn:hover {
+  color: #44b6ef;
+  background: rgba(97, 187, 247, 0.12);
+}
+
+#solution-sortable li.student-given .block-edit-btn,
+#preview-solution-sortable li.student-given .block-edit-btn {
+  right: 100px;
+}
+
+#source-sortable li:hover .block-edit-btn,
+#solution-sortable li:hover .block-edit-btn,
+#preview-source-sortable li:hover .block-edit-btn,
+#preview-solution-sortable li:hover .block-edit-btn {
+  opacity: 1;
+}
+
+.block-edit-save-btn::before {
+  content: '\2714';
+}
+.block-edit-save-btn {
+  position: absolute;
+  right: 52px;
+  padding-left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#source-sortable li:hover .block-edit-save-btn,
+#solution-sortable li:hover .block-edit-save-btn,
+#preview-source-sortable li:hover .block-edit-save-btn,
+#preview-solution-sortable li:hover .block-edit-save-btn {
+  opacity: 1;
+}
+
+
+.block-edit-cancel-btn::before {
+  content: '\2716';
+}
+
+.block-edit-cancel-btn {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#source-sortable li:hover .block-edit-cancel-btn,
+#solution-sortable li:hover .block-edit-cancel-btn,
+#preview-source-sortable li:hover .block-edit-cancel-btn,
+#preview-solution-sortable li:hover .block-edit-cancel-btn {
+  opacity: 1;
 }
 
 .given-toggle-btn {
@@ -779,6 +888,4 @@ label[for="test-results"] {
   .student-preview-modal {
     padding: 0.5rem;
   }
-
-  .student-preview-
 }

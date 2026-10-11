@@ -181,6 +181,22 @@ export async function initWidget() {
 
 		const evalType = task.eval_type || task.correct_solution?.eval_type || 'unit_test';
 
+		let taskSetHasProgress = false;
+		if (globalUniqueLinkCode) {
+			try {
+				const statusesResponse = await fetch(`/api/sets/${globalUniqueLinkCode}/tasks-status`, {
+					credentials: 'include',
+				});
+				if (statusesResponse.ok) {
+					const statuses = await statusesResponse.json();
+					taskSetHasProgress = Array.isArray(statuses)
+						&& statuses.some((status) => Number(status.student_completed || 0) > 0);
+				}
+			} catch (error) {
+				console.warn('Failed to resolve task-set guidance state:', error);
+			}
+		}
+
 		// Reconstruct code lines from blocks for display
 		let codeLines = reconstructCodeLines(codeBlocksData.blocks);
 
@@ -199,6 +215,7 @@ export async function initWidget() {
 
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
+		probEl.taskSetHasProgress = taskSetHasProgress;
 		probEl.setAttribute('taskInstructions', problemStatementHTML);
 		probEl.setAttribute('description', task.description);
 		probEl.setAttribute('codeLines', codeLines);

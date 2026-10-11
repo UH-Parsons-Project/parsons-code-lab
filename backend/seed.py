@@ -7,7 +7,15 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken
+from .models import (
+    Parsons,
+    RegistrationToken,
+    Student,
+    StudentTaskSetEnrollment,
+    TaskSet,
+    TaskSetItem,
+    Teacher,
+)
 from .migrate_tasks import migrate_tasks
 from backend.utils import hash_token
 from backend.utils.task_types import ensure_default_task_types
@@ -150,3 +158,30 @@ async def seed_db():
                 print("Could not add starter exercises (race condition), skipping")
         else:
             print("Starter task set already has the seeded exercises")
+
+        student_result = await session.execute(
+            select(Student).where(Student.email == "oppilas@test.fi")
+        )
+        student = student_result.scalar_one_or_none()
+        try:
+            if student is None:
+                student = Student(username="opiskelija", email="oppilas@test.fi")
+                student.set_password("test1234")
+                session.add(student)
+                await session.flush()
+                print("Created default test student (email: oppilas@test.fi, password: test1234)")
+
+            enrollment_result = await session.execute(
+                select(StudentTaskSetEnrollment).where(
+                    StudentTaskSetEnrollment.student_id == student.id,
+                    StudentTaskSetEnrollment.task_set_id == starter_list.id,
+                )
+            )
+            if enrollment_result.scalar_one_or_none() is None:
+                session.add(
+                    StudentTaskSetEnrollment(student_id=student.id, task_set_id=starter_list.id)
+                )
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            print("Could not seed student (race condition), skipping")

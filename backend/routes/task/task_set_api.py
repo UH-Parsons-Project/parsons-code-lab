@@ -21,17 +21,19 @@ from ...models import (
     TaskSetItem,
     TaskSetViewer,
     Teacher,
+    TeacherPinnedTaskSet,
 )
 from ...pydantic import (
     CreateProblemRequest,
     CreateTaskSetRequest,
+    DuplicateTaskSetRequest,
     StudentInTaskSetResponse,
     TaskSetResponse,
     TaskSetTaskResponse,
-    TaskSetViewerRequest,
-    TaskSetViewerResponse,
     UpdateExpiresAtRequest,
     UpdateOpensAtRequest,
+    UpdateTaskSetDescriptionsRequest,
+    UpdateTaskSetTitleRequest,
     UpdateTaskSetTasksRequest,
 )
 from ...utils.taskset import require_task_set_view_access
@@ -65,6 +67,46 @@ def _validate_task_set_dates(opens_at: datetime | None, expires_at: datetime | N
         )
 
 
+async def _unique_copy_title(db: AsyncSession, teacher_id: int, source_title: str) -> str:
+    """Return the next available title for a copied task set."""
+    base_title = f"Copy of {source_title}"
+    title = base_title
+    suffix = 2
+
+    while True:
+        result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == teacher_id,
+                TaskSet.title == title,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            return title
+        title = f"{base_title} ({suffix})"
+        suffix += 1
+
+
+async def _unique_task_set_link_code(
+    db: AsyncSession, teacher_id: int, title: str
+) -> str:
+    """Return an owner-specific link code using create_task_set's convention."""
+    base_slug = generate_slug(title)
+    unique_link_code = base_slug
+    suffix = 1
+
+    while True:
+        result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == teacher_id,
+                TaskSet.unique_link_code == unique_link_code,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            return unique_link_code
+        unique_link_code = f"{base_slug}{suffix}"
+        suffix += 1
+
+
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
 async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     """List all task sets for the current teacher."""
@@ -74,21 +116,65 @@ async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, De
             Teacher.username,
             func.count(func.distinct(StudentTaskSetEnrollment.student_id)).label("student_count"),
             func.count(func.distinct(TaskSetItem.id)).label("task_count"),
+            (TeacherPinnedTaskSet.id.is_not(None)).label("is_pinned"),
         )
         .join(Teacher, Teacher.id == TaskSet.teacher_id)
+        .outerjoin(
+            TeacherPinnedTaskSet,
+            (TeacherPinnedTaskSet.task_set_id == TaskSet.id)
+            & (TeacherPinnedTaskSet.teacher_id == current_user.id),
+        )
         .outerjoin(TaskSetViewer, TaskSetViewer.task_set_id == TaskSet.id)
         .outerjoin(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
         .outerjoin(TaskSetItem, TaskSetItem.task_set_id == TaskSet.id)
         .where(
             (TaskSet.teacher_id == current_user.id) | (TaskSetViewer.teacher_id == current_user.id)
         )
-        .group_by(TaskSet.id, Teacher.username)
-        .order_by(TaskSet.created_at.desc())
+        .group_by(TaskSet.id, Teacher.username, TeacherPinnedTaskSet.id)
+        .order_by(TeacherPinnedTaskSet.id.is_(None), TaskSet.created_at.desc())
     )
     result = await db.execute(stmt)
     my_sets = result.all()
 
     return build_taskset_response_list(my_sets)
+
+
+@router.put("/api/my_sets/{task_set_id}/pin")
+async def pin_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    await require_task_set_view_access(task_set, current_user, db)
+
+    existing = await db.execute(
+        select(TeacherPinnedTaskSet.id).where(
+            TeacherPinnedTaskSet.teacher_id == current_user.id,
+            TeacherPinnedTaskSet.task_set_id == task_set_id,
+        )
+    )
+    if existing.scalar_one_or_none() is None:
+        db.add(TeacherPinnedTaskSet(teacher_id=current_user.id, task_set_id=task_set_id))
+        await db.commit()
+
+    return {"task_set_id": task_set_id, "is_pinned": True}
+
+
+@router.delete("/api/my_sets/{task_set_id}/pin")
+async def unpin_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    await db.execute(
+        delete(TeacherPinnedTaskSet).where(
+            TeacherPinnedTaskSet.teacher_id == current_user.id,
+            TeacherPinnedTaskSet.task_set_id == task_set_id,
+        )
+    )
+    await db.commit()
+    return {"task_set_id": task_set_id, "is_pinned": False}
 
 
 @router.get("/api/my_sets/{task_set_id}", response_model=TaskSetResponse)
@@ -132,6 +218,195 @@ async def get_task_set(
         opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
         deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
+    )
+
+
+@router.patch("/api/my_sets/{task_set_id}/title", response_model=TaskSetResponse)
+async def update_task_set_title(
+    task_set_id: int,
+    request: UpdateTaskSetTitleRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Rename a task set without changing its student link code."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to rename this task set",
+        )
+
+    title = request.title.strip()
+    if len(title) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task set title must be at least 4 characters long",
+        )
+
+    duplicate_result = await db.execute(
+        select(TaskSet).where(
+            TaskSet.teacher_id == current_user.id,
+            TaskSet.title == title,
+            TaskSet.id != task_set_id,
+        )
+    )
+    if duplicate_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"You already have a task set with the title '{title}'. Please use a different title.",
+        )
+
+    task_set.title = title
+    await db.commit()
+    await db.refresh(task_set)
+
+    enrolled_count = (await db.execute(
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+    )).scalar() or 0
+
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        deletable=enrolled_count == 0,
+    )
+
+
+@router.patch("/api/my_sets/{task_set_id}/descriptions", response_model=TaskSetResponse)
+async def update_task_set_descriptions(
+    task_set_id: int,
+    request: UpdateTaskSetDescriptionsRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Update the teacher/student description fields in a task set."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to modify this task set",
+        )
+
+    if request.student_description is not None:
+        task_set.student_description = request.student_description.strip() or None
+    if request.teacher_description is not None:
+        task_set.teacher_description = request.teacher_description.strip() or None
+
+    await db.commit()
+    await db.refresh(task_set)
+
+    enrolled_count = (await db.execute(
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+    )).scalar() or 0
+
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        deletable=enrolled_count == 0,
+    )
+
+
+@router.post("/api/my_sets/{task_set_id}/duplicate", response_model=TaskSetResponse)
+async def duplicate_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    request: DuplicateTaskSetRequest | None = None,
+):
+    """Create an independent copy of a task set for its owner."""
+    source_task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if source_task_set.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to duplicate this task set",
+        )
+
+    requested_title = request.title.strip() if request and request.title is not None else None
+    if requested_title is not None and len(requested_title) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task set title must be at least 4 characters long",
+        )
+
+    if requested_title is not None:
+        duplicate_result = await db.execute(
+            select(TaskSet).where(
+                TaskSet.teacher_id == current_user.id,
+                TaskSet.title == requested_title,
+            )
+        )
+        if duplicate_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"You already have a task set with the title '{requested_title}'. Please use a different title.",
+            )
+
+    copy_title = requested_title or await _unique_copy_title(
+        db, current_user.id, source_task_set.title
+    )
+    unique_link_code = await _unique_task_set_link_code(
+        db, current_user.id, copy_title
+    )
+
+    source_items_result = await db.execute(
+        select(TaskSetItem)
+        .where(TaskSetItem.task_set_id == source_task_set.id)
+        .order_by(TaskSetItem.id.asc())
+    )
+    source_items = source_items_result.scalars().all()
+
+    copied_task_set = TaskSet(
+        teacher_id=current_user.id,
+        title=copy_title,
+        unique_link_code=unique_link_code,
+        student_description=source_task_set.student_description,
+        teacher_description=source_task_set.teacher_description,
+        opens_at=None,
+        expires_at=None,
+    )
+    db.add(copied_task_set)
+    await db.flush()
+
+    for source_item in source_items:
+        db.add(
+            TaskSetItem(
+                task_set_id=copied_task_set.id,
+                task_id=source_item.task_id,
+                is_hidden=source_item.is_hidden,
+            )
+        )
+
+    await db.commit()
+    await db.refresh(copied_task_set)
+
+    return TaskSetResponse(
+        id=copied_task_set.id,
+        title=copied_task_set.title,
+        unique_link_code=copied_task_set.unique_link_code,
+        teacher_id=copied_task_set.teacher_id,
+        owner_username=current_user.username,
+        student_description=copied_task_set.student_description,
+        teacher_description=copied_task_set.teacher_description,
+        created_at=copied_task_set.created_at.isoformat(),
+        opens_at=None,
+        expires_at=None,
     )
 
 
@@ -503,148 +778,6 @@ async def delete_task_set(
 
     await db.execute(delete(TaskSet).where(TaskSet.id == task_set_id))
     await db.commit()
-
-
-@router.get("/api/my_sets/{task_set_id}/viewers", response_model=list[TaskSetViewerResponse])
-async def list_task_set_viewers(
-    task_set_id: int,
-    current_user: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)]
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    await require_task_set_view_access(task_set, current_user, db)
-
-    stmt = (
-        select(TaskSetViewer, Teacher)
-        .join(Teacher, Teacher.id == TaskSetViewer.teacher_id)
-        .where(TaskSetViewer.task_set_id == task_set_id)
-        .order_by(Teacher.username.asc())
-    )
-    result = await db.execute(stmt)
-    viewers = result.all()
-
-    return [
-        TaskSetViewerResponse(
-            id=viewer.id,
-            task_set_id=viewer.task_set_id,
-            teacher_id=teacher.id,
-            username=teacher.username,
-            email=teacher.email,
-            created_at=viewer.created_at.isoformat(),
-        )
-        for viewer, teacher in viewers
-    ]
-
-
-@router.post("/api/my_sets/{task_set_id}/viewers", response_model=TaskSetViewerResponse)
-async def add_task_set_viewer(
-    task_set_id: int,
-    request: TaskSetViewerRequest,
-    current_user: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)]
-):
-    identifier = request.identifier.strip()
-    if not identifier:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username or email is required"
-        )
-
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to modify this task set"
-        )
-
-    teacher_result = await db.execute(
-        select(Teacher).where(
-            (Teacher.username == identifier) | (Teacher.email == identifier)
-        )
-    )
-    teacher = teacher_result.scalar_one_or_none()
-
-    if not teacher or not teacher.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Teacher not found"
-        )
-
-    if teacher.id == task_set.teacher_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task list owner already has access"
-        )
-
-    existing_result = await db.execute(
-        select(TaskSetViewer).where(
-            TaskSetViewer.task_set_id == task_set_id,
-            TaskSetViewer.teacher_id == teacher.id
-        )
-    )
-    existing = existing_result.scalar_one_or_none()
-
-    if existing:
-        return TaskSetViewerResponse(
-            id=existing.id,
-            task_set_id=existing.task_set_id,
-            teacher_id=teacher.id,
-            username=teacher.username,
-            email=teacher.email,
-            created_at=existing.created_at.isoformat(),
-        )
-
-    viewer = TaskSetViewer(task_set_id=task_set_id, teacher_id=teacher.id)
-    db.add(viewer)
-    await db.commit()
-    await db.refresh(viewer)
-
-    return TaskSetViewerResponse(
-        id=viewer.id,
-        task_set_id=viewer.task_set_id,
-        teacher_id=teacher.id,
-        username=teacher.username,
-        email=teacher.email,
-        created_at=viewer.created_at.isoformat(),
-    )
-
-
-@router.delete("/api/my_sets/{task_set_id}/viewers/{teacher_id}")
-async def remove_task_set_viewer(
-    task_set_id: int,
-    teacher_id: int,
-    current_user: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)]
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to modify this task set"
-        )
-
-    if teacher_id == task_set.teacher_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot remove access from the task set owner"
-        )
-
-    delete_stmt = delete(TaskSetViewer).where(
-        TaskSetViewer.task_set_id == task_set_id,
-        TaskSetViewer.teacher_id == teacher_id
-    )
-    delete_result = await db.execute(delete_stmt)
-
-    if delete_result.rowcount == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Viewer not found"
-        )
-
-    await db.commit()
-    return {"status": "success"}
 
 
 @router.get("/api/my_sets/{task_set_id}/students", response_model=list[StudentInTaskSetResponse])

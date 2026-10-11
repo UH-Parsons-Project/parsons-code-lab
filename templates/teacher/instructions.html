@@ -1,17 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Instructions - Parsons Code Lab</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
-	<link rel="stylesheet" href="/css/base/main.css"/>
-	<link rel="stylesheet" href="/css/legacy/legacy-pages.css"/>
-</head>
-<body>
-	{% include 'common/nav-teacher.html' %}
-	<div>
+{% extends 'base.html' %}
+
+{% block title %}Instructions - Parsons Code Lab{% endblock %}
+
+{% block navigation %}
+  {% include 'common/nav-teacher.html' %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css"/>
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css"/>
+{% endblock %}
+
+{% block content %}
+<div>
 		<div class="instructions">
 			<h2>A brief introduction to Parsons Code Lab's functionality</h2>
 			<p>
@@ -29,12 +30,6 @@
 			</div>
 		</div>
 	</div>
-	<script type="module">
-		import { initLoginPage, initNavbarExercisesButton, initBurgerMenu } from '/js/core/auth-ui.js';
-		initLoginPage();
-		initNavbarExercisesButton();
-		initBurgerMenu();
-	</script>
 <style>
   html, body {
     height: 100%;
@@ -46,7 +41,13 @@
     flex-direction: column;
   }
 </style>
+{% endblock %}
 
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script type="module">
+		import { initLoginPage, initNavbarExercisesButton, initBurgerMenu } from '/js/core/auth-ui.js';
+		initLoginPage();
+		initNavbarExercisesButton();
+		initBurgerMenu();
+	</script>
+{% endblock %}

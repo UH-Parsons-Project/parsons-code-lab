@@ -25,10 +25,14 @@ test.describe('Task Set Creation Validation & Features', () => {
     // 4. Attempt to submit the form
     await page.locator('#create-task-set-form button[type="submit"]').click();
 
-    // 5. Verify HTML5 validation marks title input as invalid and form is not submitted
+    // 5. Verify the required title field is highlighted and the form is not submitted
     const titleInput = page.locator('#task-set-title');
     const isInvalid = await titleInput.evaluate((el) => !/** @type {HTMLInputElement} */ (el).checkValidity());
     expect(isInvalid).toBe(true);
+    await expect(titleInput).toHaveClass(/field-validation-invalid/);
+    await expect(page.locator('#task-set-title-error')).toHaveText('Please fill task set title');
+    await expect(page.locator('#task-set-title-error')).toBeVisible();
+    await expect(page.locator('#student-description')).not.toHaveClass(/field-validation-invalid/);
 
     // Verify page remains on creation view and does not navigate
     expect(page.url()).toContain('/create-task-set');

@@ -1,13 +1,13 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Privacy Policy - Parsons Code Lab</title>
-  <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:2rem;line-height:1.6} h1{font-size:1.6rem} h2{margin-top:1.4rem} ul{margin-top:.5rem} footer{font-size:0.9rem;color:#444;margin-top:2rem}</style>
-</head>
-<body>
-  <a href="javascript:history.back()">Back</a>
+{% extends 'base.html' %}
+
+{% block title %}Privacy Policy - Parsons Code Lab{% endblock %}
+
+{% block styles %}
+<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:2rem;line-height:1.6} h1{font-size:1.6rem} h2{margin-top:1.4rem} ul{margin-top:.5rem} footer{font-size:0.9rem;color:#444;margin-top:2rem}</style>
+{% endblock %}
+
+{% block content %}
+<a href="javascript:history.back()">Back</a>
   <h1>Privacy Policy</h1>
   <p><strong>Last updated:</strong> August 18, 2026</p>
 
@@ -87,7 +87,4 @@
 
   <h2>9. Changes to this Policy</h2>
   <p>This Privacy Policy may be updated to reflect changes to the application or applicable legislation. The latest version will always be available within the application.</p>
-
-  {% include 'common/footer.html' %}
-</body>
-</html>
+{% endblock %}

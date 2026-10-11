@@ -174,7 +174,7 @@ test('teacher registration enforces max length on username', async ({ page }) =>
   const username = 'a'.repeat(55); // > 50 characters (teacher username_max is 50)
   const email = `teacher_long_${unique}@example.com`;
 
-  await page.goto('/teacher-register');
+  await page.goto('/teacher-registration');
   await page.waitForSelector('#register-form', { timeout: 10000 });
 
   // Bypassing HTML maxlength to test backend validation
@@ -201,7 +201,7 @@ test('teacher registration handles invalid email format via HTML validation', as
   const username = `teacher_inv_${unique}`;
   const email = 'invalid-email-format';
 
-  await page.goto('/teacher-register');
+  await page.goto('/teacher-registration');
   await page.waitForSelector('#register-form', { timeout: 10000 });
 
   await page.locator('#username').fill(username);

@@ -1,7 +1,8 @@
 import { makeKeyActivatable, formatDate, formatDateTimeWithoutSeconds, escapeHtml } from './ui-utils.js';
+import { getTaskSetOpeningStatus } from './task-set-status.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 
-export function createTaskSetItem(taskSet, currentUsername = null) {
+export function createTaskSetItem(taskSet, currentUsername = null, onTogglePin = null) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	const navigateToSet = () => { window.location.href = `/task-set-overview?set_id=${taskSet.id}`; };
@@ -18,7 +19,8 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 	titleWrap.style.gap = '.45rem';
 	titleWrap.style.minWidth = '0';
 
-	const isExpired = Boolean(taskSet.expires_at && new Date(taskSet.expires_at) < new Date());
+	const openingStatus = getTaskSetOpeningStatus(taskSet);
+	const isExpired = openingStatus.status === 'expired';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
@@ -58,15 +60,17 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	const isOpened = Boolean(taskSet.opens_at && new Date(taskSet.opens_at) <= new Date());
 	const expiresSoon = Boolean(
 		taskSet.expires_at &&
 		!isExpired &&
 		new Date(taskSet.expires_at) - new Date() < 86400000
 	);
-	const openingPart = taskSet.opens_at
-		? ` &nbsp;·&nbsp; <span${isOpened ? ' class="task-set-opening-active"' : ''}><i class="far fa-calendar-alt"></i> ${isOpened ? 'Opened' : 'Opens'} ${formatDateTimeWithoutSeconds(taskSet.opens_at)}</span>`
+	const openingDate = openingStatus.date
+		? ` ${formatDateTimeWithoutSeconds(openingStatus.date)}`
 		: '';
+	const openingPart = openingStatus.status === 'expired'
+		? ''
+		: ` &nbsp;·&nbsp; <span${openingStatus.status === 'open' ? ' class="task-set-opening-active"' : ''}><i class="far fa-calendar-alt"></i> ${openingStatus.label}${openingDate}</span>`;
 	let expiryPart = '';
 	if (taskSet.expires_at) {
 		expiryPart = isExpired
@@ -81,12 +85,38 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 	
 	let countsPart = '';
 	if (taskSet.task_count !== undefined && taskSet.student_count !== undefined) {
-		countsPart = `<br><i class="fas fa-tasks"></i> ${taskSet.task_count} task${taskSet.task_count !== 1 ? 's' : ''} &nbsp;·&nbsp; ` +
+		countsPart = `<i class="fas fa-tasks"></i> ${taskSet.task_count} task${taskSet.task_count !== 1 ? 's' : ''} &nbsp;·&nbsp; ` +
 			`<i class="fas fa-user-graduate"></i> ${taskSet.student_count} student${taskSet.student_count !== 1 ? 's' : ''} joined`;
 	}
 
-	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${openingPart}${expiryPart}${sharedPart}${countsPart}`;
+	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${openingPart}${expiryPart}${sharedPart}`;
 	item.appendChild(meta);
+
+	if (countsPart || onTogglePin) {
+		const countsRow = document.createElement('div');
+		countsRow.className = 'task-set-counts-row';
+		const counts = document.createElement('span');
+		counts.innerHTML = countsPart;
+		countsRow.appendChild(counts);
+
+		if (onTogglePin) {
+			const pinned = Boolean(taskSet.is_pinned);
+			const pinBtn = document.createElement('button');
+			pinBtn.type = 'button';
+			pinBtn.className = 'task-set-pin-btn' + (pinned ? ' pinned' : '');
+			pinBtn.title = pinned ? 'Unpin from top' : 'Pin to top';
+			pinBtn.setAttribute('aria-pressed', String(pinned));
+			pinBtn.setAttribute('aria-label', pinBtn.title);
+			pinBtn.innerHTML = '<i class="fas fa-thumbtack"></i>';
+			pinBtn.onclick = (e) => {
+				e.stopPropagation();
+				onTogglePin(taskSet, !pinned);
+			};
+			pinBtn.onkeydown = (e) => e.stopPropagation();
+			countsRow.appendChild(pinBtn);
+		}
+		item.appendChild(countsRow);
+	}
 
 	if (taskSet.teacher_description) {
 		const description = document.createElement('div');

@@ -1,0 +1,1 @@
+def greet():\n    print("Hello, World!")\ngreet()

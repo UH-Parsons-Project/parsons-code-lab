@@ -128,6 +128,35 @@
   margin-bottom: .4rem;
 }
 
+.preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  margin-left: .5rem;
+}
+
+.preview-close-btn {
+  border: 1px solid var(--gs-border);
+  background: #f8fafc;
+  color: var(--gs-text-muted);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.preview-close-btn:hover,
+.preview-close-btn:focus {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: var(--gs-brand-dark);
+  outline: none;
+}
+
 .preview-badges {
   display: flex;
   align-items: center;

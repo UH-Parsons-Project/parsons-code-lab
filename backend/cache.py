@@ -24,8 +24,8 @@ async def get_json(key: str) -> Any | None:
         return None
 
 
-async def set_json(key: str, value: Any, ttl_seconds: int = 30) -> None:
-    """Store a JSON value with a short expiry."""
+async def set_json(key: str, value: Any, ttl_seconds: int = 3600) -> None:
+    """Store a JSON value with a one-hour default expiry."""
     if redis is not None:
         try:
             await redis.set(key, json.dumps(value), ex=ttl_seconds)

@@ -1,0 +1,21 @@
+problem_name: print_function
+
+problem_description: |
+  In this exercise you will practice defining a function that prints.
+
+task_type: other
+eval_type: stdout
+
+task_instructions: |
+  Define a function that prints a greeting and then call it.
+  The program should print the text Hello, World!
+
+code_lines: |
+  def greet():
+  print("Hello, World!")
+  greet()
+
+teacher_tests: ""
+
+expected_output: |
+  Hello, World!

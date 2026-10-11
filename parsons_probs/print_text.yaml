@@ -1,0 +1,20 @@
+problem_name: print_text
+
+problem_description: |
+  In this exercise you will practice using the print statement.
+
+task_type: other
+eval_type: stdout
+
+task_instructions: |
+  Print the lines "Hello" and "Parsons" in this order, each on its own line.
+
+code_lines: |
+  print("Hello")
+  print("Parsons")
+
+teacher_tests: ""
+
+expected_output: |
+  Hello
+  Parsons

@@ -39,6 +39,7 @@ export class ProblemElement extends LitElement {
 		backToSetUrl: {type: String},
 		nextTaskLabel: {type: String},
 		shuffleStarterBlocks: {type: Boolean},
+		taskSetHasProgress: {type: Boolean, default: false},
 	};
 
 	// Refs to the container elements bound to the Parsons widget
@@ -57,6 +58,12 @@ export class ProblemElement extends LitElement {
 
 	// Saved arrangement to restore on init (set from main.js before element mounts)
 	savedArrangement = null;
+
+	// Simple rule: if a task in the current task set is already completed, or if
+	// there are current test results, the guidance panel should stay collapsed.
+	guidanceOpen = true;
+
+	getGuidanceCollapsed = () => Boolean(this.resultsStatus) || Boolean(this.taskSetHasProgress);
 
 	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
@@ -177,7 +184,10 @@ export class ProblemElement extends LitElement {
 				<div class="col-12 col-lg-3 d-flex flex-column" ${ref(this.rightColumnRef)}>
 					
 					<!-- General Guidance (Collapsible) -->
-					<details class="card top-info-card guidance-details mb-3" ?open=${!this.resultsStatus}>
+					<details
+						class="card top-info-card guidance-details mb-3"
+						?open=${!this.getGuidanceCollapsed()}
+					>
 						<summary class="card-header guidance-summary">
 							<h4 style="display: inline-block; margin: 0;">General Guidance</h4>
 						</summary>
@@ -531,7 +541,8 @@ export class ProblemElement extends LitElement {
 			if (
 				changedProperties.has('resultsStatus') ||
 				changedProperties.has('resultsHeader') ||
-				changedProperties.has('resultsDetails')
+				changedProperties.has('resultsDetails') ||
+				changedProperties.has('taskSetHasProgress')
 			) {
 				requestAnimationFrame(() => this.syncColumnHeight());
 			}

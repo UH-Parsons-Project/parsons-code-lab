@@ -956,6 +956,7 @@ initBurgerMenu();
         invalidateTestStatus('Blocks were moved. Please run tests again.');
       },
       injectDeleteButtons,
+      injectEditButtons,
       injectGivenToggles,
       updateCounters
     });
@@ -990,9 +991,11 @@ initBurgerMenu();
 
     if (sourceSortable) {
       injectDeleteButtons(sourceSortable);
+      injectEditButtons(sourceSortable);
     }
     if (solutionSortable) {
       injectDeleteButtons(solutionSortable);
+      injectEditButtons(solutionSortable);
       injectGivenToggles(solutionSortable);
     }
     updateCounters();
@@ -1016,6 +1019,21 @@ initBurgerMenu();
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           deleteBlock(li.id);
+        });
+        li.appendChild(btn);
+      }
+    });
+  }
+
+  function injectEditButtons(container) {
+    container.querySelectorAll('li').forEach((li) => {
+      if (!li.querySelector('.block-edit-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'block-edit-btn';
+        btn.setAttribute('aria-label', 'Edit block');
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          editBlock(li.id);
         });
         li.appendChild(btn);
       }
@@ -1114,6 +1132,83 @@ initBurgerMenu();
     persistParsonsRepr();
     hasOpenedStudentPreview = false;
     invalidateTestStatus('A block was deleted. Please run tests again.');
+  }
+
+  function redrawBlock(element, line) {
+    const template = document.createElement('template');
+
+    template.innerHTML = parsonsWidget.codeLineToHTML({
+      ...line,
+    }).trim();
+
+    const newElement = template.content.firstElementChild;
+
+    element.replaceWith(newElement);
+
+    parsonsWidget.updateHTMLIndent(newElement.id);
+
+    injectDeleteButtons(newElement.parentElement);
+    injectEditButtons(newElement.parentElement);
+    injectGivenToggles(newElement.parentElement);
+  }
+
+  function saveEditedBlock(el, newContent) {
+    const line = parsonsWidget.modified_lines.find(
+      (line) => line.id === el.id
+    );
+
+    const normalizedContent = normalizeSourceCode(newContent || '').trimEnd();
+
+    if (!normalizedContent.trim()) {
+      return;
+    }
+
+    line.code = normalizedContent;
+
+    redrawBlock(el, line);
+    persistParsonsRepr();
+  }
+
+  function editBlock(blockId) {
+    if (!parsonsWidget) {
+      return;
+    }
+    
+    const line = parsonsWidget.modified_lines.find(
+      (item) => item.id === blockId
+    )
+
+    const el = document.getElementById(blockId);
+    
+    if (!line || !el) {
+      return;
+    }
+      
+    const editor = document.createElement('textarea');
+    editor.className = 'block-edit-textarea';
+    editor.value = line.code || '';
+
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'block-edit-save-btn';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'block-edit-cancel-btn';
+
+    el.replaceChildren(editor, saveButton, cancelButton);
+
+    saveButton.addEventListener('click', () => {
+      saveEditedBlock(el, editor.value);
+      hasOpenedStudentPreview = false;
+      invalidateTestStatus('A block was edited. Please run tests again.')
+    });
+
+    cancelButton.addEventListener('click', () => {
+      redrawBlock(el, line);
+    });
+
+    editor.focus();
   }
 
   function addCustomBlockToSource(blockCode) {

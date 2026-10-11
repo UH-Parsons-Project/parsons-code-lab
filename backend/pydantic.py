@@ -92,6 +92,7 @@ class TaskSetResponse(BaseModel):
     student_count: int = 0
     task_count: int = 0
     deletable: bool = True
+    is_pinned: bool = False
 
 
 class TaskSetTaskResponse(BaseModel):
@@ -248,6 +249,19 @@ class CreateTaskSetRequest(BaseModel):
     opens_at: str | None = None
     expires_at: str | None = None
     task_ids: list[int]
+
+
+class UpdateTaskSetTitleRequest(BaseModel):
+    title: str = Field(..., max_length=255)
+
+
+class UpdateTaskSetDescriptionsRequest(BaseModel):
+    student_description: str | None = None
+    teacher_description: str | None = None
+
+
+class DuplicateTaskSetRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
 
 
 class UpdateTaskSetTasksRequest(BaseModel):

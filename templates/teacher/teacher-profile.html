@@ -1,21 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Profile - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/components/profile.css">
-  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
-</head>
-<body>
+{% block title %}My Profile - Parsons Code Lab{% endblock %}
 
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="container pt-5 pb-4 profile-page">
+{% block styles %}
+<link rel="stylesheet" href="/css/components/profile.css">
+<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="container pt-5 pb-4 profile-page">
     <div class="mb-3">
       <a href="/teacher-dashboard" class="embossed-btn" id="back-to-dashboard" title="Back">
         <i class="fas fa-arrow-left"></i> Back
@@ -106,9 +103,8 @@
       </div>
     </div>
   </div>
+{% endblock %}
 
-  {% include 'common/footer.html' %}
-
-  <script src="/js/teacher/teacher-profile.js" type="module"></script>
-</body>
-</html>
+{% block scripts %}
+<script src="/js/teacher/teacher-profile.js" type="module"></script>
+{% endblock %}

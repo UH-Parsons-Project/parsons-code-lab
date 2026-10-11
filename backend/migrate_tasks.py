@@ -196,7 +196,7 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
     yaml_path = PARSONS_PROBS_DIR / f"{task_name}.yaml"
     py_path = PARSONS_PROBS_DIR / f"{task_name}.py"
 
-    if not yaml_path.exists() or not py_path.exists():
+    if not yaml_path.exists():
         return None
 
     try:
@@ -204,10 +204,15 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         with open(yaml_path, "r", encoding="utf-8") as f:
             yaml_data = yaml.safe_load(f)
 
-        # Load Python file and extract the function definition (including docstring)
-        with open(py_path, "r", encoding="utf-8") as f:
-            function_file_content = f.read()
-        function_header = extract_function_signature(function_file_content)
+        eval_type = yaml_data.get("eval_type", "unit_test")
+
+        # The .py file is only required for unit_test tasks
+        function_header = ""
+        if eval_type == "unit_test":
+            if not py_path.exists():
+                return None
+            with open(py_path, "r", encoding="utf-8") as f:
+                function_header = extract_function_signature(f.read())
 
         # Parse task instructions into structured parts
         html_instructions = yaml_data.get("task_instructions", "")
@@ -314,7 +319,10 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
                     i += 1
                 else:
                     i += 1
-            teacher_tests = "\n".join(assertions)
+                teacher_tests = "\n".join(assertions)
+
+        if eval_type != "unit_test":
+            teacher_tests = (yaml_data.get("teacher_tests") or "").strip()
 
         return {
             "title": task_name,
@@ -328,6 +336,9 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
                 "test_function": test_fn,
                 "solution_code": solution_code or "",
                 "teacher_tests": teacher_tests,
+                "eval_type": eval_type,
+                "expected_output": (yaml_data.get("expected_output") or "").rstrip("\n"),
+                "require_indentation": eval_type != "order_only",
             },
         }
 
