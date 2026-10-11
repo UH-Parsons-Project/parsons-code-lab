@@ -889,3 +889,8 @@ label[for="test-results"] {
     padding: 0.5rem;
   }
 }
+.basic-info-column {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
