@@ -591,7 +591,7 @@ async def get_task_statistics(
             "students": {
                 "completed": [],
                 "not_yet_completed": [],
-                "not_started": [{"name": n_username, "meta": "", "id": n_id} for n_id, n_username in early_not_started_names],
+                "not_started": early_not_started_names,
             },
             "median_page_exits": 0.0,
             "min_page_exits": None,
@@ -833,6 +833,7 @@ async def get_task_statistics(
     statistics = {
         "task_name": task.title,
         "is_public": task.is_public,
+        "task_set_name": task_set.title if task_set_code and task_set else None,
         "model_answer": await _get_model_answer_for_task(task, db),
         "custom_error_messages": _parse_custom_error_messages(task),
         "total_completions": len(attempts_data),

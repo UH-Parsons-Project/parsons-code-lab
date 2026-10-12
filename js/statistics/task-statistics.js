@@ -44,8 +44,8 @@ if (!task_setCode) {
 	const bottomRow = document.querySelector('.bottom-row');
 	if (bottomRow) bottomRow.classList.add('mistakes-hidden');
 } else {
-	const codeEl = document.getElementById('taskset-code-label');
-	if (codeEl) codeEl.textContent = task_setCode;
+	const nameEl = document.getElementById('taskset-name-label');
+	if (nameEl) nameEl.textContent = 'Loading...';
 }
 
 const CIRC = 376.99; // circumference of r=60 circle
@@ -419,6 +419,8 @@ async function loadStatistics() {
 	// Header
 	const taskName = data.task_name || '—';
 	document.getElementById('exercise-name').textContent = taskName;
+	const tasksetNameEl = document.getElementById('taskset-name-label');
+	if (tasksetNameEl) tasksetNameEl.textContent = data.task_set_name || task_setCode || 'Task set';
 	if (privateBadgeSlot) {
 		privateBadgeSlot.innerHTML = '';
 		if (isPrivateTask(data)) {
