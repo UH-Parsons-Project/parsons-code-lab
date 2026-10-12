@@ -211,7 +211,7 @@ test('student task progress updates correctly when task is completed and can rev
   await studentContext.close();
 });
 
-test('student sees Next Task and Done buttons when completing tasks sequentially', async ({ page, browser }) => {
+test('student sees Next Task buttons when completing tasks sequentially', async ({ page, browser }) => {
   const unique = Date.now();
   const teacherUsername = `teacher_seq_${unique}`;
   const teacherEmail = `teacher_seq_${unique}@example.com`;
@@ -266,10 +266,10 @@ test('student sees Next Task and Done buttons when completing tasks sequentially
   // Solve greater_num
   await submitGreaterNumCorrect(studentPage);
 
-  // Click Done button
-  const doneBtn = studentPage.getByRole('link', { name: /Done/i });
-  await expect(doneBtn).toBeVisible();
-  await doneBtn.click();
+  // Click Next task button to return to the task list
+  const nextTaskLink = studentPage.getByRole('link', { name: /Next task/i });
+  await expect(nextTaskLink).toBeVisible();
+  await nextTaskLink.click();
 
   // Check it correctly navigates back to the task list
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 10000 });
