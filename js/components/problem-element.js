@@ -161,8 +161,8 @@ export class ProblemElement extends LitElement {
 										`
 										: this.allTasksCompleted && this.backToSetUrl
 											? html`
-												<a href=${this.backToSetUrl} class="btn btn-info" style="margin-right: 8px">
-													Done
+												<a href=${this.backToSetUrl} class="btn btn-success" style="margin-right: 8px">
+													Next task
 												</a>
 											`
 											: ''}
