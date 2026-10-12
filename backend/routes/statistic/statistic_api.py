@@ -762,6 +762,7 @@ async def get_task_statistics(
     # Students enrolled in the task set but never started this task (not started)
     students_not_started = 0
     not_started_student_info: list[dict] = []
+    started_student_ids = {a.student_id for a, _ in attempts_data}
     if task_set_code and task_set:
         enrolled_result = await db.execute(
             select(Student.id, Student.username)
@@ -777,7 +778,7 @@ async def get_task_statistics(
                 StudentTaskEnrollment.task_id == task.id
             )
         )
-        started_student_ids = set(started_result.scalars().all()) | {a.student_id for a, _ in attempts_data}
+        started_student_ids = set(started_result.scalars().all()) | started_student_ids
         not_started_ids = set(enrolled_students.keys()) - started_student_ids
         students_not_started = len(not_started_ids)
         students_attempted = len(started_student_ids)
@@ -790,11 +791,12 @@ async def get_task_statistics(
 
     student_usernames_result = await db.execute(
         select(Student.id, Student.username)
-        .where(Student.id.in_(set(a.student_id for a, _ in attempts_data)))
+        .where(Student.id.in_(started_student_ids))
     )
     student_id_to_username = {row[0]: row[1] for row in student_usernames_result.all()}
 
-    for student_id, student_attempts_list in student_attempts.items():
+    for student_id in started_student_ids:
+        student_attempts_list = student_attempts.get(student_id, [])
         username = student_id_to_username.get(student_id, str(student_id))
         tries = len(student_attempts_list)
         info = {"name": username, "meta": f"{tries} tr{'y' if tries == 1 else 'ies'}", "id": student_id}
