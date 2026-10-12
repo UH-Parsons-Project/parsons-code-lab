@@ -194,6 +194,31 @@ def hello():
 
         assert result is not None
         assert result["description"] == ""
+    
+    def test_load_task_file_applies_model_answer_indentation(self, tmp_path, monkeypatch):
+        probs_dir = tmp_path / "parsons_probs"
+        probs_dir.mkdir()
+
+        (probs_dir / "indented_task.yaml").write_text(
+            "eval_type: doctest\n"
+            "code_lines: |\n"
+            "    def my_func():\n"
+            "        return ('hello world!')\n"
+        )
+
+        (probs_dir / "indented_task.md").write_text(
+            "def my_func():\n"
+            "    return ('hello world!')\n"
+        )
+
+        monkeypatch.setattr(migrate_tasks, "PARSONS_PROBS_DIR", probs_dir)
+
+        result = migrate_tasks.load_task_file("indented_task")
+        blocks = result["code_blocks"]["blocks"]
+
+        assert result is not None
+        assert blocks[0]["indent"] == 0
+        assert blocks[1]["indent"] == 1
 
 
 class _FakeSession:
