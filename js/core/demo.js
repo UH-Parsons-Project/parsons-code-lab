@@ -145,7 +145,9 @@ probEl = document.createElement('problem-element');
 probEl.setAttribute('name', 'demo-print-order');
 probEl.setAttribute(
 	'taskInstructions',
-	'<div>Arrange the two print statements so the program prints the expected two-line output.</div><br><br><div class="demo-info-note"><em>This warm-up focuses on using the Parsons exercise area. You do not need to know functions, conditions, or return statements yet.</em></div>'
+	'<div>Arrange the two print statements so the program produces this output:</div>' +
+	'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>' +
+	'<div class="demo-info-note"><em>This warm-up focuses on using the Parsons exercise area. No functions or indentation are needed.</em></div>'
 );
 probEl.setAttribute(
 	'description',
@@ -153,6 +155,7 @@ probEl.setAttribute(
 );
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
 probEl.setAttribute('codeHeader', '');
+probEl.setAttribute('evalType', 'stdout');
 probEl.requireIndentation = false;
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
 probEl.shuffleStarterBlocks = true;
