@@ -13,6 +13,9 @@ SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
 import os
+import importlib
+from contextlib import asynccontextmanager
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
@@ -2017,3 +2020,109 @@ class TestContactPages:
         res = await client.get("/contact")
         assert res.status_code == 200
         assert "Contact" in res.text
+
+@pytest.mark.asyncio
+class TestLifespan:
+    async def test_lifespan_initializes_db_and_seeds_data_on_startup(self, monkeypatch):
+        init_db_mock = AsyncMock()
+        seed_db_mock = AsyncMock()
+        cleanup_mock = AsyncMock()
+        close_cache_mock = AsyncMock()
+        session = AsyncMock()
+
+        @asynccontextmanager
+        async def fake_async_session():
+            yield session
+
+        monkeypatch.setattr(main_module, "init_db", init_db_mock)
+        monkeypatch.setattr(main_module.seed_module, "seed_db", seed_db_mock)
+        monkeypatch.setattr(
+            main_module,
+            "cleanup_old_registration_tokens",
+            cleanup_mock,
+        )
+        monkeypatch.setattr(main_module, "close_cache", close_cache_mock)
+        monkeypatch.setattr(main_module.config, "AUTO_INIT_DB", True)
+        monkeypatch.setattr(main_module.config, "RUN_SEED_ON_STARTUP", True)
+        monkeypatch.setattr(
+            main_module,
+            "async_session",
+            fake_async_session,
+        )
+
+        async with main_module.lifespan(main_module.app):
+            pass
+
+        init_db_mock.assert_awaited_once()
+        seed_db_mock.assert_awaited_once()
+        cleanup_mock.assert_awaited_once_with(session)
+        session.commit.assert_awaited_once()
+        close_cache_mock.assert_awaited_once()
+
+    async def test_lifespan_skips_seed_when_config_fails(self, monkeypatch, capsys):
+        init_db_mock = AsyncMock()
+        seed_db_mock = AsyncMock()
+        cleanup_mock = AsyncMock()
+        close_cache_mock = AsyncMock()
+        session = AsyncMock()
+
+        @asynccontextmanager
+        async def fake_async_session():
+            yield session
+        
+        monkeypatch.setattr(main_module, "init_db", init_db_mock)
+        monkeypatch.setattr(main_module.seed_module, "seed_db", seed_db_mock)
+        monkeypatch.setattr(
+            main_module,
+            "cleanup_old_registration_tokens",
+            cleanup_mock,
+        )
+        monkeypatch.setattr(main_module, "close_cache", close_cache_mock)
+        monkeypatch.setattr(main_module.config, "AUTO_INIT_DB", True)
+        monkeypatch.setattr(main_module.config, "RUN_SEED_ON_STARTUP", False)
+        monkeypatch.setattr(
+            main_module,
+            "async_session",
+            fake_async_session,
+        )
+
+        async with main_module.lifespan(main_module.app):
+            pass
+        
+        assert "RUN_SEED_ON_STARTUP is false, skipping seed_db() on startup" in capsys.readouterr().out
+
+@pytest.mark.asyncio
+class TestStaticFilesMounting:
+    async def test_main_mounts_dist_and_data_directories(self, monkeypatch):
+        real_exists = Path.exists
+        real_isdir = os.path.isdir
+
+        def fake_exists(path):
+            if path.parent == main_module.BASE_DIR and path.name in {"dist", "data"}:
+                return True
+            return real_exists(path)
+
+        def fake_isdir(path):
+            path = Path(path)
+            if path in {
+                main_module.BASE_DIR / "dist",
+                main_module.BASE_DIR / "data",
+            }:
+                return True
+            return real_isdir(path)
+
+        with monkeypatch.context() as patch:
+            patch.setattr(Path, "exists", fake_exists)
+            patch.setattr(os.path, "isdir", fake_isdir)
+            reloaded_main = importlib.reload(main_module)
+
+            mounted_paths = {
+                route.path for route in reloaded_main.app.routes
+            }
+
+            assert "/dist" in mounted_paths
+            assert "/data" in mounted_paths
+        
+        importlib.reload(main_module)
+
+

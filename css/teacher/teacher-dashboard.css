@@ -220,7 +220,35 @@
   color: var(--text-muted);
   line-height: 1.6;
 }
-.task-set-meta i { margin-right: .25rem; }
+.task-set-meta i,
+.task-set-counts-row i { margin-right: .25rem; }
+.task-set-counts-row {
+  font-size: .85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+.task-set-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: .45rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background .15s, border-color .15s;
+}
+.task-set-pin-btn i { margin: 0; transform: rotate(45deg); transition: transform .15s; }
+.task-set-pin-btn:hover { background: rgba(240,173,78,.12); border-color: #f0ad4e; }
+.task-set-pin-btn.pinned { background: rgba(240,173,78,.12); border-color: #f0ad4e; color: #f0ad4e; }
+.task-set-pin-btn.pinned i { transform: rotate(0deg); }
 .task-set-opening-active { color: var(--green); }
 .task-set-expiring-soon { color: #e67e22; }
 .task-set-description {

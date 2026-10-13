@@ -162,9 +162,10 @@ async def demo_task_page(request: Request):
     return render_template("student/demo.html", request)
 
 
+@router.get("/student-registration", response_class=HTMLResponse)
 @router.get("/student-register", response_class=HTMLResponse)
-async def student_register_page(request: Request):
-    return render_template("student/student-register.html", request)
+async def student_registration_page(request: Request):
+    return render_template("student/student-registration.html", request)
 
 
 @router.get("/student/profile", response_class=HTMLResponse)

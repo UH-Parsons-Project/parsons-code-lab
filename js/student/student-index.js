@@ -7,7 +7,7 @@ const pathParts = window.location.pathname.split('/');
 const username = pathParts[1]; // /{username}/set/{code}
 const code = pathParts[3];
 document.getElementById('register-btn').addEventListener('click', () => {
-	window.location.href = code ? `/student-register?username=${username}&code=${code}` : '/student-register';
+	window.location.href = code ? `/student-registration?username=${username}&code=${code}` : '/student-registration';
 });
 
 // If the student already has a session cookie, show the Join button instead of the login form

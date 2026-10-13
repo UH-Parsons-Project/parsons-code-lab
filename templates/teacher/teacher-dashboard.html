@@ -1,25 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Dashboard - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{% block title %}My Dashboard - Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/components/action-buttons.css">
-  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
-</head>
-
-<body>
-
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="page-header">
+{% block styles %}
+<link rel="stylesheet" href="/css/components/action-buttons.css">
+<link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
     <div class="page-title">My Dashboard</div>
     <div class="page-subtitle">Select a task set to view its statistics and analytics</div>
   </div>
@@ -45,9 +38,8 @@
     </div>
 
   </div>
+{% endblock %}
 
-  <script type="module" src="/js/teacher/teacher-dashboard.js?v=copy-mode-2"></script>
-
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script type="module" src="/js/teacher/teacher-dashboard.js?v=copy-mode-2"></script>
+{% endblock %}

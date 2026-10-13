@@ -68,10 +68,11 @@ async def teacher_profile_page(
 
 
 
+@router.get("/teacher-registration", response_class=HTMLResponse)
 @router.get("/teacher-register", response_class=HTMLResponse)
-async def teacher_register_page(request: Request):
+async def teacher_registration_page(request: Request):
     """Serve a simple registration page."""
-    return render_template("teacher/teacher-register.html", request)
+    return render_template("teacher/teacher-registration.html", request)
 
 
 @router.get("/instructions", response_class=HTMLResponse)

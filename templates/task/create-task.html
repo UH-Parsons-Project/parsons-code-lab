@@ -1,21 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Task - Parsons Code Lab</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/base/main.css">
-    <link rel="stylesheet" href="/js-parsons/parsons.css">
-    <link rel="stylesheet" href="/css/task/create-task.css">
-</head>
-<body>
-    {% include 'common/nav-teacher.html' %}
+{% extends 'base.html' %}
 
-    <main class="create-task-shell">
+{% block title %}Create Task - Parsons Code Lab{% endblock %}
+
+{% block navigation %}
+  {% include 'common/nav-teacher.html' %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css">
+<link rel="stylesheet" href="/css/task/create-task.css">
+{% endblock %}
+
+{% block content %}
+<main class="create-task-shell">
         <h1 class="page-title">Create a New Task</h1>
         <p class="page-subtitle">
             Write plain Python in the first editor and any Python test code in the second editor.
@@ -287,15 +284,15 @@ Eat the pie</code></pre>
             </div>
         </form>
     </main>
+{% endblock %}
 
-    <script type="module">
+{% block scripts %}
+<script type="module">
         import { initSignedInAs, initProtectedPage, initBurgerMenu } from "/js/core/auth-ui.js";
 
         initSignedInAs();
         initProtectedPage('/');
         initBurgerMenu();
     </script>
-    <script src="/js/task/create-task.js"></script>
-{% include 'common/footer.html' %}
-</body>
-</html>
+<script src="/js/task/create-task.js"></script>
+{% endblock %}

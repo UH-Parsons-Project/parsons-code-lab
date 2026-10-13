@@ -1,22 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Task Blocks - Parsons Code Lab</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/js-parsons/parsons.css">
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/task/create-task-editor.css">
-  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
-</head>
-<body>
-  {% include 'common/nav-teacher.html' %}
+{% extends 'base.html' %}
 
-  <div class="page-layout">
+{% block title %}Create Task Blocks - Parsons Code Lab{% endblock %}
+
+{% block navigation %}
+  {% include 'common/nav-teacher.html' %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css">
+<link rel="stylesheet" href="/css/task/create-task-editor.css">
+<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="page-layout">
     <aside class="student-sidebar checklist-sidebar" aria-label="Task checklist">
       <div class="sidebar-header">
         <span class="sidebar-title">Task Checklist</span>
@@ -389,12 +386,12 @@
       </div><!-- /main -->
     </div><!-- /page-content -->
   </div><!-- /page-layout -->
+{% endblock %}
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-  <script src="/js/lib/jquery.ui.touch-punch.js"></script>
-  <script src="/js-parsons/parsons.js"></script>
-  <script type="module" src="/js/task/create-task-editor.js?v=copy-mode-2"></script>
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+<script src="/js/lib/jquery.ui.touch-punch.js"></script>
+<script src="/js-parsons/parsons.js"></script>
+<script type="module" src="/js/task/create-task-editor.js?v=copy-mode-2"></script>
+{% endblock %}

@@ -13,6 +13,7 @@ class FakeRedis:
         self.values = {}
         self.deleted_keys = []
         self.fail = False
+        self.closed = False
 
     async def get(self, key):
         if self.fail:
@@ -30,6 +31,9 @@ class FakeRedis:
         self.deleted_keys.extend(keys)
         for key in keys:
             self.values.pop(key, None)
+
+    async def aclose(self):
+        self.closed = True
 
 
 @pytest.fixture
@@ -80,3 +84,8 @@ async def test_cache_helpers_fail_open_when_redis_is_unavailable(fake_redis):
     assert await cache.get_json("example") is None
     await cache.set_json("example", {"value": 42})
     await cache.invalidate_task_statistics(7, 12)
+
+async def test_close_redis_when_application_shuts_down(fake_redis):
+    await cache.close()
+    assert fake_redis.closed is True
+    assert fake_redis.deleted_keys == []

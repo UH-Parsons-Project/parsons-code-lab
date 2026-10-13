@@ -1,26 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Task Set Overview - Parsons Code Lab</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{% block title %}Task Set Overview - Parsons Code Lab{% endblock %}
 
-  <link rel="stylesheet" href="/js-parsons/parsons.css">
-  <link rel="stylesheet" href="/css/base/main.css">
-  <link rel="stylesheet" href="/css/task/task-set-overview.css?v=3">
-  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
-</head>
-
-<body>
-
+{% block navigation %}
   {% include 'common/nav-teacher.html' %}
+{% endblock %}
 
-  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css">
+<link rel="stylesheet" href="/css/task/task-set-overview.css?v=3">
+<link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="flex-direction: column; align-items: flex-start;">
     <div class="mb-2" style="width: 100%;">
       <a href="/teacher-dashboard" class="embossed-btn">
         <i class="fas fa-arrow-left"></i> Back
@@ -281,14 +274,13 @@
       </div>
     </div>
   </div>
+{% endblock %}
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-  <script src="/js/lib/jquery.ui.touch-punch.js"></script>
-  <script src="/js-parsons/parsons.js"></script>
-  <script type="module" src="/js/task/task-set-overview.js"></script>
-
-{% include 'common/footer.html' %}
-</body>
-</html>
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+<script src="/js/lib/jquery.ui.touch-punch.js"></script>
+<script src="/js-parsons/parsons.js"></script>
+<script type="module" src="/js/task/task-set-overview.js"></script>
+{% endblock %}
