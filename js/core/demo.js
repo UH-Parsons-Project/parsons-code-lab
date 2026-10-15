@@ -12,6 +12,7 @@ initStudentLogout();
 
 const params = new URL(document.location).searchParams;
 let returnUrl = params.get('return') || null;
+const isIndentWarmup = params.get('step') === 'indent';
 
 if (!returnUrl) {
 	const pathParts = window.location.pathname.split('/').filter(p => p);
@@ -28,12 +29,19 @@ if (backBtn) {
 	backBtn.style.display = 'inline-block';
 }
 
-const EXPECTED_OUTPUT = 'Hello, World!\nWelcome to Parsons Code Lab!';
+const EXPECTED_OUTPUT = isIndentWarmup
+	? 'The line is indented.'
+	: 'Hello, World!\nWelcome to Parsons Code Lab!';
 
-const BLOCKS = [
-	{ code: 'print("Hello, World!")', indent: 0, given: false },
-	{ code: 'print("Welcome to Parsons Code Lab!")', indent: 0, given: false },
-];
+const BLOCKS = isIndentWarmup
+	? [
+		{ code: 'if True:', indent: 0, given: false },
+		{ code: 'print("The line is indented.")', indent: 0, given: false },
+	]
+	: [
+		{ code: 'print("Hello, World!")', indent: 0, given: false },
+		{ code: 'print("Welcome to Parsons Code Lab!")', indent: 0, given: false },
+	];
 
 function buildCodeLines(blocks) {
 	const lines = blocks.map((b) => {
@@ -62,10 +70,11 @@ modal.innerHTML = `
 		               font-size:1.4rem;line-height:1;cursor:pointer;color:#6c757d;"
 		        aria-label="Close">&times;</button>
 		<h5 style="margin-bottom:1.25rem;">How this exercise works</h5>
-		<p style="margin-bottom:0.5rem;"><strong>1. Drag the code blocks</strong></p>
+		<p style="margin-bottom:0.5rem;"><strong>1. ${isIndentWarmup ? 'Arrange the code blocks' : 'Drag the code blocks'}</strong></p>
 		<p style="margin-bottom:1rem;color:#495057;">
-			On the left you'll see two shuffled <code>print</code> statements. Drag them
-			into the solution area on the right in the order that produces the expected output.
+			${isIndentWarmup
+				? 'On the left you\'ll see an <code>if</code> line and a <code>print</code> line. Drag them into the solution area, then indent <code>print</code> under <code>if</code>.'
+				: 'On the left you\'ll see two shuffled <code>print</code> statements. Drag them into the solution area on the right in the order that produces the expected output.'}
 		</p>
 		<p style="margin-bottom:0.5rem;"><strong>2. Run your solution</strong></p>
 		<p style="margin-bottom:1rem;color:#495057;">
@@ -73,7 +82,9 @@ modal.innerHTML = `
 			The result will tell you whether the output is correct.
 		</p>
 		<p style="margin-bottom:1.5rem;color:#495057;">
-			No functions, conditions, or return statements are needed for this warm-up.
+			${isIndentWarmup
+				? 'This warm-up practices arranging an <code>if</code> statement and indenting its <code>print</code> line.'
+				: 'No functions, conditions, or return statements are needed for this warm-up.'}
 		</p>
 		<button onclick="window.__closeDemoModal()"
 		        style="background:#007bff;color:#fff;border:none;border-radius:6px;
@@ -90,7 +101,7 @@ document.body.appendChild(modal);
 window.__openDemoModal = () => { modal.style.display = 'flex'; };
 window.__closeDemoModal = () => { modal.style.display = 'none'; };
 
-const LS_DEMO_REPR = 'demo-print-order-repr';
+const LS_DEMO_REPR = isIndentWarmup ? 'demo-indent-repr-v2' : 'demo-print-order-repr';
 let probEl;
 
 async function handleSubmit(submittedCode) {
@@ -142,21 +153,28 @@ async function handleSubmit(submittedCode) {
 }
 
 probEl = document.createElement('problem-element');
-probEl.setAttribute('name', 'demo-print-order');
+probEl.setAttribute('name', isIndentWarmup ? 'demo-indent' : 'demo-print-order');
+
 probEl.setAttribute(
 	'taskInstructions',
-	'<div>Arrange the two print statements so the program produces this output:</div>' +
-	'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>' +
-	'<div class="demo-info-note"><em>This warm-up focuses on using the Parsons exercise area. No functions or indentation are needed.</em></div>'
+	isIndentWarmup
+		? '<div>Arrange the code blocks to make an <code>if</code> statement with an indented <code>print</code> line. The program should produce this output:</div>' +
+			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">The line is indented.</pre>' +
+			'<div class="demo-info-note"><em>Indent the print line under the if statement.</em></div>'
+		: '<div>Arrange the two print statements so the program produces this output:</div>' +
+			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>'
 );
+
 probEl.setAttribute(
 	'description',
-	'A short warm-up exercise for arranging two print statements.'
+	isIndentWarmup
+		? 'A short warm-up exercise for arranging an if statement and indenting its print line.'
+		: 'A short warm-up exercise for arranging two print statements.'
 );
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
 probEl.setAttribute('codeHeader', '');
 probEl.setAttribute('evalType', 'stdout');
-probEl.requireIndentation = false;
+probEl.requireIndentation = isIndentWarmup;
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
 probEl.shuffleStarterBlocks = true;
 
