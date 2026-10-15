@@ -446,7 +446,7 @@ async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncS
                 created_at=task.created_at.isoformat(),
                 is_hidden=is_hidden,
                 is_public=task.is_public,
-                is_faded=bool(solution.get("require_indentation", True)),
+                is_faded=task.faded,
                 require_indentation=bool(solution.get("require_indentation", True)),
             )
         )

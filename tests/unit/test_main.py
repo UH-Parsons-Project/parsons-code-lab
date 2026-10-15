@@ -714,7 +714,8 @@ class TestGetProblemsetTasks:
                     {"id": "block_2", "code": "print(___)", "indent": 0, "faded": True, "given": False},
                 ]
             },
-            correct_solution={"solution": [], "require_indentation": True},
+            correct_solution={"solution": [], "require_indentation": False},
+            faded=True,
             is_public=True,
         )
         db_session.add(task)
@@ -743,7 +744,8 @@ class TestGetProblemsetTasks:
                     {"id": "block_2", "code": "print('world')", "indent": 0, "given": False},
                 ]
             },
-            correct_solution={"solution": [], "require_indentation": False},
+            correct_solution={"solution": [], "require_indentation": True},
+            faded=False,
             is_public=True,
         )
         db_session.add(task)

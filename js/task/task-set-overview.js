@@ -75,7 +75,7 @@ function pipeCell(value, width) {
 }
 
 function isTaskFaded(task) {
-	return task?.require_indentation === true;
+	return task?.is_faded === true;
 }
 
 function buildTaskSetCsv(tasks, taskStats, totalStudents) {
