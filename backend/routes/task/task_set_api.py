@@ -131,7 +131,11 @@ async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, De
             (TaskSet.teacher_id == current_user.id) | (TaskSetViewer.teacher_id == current_user.id)
         )
         .group_by(TaskSet.id, Teacher.username, TeacherPinnedTaskSet.id)
-        .order_by(TeacherPinnedTaskSet.id.is_(None), TaskSet.created_at.desc())
+        .order_by(
+            TeacherPinnedTaskSet.id.is_(None),
+            case((TaskSet.expires_at < datetime.now(timezone.utc), 1), else_=0),
+            TaskSet.created_at.desc(),
+        )
     )
     result = await db.execute(stmt)
     my_sets = result.all()
