@@ -116,6 +116,9 @@ async function loadTaskDetails() {
     // 3. Setup Navigation buttons
     document.getElementById('action-run-task').href = `/task?id=${task.id}`;
     document.getElementById('action-stats-task').href = `/task-statistics?id=${task.id}`;
+    const copyBtn = document.getElementById('action-copy-task');
+    copyBtn.href = `/create-task-editor?task_id=${task.id}&copy=true`;
+    copyBtn.style.display = 'inline-flex';
 
     // Check if task is editable and configure button
     try {
