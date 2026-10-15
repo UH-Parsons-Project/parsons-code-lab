@@ -28,7 +28,20 @@ import utils as utils
 import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
-from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem, TaskSetViewer, RegistrationToken
+from backend.models import (
+    Parsons,
+    Student,
+    StudentTaskSetEnrollment,
+    Teacher,
+    TaskAttempt,
+    TaskSet,
+    StudentTaskEnrollment,
+    TaskSession,
+    TaskSetItem,
+    TaskSetViewer,
+    TeacherPinnedTaskSet,
+    RegistrationToken,
+)
 from backend.utils import hash_token
 
 
@@ -1497,6 +1510,46 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert matching["task_count"] == 1
         assert matching["student_count"] == 1
 
+    async def test_my_sets_puts_expired_sets_last_but_keeps_pinned_sets_first(
+        self, client, test_teacher, task_set, db_session
+    ):
+        active_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Active Set",
+            unique_link_code="ACTIVE",
+        )
+        expired_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Expired Set",
+            unique_link_code="EXPIRED",
+            expires_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        )
+        pinned_expired_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Pinned Expired Set",
+            unique_link_code="PINNED_EXPIRED",
+            expires_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        )
+        db_session.add_all([active_set, expired_set, pinned_expired_set])
+        await db_session.flush()
+        db_session.add(
+            TeacherPinnedTaskSet(
+                teacher_id=test_teacher.id,
+                task_set_id=pinned_expired_set.id,
+            )
+        )
+        await db_session.commit()
+
+        r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
+
+        assert r.status_code == 200
+        assert [item["unique_link_code"] for item in r.json()] == [
+            "PINNED_EXPIRED",
+            "ACTIVE",
+            "WEEK1",
+            "EXPIRED",
+        ]
+
     async def test_student_register_success_and_duplicate_rejected(self, client):
         payload = {
             "username": "studentx",
@@ -2126,5 +2179,4 @@ class TestStaticFilesMounting:
             assert "/data" in mounted_paths
         
         importlib.reload(main_module)
-
 
