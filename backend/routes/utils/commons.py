@@ -7,7 +7,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...models import TaskSetItem
+from ...models import TaskSet, TaskSetItem
+from ...pydantic import TaskSetResponse
 from ... import config
 
 BASE_DIR = Path(__file__).resolve().parents[3]
@@ -65,8 +66,36 @@ async def verify_task_in_set_or_404(db: AsyncSession, task_set, task_id: int, vi
         )
 
 
+def build_taskset_response(
+    task_set: TaskSet,
+    owner_username: str | None,
+    *,
+    student_count: int = 0,
+    task_count: int = 0,
+    is_pinned: bool = False,
+    deletable: bool = True,
+) -> TaskSetResponse:
+    """Build a consistent response for a task set."""
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=owner_username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        student_count=student_count,
+        task_count=task_count,
+        is_pinned=is_pinned,
+        deletable=deletable,
+    )
+
+
 def build_taskset_response_list(rows: Iterable):
-    """Build a list of TaskSetResponse-like dicts from query rows.
+    """Build a list of TaskSetResponse-compatible dicts from query rows.
 
     The function returns plain dicts matching the Pydantic model fields so it
     can be returned directly from FastAPI endpoints regardless of response
@@ -78,21 +107,15 @@ def build_taskset_response_list(rows: Iterable):
         student_count = rest[0] if len(rest) > 0 else 0
         task_count = rest[1] if len(rest) > 1 else 0
         is_pinned = bool(rest[2]) if len(rest) > 2 else False
-        result.append({
-            "id": ps.id,
-            "title": ps.title,
-            "unique_link_code": ps.unique_link_code,
-            "teacher_id": ps.teacher_id,
-            "owner_username": owner_username,
-            "student_description": ps.student_description,
-            "teacher_description": ps.teacher_description,
-            "created_at": ps.created_at.isoformat(),
-            "opens_at": ps.opens_at.isoformat() if getattr(ps, "opens_at", None) else None,
-            "expires_at": ps.expires_at.isoformat() if ps.expires_at else None,
-            "student_count": student_count,
-            "task_count": task_count,
-            "is_pinned": is_pinned,
-        })
+        result.append(
+            build_taskset_response(
+                ps,
+                owner_username,
+                student_count=student_count,
+                task_count=task_count,
+                is_pinned=is_pinned,
+            ).model_dump()
+        )
     return result
 
 

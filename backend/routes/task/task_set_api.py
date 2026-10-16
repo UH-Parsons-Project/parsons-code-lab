@@ -39,6 +39,7 @@ from ...pydantic import (
 from ...utils.taskset import require_task_set_view_access
 from backend.utils import generate_slug
 from ..utils.commons import (
+    build_taskset_response,
     build_taskset_response_list,
     get_task_set_or_404,
     run_with_task_ids_or_empty,
@@ -210,17 +211,9 @@ async def get_task_set(
         .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
     )).scalar() or 0
 
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=owner_username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+    return build_taskset_response(
+        task_set,
+        owner_username,
         deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
     )
 
@@ -269,17 +262,9 @@ async def update_task_set_title(
         .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
     )).scalar() or 0
 
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=current_user.username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+    return build_taskset_response(
+        task_set,
+        current_user.username,
         deletable=enrolled_count == 0,
     )
 
@@ -312,17 +297,9 @@ async def update_task_set_descriptions(
         .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
     )).scalar() or 0
 
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=current_user.username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+    return build_taskset_response(
+        task_set,
+        current_user.username,
         deletable=enrolled_count == 0,
     )
 
@@ -400,18 +377,7 @@ async def duplicate_task_set(
     await db.commit()
     await db.refresh(copied_task_set)
 
-    return TaskSetResponse(
-        id=copied_task_set.id,
-        title=copied_task_set.title,
-        unique_link_code=copied_task_set.unique_link_code,
-        teacher_id=copied_task_set.teacher_id,
-        owner_username=current_user.username,
-        student_description=copied_task_set.student_description,
-        teacher_description=copied_task_set.teacher_description,
-        created_at=copied_task_set.created_at.isoformat(),
-        opens_at=None,
-        expires_at=None,
-    )
+    return build_taskset_response(copied_task_set, current_user.username)
 
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
@@ -580,18 +546,7 @@ async def get_task_set_info(code: str, db: Annotated[AsyncSession, Depends(get_d
 
     task_set, owner_username = row
 
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=owner_username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
-    )
+    return build_taskset_response(task_set, owner_username)
 
 
 
@@ -694,18 +649,7 @@ async def create_task_set(
     await db.commit()
     await db.refresh(task_set)
 
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=current_user.username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None
-    )
+    return build_taskset_response(task_set, current_user.username)
 
 
 @router.patch("/api/my_sets/{task_set_id}/expires_at")
