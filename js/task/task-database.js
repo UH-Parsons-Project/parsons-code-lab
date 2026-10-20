@@ -303,17 +303,11 @@ function createExerciseCard(item) {
 	};
 	card.onclick = openDetails;
 
-	let hoverTimer = null;
 	card.addEventListener('mouseenter', () => {
 		renderPreviewSkeleton(item);
-		hoverTimer = setTimeout(() => {
 			fetchTaskDetail(item.id).then(data => {
 				renderPreviewFull(item, data);
 			});
-		}, 500);
-	});
-	card.addEventListener('mouseleave', () => {
-		if (hoverTimer) clearTimeout(hoverTimer);
 	});
 
 	const header = document.createElement('div');
