@@ -2,11 +2,32 @@ import { initProtectedPage, initSignedInAs, initBurgerMenu } from '../core/auth-
 import { isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml } from '../utils/ui-utils.js';
 import { parseCustomErrorRules } from '../utils/parsons-editor-utils.js';
+import { isObserverModeEnabled, setObserverMode } from '../utils/observer-mode.js';
 
 // Initialize Page Protection & Navigation Components
 initProtectedPage('/');
 initSignedInAs();
 initBurgerMenu();
+
+function setupObserverModeToggle() {
+  const toggle = document.getElementById('observer-mode-toggle');
+  if (!toggle) return;
+
+  toggle.checked = isObserverModeEnabled();
+  toggle.addEventListener('change', () => {
+    setObserverMode(toggle.checked);
+  });
+
+  window.addEventListener('observer-mode-changed', (event) => {
+    toggle.checked = Boolean(event.detail?.enabled);
+  });
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'parsons-observer-mode') {
+      toggle.checked = isObserverModeEnabled();
+    }
+  });
+}
 
 // Format multi-line text for display
 function formatMultilineText(text) {
@@ -368,4 +389,7 @@ function showErrorPage(message) {
 }
 
 // Run loader on load
-window.addEventListener('DOMContentLoaded', loadTaskDetails);
+window.addEventListener('DOMContentLoaded', () => {
+  setupObserverModeToggle();
+  loadTaskDetails();
+});

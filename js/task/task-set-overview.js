@@ -3,7 +3,7 @@ import { initProtectedPage, initSignedInAs, initBurgerMenu } from '../core/auth-
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, formatDate, formatDateTime, showError, makeKeyActivatable } from '../utils/ui-utils.js';
 import { fetchJsonWithError } from '../utils/api-utils.js';
-import { loadHeatmap } from './task-set-heatmap.js';
+import { loadHeatmap, refreshHeatmap } from './task-set-heatmap.js';
 import { setupPreviewModalClose } from './task-preview.js';
 import { createAvailableTaskElement } from './task-helpers.js';
 import {
@@ -11,6 +11,8 @@ import {
 	setupDescriptionEdit,
 } from './task-set-descriptions.js';
 import { getTaskSetOpeningStatus } from '../utils/task-set-status.js';
+import { isObserverModeEnabled, setObserverMode } from '../utils/observer-mode.js';
+import { getStudentDisplayName } from '../utils/student-display.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -158,8 +160,8 @@ function buildStudentCompletionCsv(tasks, students) {
 	];
 
 	const rows = students.map(student => [
-		student.username,
-		student.email,
+		getStudentDisplayName(student, currentTaskSet?.id),
+		isObserverModeEnabled() ? '' : student.email,
 		formatCsvNumber(student.completed_tasks ?? 0),
 		...(student.task_completion_flags || []).map(flag => String(flag ? 1 : 0)),
 	]);
@@ -1456,15 +1458,16 @@ function createStudentItem(student, tasks) {
 	const item = document.createElement('div');
 	item.className = 'student-item';
 	item.style.cursor = 'pointer';
+	const displayName = getStudentDisplayName(student, setId);
 	const navigateToAttempts = () => {
-		window.location.href = `/student-attempts?student_id=${encodeURIComponent(student.student_id)}&student=${encodeURIComponent(student.username)}&set_id=${setId}`;
+		window.location.href = `/student-attempts?student_id=${encodeURIComponent(student.student_id)}&student=${encodeURIComponent(displayName)}&set_id=${setId}`;
 	};
 	item.onclick = navigateToAttempts;
 	makeKeyActivatable(item, navigateToAttempts);
 
 	const name = document.createElement('div');
 	name.className = 'student-name';
-	name.textContent = student.username;
+	name.textContent = displayName;
 
 	const activeTasksAttempted = tasks.reduce((sum, task, index) => {
 		return sum + (!task.is_hidden && student.task_attempts?.[index] > 0 ? 1 : 0);
@@ -1527,6 +1530,30 @@ function updateStudentCount(count) {
 	document.getElementById('student-count').textContent = count;
 }
 
+function setupObserverModeToggle() {
+	const toggle = document.getElementById('observer-mode-toggle');
+	if (!toggle) return;
+
+	toggle.checked = isObserverModeEnabled();
+	toggle.addEventListener('change', () => {
+		setObserverMode(toggle.checked);
+	});
+
+	window.addEventListener('observer-mode-changed', (event) => {
+		toggle.checked = Boolean(event.detail?.enabled);
+		renderStudents(currentStudents, currentTasks);
+		refreshHeatmap();
+	});
+
+	window.addEventListener('storage', (event) => {
+		if (event.key === 'parsons-observer-mode') {
+			toggle.checked = isObserverModeEnabled();
+			renderStudents(currentStudents, currentTasks);
+			refreshHeatmap();
+		}
+	});
+}
+
 
 
 // Load task set details, tasks, and students
@@ -1547,6 +1574,7 @@ fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
 		renderStudents(students, tasks);
 		setupEditTasksButton(taskSet);
 		setupPreviewModalClose();
+		setupObserverModeToggle();
 		document.getElementById('content-container').style.display = 'block';
 		loadTaskStats(tasks, taskSet, students.length);
 

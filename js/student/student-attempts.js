@@ -1,5 +1,6 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-ui.js';
 import { formatDateTime, escapeHtml, showError, makeKeyActivatable } from '../utils/ui-utils.js';
+import { getStudentDisplayName } from '../utils/student-display.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
@@ -8,6 +9,7 @@ const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
 const studentId = params.get('student_id');
 const setId = params.get('set_id');
+const studentDisplayName = getStudentDisplayName({ student_id: studentId, username: studentUsername }, setId);
 
 if (!studentId || !setId) {
 	window.location.href = '/teacher-dashboard';
@@ -155,7 +157,7 @@ function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	const navigate = () => {
-		window.location.href = `/student-task-statistics?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentUsername || '')}&task_id=${attempt.task_id}&set_id=${setId}`;
+		window.location.href = `/student-task-statistics?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentDisplayName)}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
 	item.onclick = navigate;
 	makeKeyActivatable(item, navigate);
@@ -270,7 +272,7 @@ Promise.all([
 		}
 
 		const isOwner = localStorage.getItem('username') === ownerUsername;
-		renderHeader(studentUsername, completedTasks, startedTasks, totalTasks, taskSetName, isOwner);
+		renderHeader(studentDisplayName, completedTasks, startedTasks, totalTasks, taskSetName, isOwner);
 		renderAttempts(attempts);
 	})
 	.catch(err => {

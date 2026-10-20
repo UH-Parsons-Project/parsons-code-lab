@@ -1,5 +1,6 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { escapeHtml, formatDateTime, showError, formatTime } from '../utils/ui-utils.js';
+import { getStudentDisplayName } from '../utils/student-display.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -10,11 +11,12 @@ const studentUsername = params.get('student');
 const studentId = params.get('student_id');
 const taskId = params.get('task_id');
 const setId = params.get('set_id');
+const studentDisplayName = getStudentDisplayName({ student_id: studentId, username: studentUsername }, setId);
 
 if (!studentId || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
-document.getElementById('student-name-badge').href = `/student-attempts?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentUsername || '')}&set_id=${encodeURIComponent(setId)}`;
+document.getElementById('student-name-badge').href = `/student-attempts?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentDisplayName)}&set_id=${encodeURIComponent(setId)}`;
 
 
 
@@ -48,7 +50,7 @@ function renderHeader(data) {
 	document.getElementById('page-header').style.display = 'none';
 	document.getElementById('content-header').style.display = 'flex';
 	document.getElementById('exercise-name').textContent = data.task_name || '—';
-	document.getElementById('student-name-text').textContent = data.student_username || studentUsername;
+	document.getElementById('student-name-text').textContent = studentDisplayName;
 	if (data.task_set_name) document.getElementById('taskset-name-label').textContent = data.task_set_name;
 
 	const backBtn = document.getElementById('back-btn');
