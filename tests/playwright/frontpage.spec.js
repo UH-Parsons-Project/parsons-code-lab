@@ -11,14 +11,25 @@ test('has logo image', async ({ page }) => {
   await expect(logo).toHaveAttribute('alt', 'Parsons Code Lab Logo');
 });
 
-test('shows login form on front page', async ({ page }) => {
+test('front page login button opens the teacher login page', async ({ page }) => {
   await page.goto('/');
 
-  // Check that the login form and its fields are visible
+  await expect(page.locator('#login-btn')).toHaveAttribute('href', '/teacher-login');
+  await page.locator('#login-btn').click();
+  await expect(page).toHaveURL(/\/teacher-login$/);
   await expect(page.locator('#login-form')).toBeVisible();
   await expect(page.locator('#username')).toBeVisible();
   await expect(page.locator('#password')).toBeVisible();
   await expect(page.locator('#login-btn')).toBeVisible();
+});
+
+test('teacher login page offers account and organization sign-in sections', async ({ page }) => {
+  await page.goto('/teacher-login');
+
+  await expect(page.locator('#account-login-heading')).toHaveText('Sign in with your account');
+  await expect(page.locator('#username')).toBeVisible();
+  await expect(page.locator('#password')).toBeVisible();
+  await expect(page.locator('#institution-login-heading')).toHaveText('Sign in with your organization');
 });
 
 test('hides exercises button when logged out', async ({ page }) => {
@@ -30,7 +41,7 @@ test('hides exercises button when logged out', async ({ page }) => {
 });
 
 test('login form blocks submit when username and/or password missing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/teacher-login');
 
   const usernameInput = page.locator('#username');
   const passwordInput = page.locator('#password');
@@ -62,4 +73,3 @@ test('login form blocks submit when username and/or password missing', async ({ 
   );
   expect(usernameMissingAgain).toBeTruthy();
 });
-

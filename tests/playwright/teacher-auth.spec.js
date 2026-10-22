@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test';
 import { registerTeacher, loginTeacher, logoutTeacher } from './test-helpers.js';
 
-test('teacher can register and then login from the main page', async ({ page }) => {
+test('teacher can register and then login from the teacher login page', async ({ page }) => {
   const unique = Date.now();
   const username = `teacher_${unique}`;
   const email = `teacher_${unique}@example.com`;
@@ -17,7 +17,7 @@ test('teacher can register and then login from the main page', async ({ page }) 
     'Registration successful.'
   );
 
-  // Login from the main page with the just-created credentials
+  // Login with the just-created credentials
   await loginTeacher(page, email, password);
 
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
@@ -151,7 +151,7 @@ test('login shows error with wrong password', async ({ page }) => {
   );
 
   await loginTeacher(page, email, 'wrong-password');
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/teacher-login$/);
   await expect(page.locator('#error-message')).toBeVisible();
   await expect(page.locator('#error-message')).toContainText('Incorrect username,email, or password');
 });
@@ -280,4 +280,3 @@ test('expired hy cookie clears stale cached auth state', async ({ page, context 
   }));
   expect(authState).toEqual({ token: null, username: null });
 });
-

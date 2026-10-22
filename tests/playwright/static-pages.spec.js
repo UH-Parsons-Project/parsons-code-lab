@@ -23,8 +23,8 @@ test.describe('Static & Information Pages E2E', () => {
   });
 
   test('forgot password button on login form redirects to contact page', async ({ page }) => {
-    await page.goto('/');
-    const forgotPasswordLink = page.locator('#login-form #forgot-password-btn');
+    await page.goto('/teacher-login');
+    const forgotPasswordLink = page.getByRole('link', { name: 'Contact us' });
     await expect(forgotPasswordLink).toBeVisible();
     await forgotPasswordLink.click();
     await expect(page).toHaveURL(/\/contact$/);
