@@ -6,11 +6,16 @@
   {% include 'common/nav-teacher.html' %}
 {% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css" />
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css" />
+{% endblock %}
+
 {% block content %}
-<main class="container mt-5">
-  <div class="row justify-content-center">
+<main class="container">
+  <div class="row justify-content-center register-row">
     <div class="col-md-6">
-      <h1 class="mb-4">Teacher Login</h1>
+      <h2 class="mb-4 register-title">Teacher Login</h2>
       <p class="text-danger">
         If you are a student, you can't log in here. Your teacher will share a link where you can log in before joining the task set.
       </p>
