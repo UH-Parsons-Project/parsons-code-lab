@@ -11,6 +11,18 @@ def shibboleth_login_url(target: str = "/auth/saml/login") -> str:
     return f"/Shibboleth.sso/Login?target={quote(target, safe='/')}"
 
 
+HY_IDP_LOGOUT_URL = "https://login.helsinki.fi/idp/profile/Logout"
+
+
+def shibboleth_logout_url() -> str:
+    """Clear the local SP session, then continue to the IdP's SLO page."""
+    return f"/Shibboleth.sso/Logout?return={quote(HY_IDP_LOGOUT_URL, safe='')}"
+
+
+def has_shibboleth_session(request: Request) -> bool:
+    return bool(config.SAML_ENABLED and request.headers.get("Shib-Session-ID"))
+
+
 def shibboleth_identity(request: Request) -> tuple[str, str] | None:
     """Return the authenticated identity supplied by Shibboleth."""
     if not any(request.headers.get(name) for name in (

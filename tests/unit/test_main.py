@@ -453,6 +453,17 @@ class TestLogout:
         r = await client.post("/api/logout")
         assert r.status_code == 200
         assert "logged out" in r.json()["message"].lower()
+        assert "logout_url" not in r.json()
+
+    async def test_shibboleth_session_returns_slo_url(self, client, monkeypatch):
+        from backend import config
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        r = await client.post("/api/logout", headers={"Shib-Session-ID": "abc"})
+        assert r.status_code == 200
+        assert r.json()["logout_url"] == (
+            "/Shibboleth.sso/Logout?return="
+            "https%3A%2F%2Flogin.helsinki.fi%2Fidp%2Fprofile%2FLogout"
+        )
 
 
 # ---------------------------------------------------------------------------
