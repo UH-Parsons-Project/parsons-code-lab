@@ -21,22 +21,8 @@
       </p>
       <p>Choose how you want to sign in to Parsons Code Lab.</p>
 
-      <section class="mb-5" aria-labelledby="institution-login-heading">
-        <h2 id="institution-login-heading" class="h4 mt-4">Sign in with your organization</h2>
-        {% if saml_enabled %}
-        <a class="btn btn-primary btn-block" href="/auth/saml/login" id="saml-login-btn" style="background-color: #107eab; border-color: #107eab; color: #fff;">
-          Sign in with University of Helsinki
-        </a>
-        <p class="mt-2">
-          <a href="https://helpdesk.it.helsinki.fi/en/logging-and-connections/user-account/user-accounts-and-passwords" target="_blank" rel="noopener noreferrer">More information about University of Helsinki accounts</a>
-        </p>
-        {% else %}
-        <p class="text-muted">Organization sign-in is not configured yet.</p>
-        {% endif %}
-      </section>
-
-      <section aria-labelledby="account-login-heading">
-        <h2 id="account-login-heading" class="h4">Sign in with your Parsons Code Lab account</h2>
+      <section class="mb-5" aria-labelledby="account-login-heading">
+        <h2 id="account-login-heading" class="h4 mt-4">Sign in with your Parsons Code Lab account</h2>
         <div id="error-message" class="text-danger mb-3" style="display: none;" role="alert"></div>
         <form id="login-form" class="d-flex flex-column">
           <div class="form-group">
@@ -49,6 +35,20 @@
           </div>
           <button class="btn btn-primary" id="login-btn" type="submit">Login</button>
         </form>
+      </section>
+
+      <section aria-labelledby="institution-login-heading">
+        <h2 id="institution-login-heading" class="h4">Sign in with your organization</h2>
+        {% if saml_enabled %}
+        <a class="btn btn-primary btn-block" href="/auth/saml/login" id="saml-login-btn" style="background-color: #107eab; border-color: #107eab; color: #fff;">
+          Sign in with University of Helsinki
+        </a>
+        <p class="mt-2">
+          <a href="https://helpdesk.it.helsinki.fi/en/logging-and-connections/user-account/user-accounts-and-passwords" target="_blank" rel="noopener noreferrer">More information about University of Helsinki accounts</a>
+        </p>
+        {% else %}
+        <p class="text-muted">Organization sign-in is not configured yet.</p>
+        {% endif %}
       </section>
 
       <p class="mt-4">Don't have an account? <a href="/teacher-registration">Register</a></p>

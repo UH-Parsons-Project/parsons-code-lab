@@ -168,8 +168,11 @@ class TestStaticPages:
 
         assert response.status_code == 200
         assert (
-            'id="account-login-heading" class="h4">Sign in with your Parsons Code Lab account</h2>'
+            'id="account-login-heading" class="h4 mt-4">Sign in with your Parsons Code Lab account</h2>'
             in response.text
+        )
+        assert response.text.index('id="account-login-heading"') < response.text.index(
+            'id="institution-login-heading"'
         )
 
     async def test_teacher_registration_offers_saml_when_enabled(
