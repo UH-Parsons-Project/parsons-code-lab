@@ -15,12 +15,45 @@
 <main class="container">
 			<div class="row justify-content-center register-row">
 				<div class="col-md-6">
-					<h2 class="mb-4 register-title">Teacher Registration</h2>
+					<h2 class="mb-4 register-title teacher-login-title">Teacher Registration</h2>
 					<p class="text-danger">
 						If you are a student, you can't register here. Your teacher will share a link where you can register before joining the task set.
 					</p>
 					<div id="alert-placeholder"></div>
 
+					{% if saml_registration %}
+					<div class="alert alert-danger" role="alert">
+						This Helsinki University account is not registered with Parsons Code Lab yet. Enter a registration token to create your teacher account.
+					</div>
+					{% if registration_error %}
+					<div class="alert alert-danger">The registration token is missing, invalid, or expired.</div>
+					{% endif %}
+					<p>Your Helsinki University account has been verified. Your account will use these details:</p>
+					<form method="post" action="/auth/saml/login">
+						<div class="form-group">
+							<label for="username">Username</label>
+							<input type="text" class="form-control" id="username" value="{{ registration_username }}" readonly />
+						</div>
+						<div class="form-group">
+							<label for="email">Email</label>
+							<input type="email" class="form-control" id="email" value="{{ registration_email }}" readonly />
+						</div>
+						<p>Your Helsinki University account is used to sign in, so no separate password is needed.</p>
+						<div class="form-group">
+							<label for="registration_token">Registration Token</label>
+							<input
+								type="password"
+								class="form-control"
+								id="registration_token"
+								name="registration_token"
+								placeholder="Enter the admin-provided token"
+								required
+							/>
+						</div>
+						<p>By creating an account, confirmation is given that the <a href="/privacy-policy" style="color: blue;">Privacy Policy</a> has been read and understood.</p>
+						<button type="submit" class="btn btn-primary">Register</button>
+					</form>
+					{% else %}
 					<form id="register-form">
 						<div class="form-group">
 							<label for="username">Username</label>
@@ -57,6 +90,12 @@
 						<p>By creating an account, confirmation is given that the <a href="/privacy-policy" style="color: blue;">Privacy Policy</a> has been read and understood.</p>
 						<button type="submit" class="btn btn-primary">Register</button>
 					</form>
+					{% if saml_enabled %}
+					<hr />
+					<p>Or register using your Helsinki University account:</p>
+					<a class="btn btn-primary" href="/auth/saml/login" style="background-color: #107eab; border-color: #107eab; color: #fff;">Register with Helsinki University credentials</a>
+					{% endif %}
+					{% endif %}
 
 					<hr />
 					<p>
@@ -71,5 +110,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% if not saml_registration %}
 <script src="/js/teacher/teacher-registration.js" type="module"></script>
+{% endif %}
 {% endblock %}

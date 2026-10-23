@@ -26,7 +26,7 @@ test('front page login button opens the teacher login page', async ({ page }) =>
 test('teacher login page offers account and organization sign-in sections', async ({ page }) => {
   await page.goto('/teacher-login');
 
-  await expect(page.locator('#account-login-heading')).toHaveText('Sign in with your account');
+  await expect(page.locator('#account-login-heading')).toHaveText('Sign in with your Parsons Code Lab account');
   await expect(page.locator('#username')).toBeVisible();
   await expect(page.locator('#password')).toBeVisible();
   await expect(page.locator('#institution-login-heading')).toHaveText('Sign in with your organization');

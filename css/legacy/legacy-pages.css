@@ -19,6 +19,7 @@
 .title-main { margin: 0; }
 .register-row { margin-top: 1rem; }
 .register-title { text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.3), 0 8px 20px rgba(100,120,255,.25); }
+.teacher-login-title { text-shadow: none; }
 .mistake-block { margin: 1rem 0; }
 .mistake-label { font-weight: 600; margin-bottom: .5rem; color: #333; }
 .mistake-code { background: #f8f9fa; padding: 1rem; border-radius: 4px; border-left: 4px solid #dc3545; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: .9rem; line-height: 1.5; margin: 0; }

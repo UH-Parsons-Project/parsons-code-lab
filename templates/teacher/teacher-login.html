@@ -15,14 +15,14 @@
 <main class="container">
   <div class="row justify-content-center register-row">
     <div class="col-md-6">
-      <h2 class="mb-4 register-title">Teacher Login</h2>
+      <h2 class="mb-4 register-title teacher-login-title">Teacher Login</h2>
       <p class="text-danger">
         If you are a student, you can't log in here. Your teacher will share a link where you can log in before joining the task set.
       </p>
       <p>Choose how you want to sign in to Parsons Code Lab.</p>
 
-      <section class="mb-4" aria-labelledby="institution-login-heading">
-        <h2 id="institution-login-heading" class="h4">Sign in with your organization</h2>
+      <section class="mb-5" aria-labelledby="institution-login-heading">
+        <h2 id="institution-login-heading" class="h4 mt-4">Sign in with your organization</h2>
         {% if saml_enabled %}
         <a class="btn btn-primary btn-block" href="/auth/saml/login" id="saml-login-btn" style="background-color: #107eab; border-color: #107eab; color: #fff;">
           Sign in with University of Helsinki
@@ -36,7 +36,7 @@
       </section>
 
       <section aria-labelledby="account-login-heading">
-        <h2 id="account-login-heading" class="h4">Sign in with your account</h2>
+        <h2 id="account-login-heading" class="h4">Sign in with your Parsons Code Lab account</h2>
         <div id="error-message" class="text-danger mb-3" style="display: none;" role="alert"></div>
         <form id="login-form" class="d-flex flex-column">
           <div class="form-group">

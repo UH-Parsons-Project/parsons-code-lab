@@ -163,6 +163,73 @@ class TestStaticPages:
     async def test_teacher_register_page_returns_200(self, client):
         assert (await client.get("/teacher-register")).status_code == 200
 
+    async def test_teacher_login_page_labels_account_sign_in_clearly(self, client):
+        response = await client.get("/teacher-login")
+
+        assert response.status_code == 200
+        assert (
+            'id="account-login-heading" class="h4">Sign in with your Parsons Code Lab account</h2>'
+            in response.text
+        )
+
+    async def test_teacher_registration_offers_saml_when_enabled(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+
+        response = await client.get("/teacher-registration")
+
+        assert response.status_code == 200
+        assert 'href="/auth/saml/login"' in response.text
+        assert "Register with Helsinki University credentials" in response.text
+
+    async def test_saml_registration_prefills_verified_identity(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+
+        response = await client.get(
+            "/auth/saml/login",
+            headers={
+                "Shib-Session-ID": "_session",
+                "mail": "newteacher@example.edu",
+                "uid": "newteacher",
+            },
+        )
+
+        assert response.status_code == 200
+        assert 'action="/auth/saml/login"' in response.text
+        assert 'value="newteacher" readonly' in response.text
+        assert 'value="newteacher@example.edu" readonly' in response.text
+        assert 'name="registration_token"' in response.text
+        assert 'name="password"' not in response.text
+        assert "This Helsinki University account is not registered with Parsons Code Lab yet." in response.text
+        assert 'class="alert alert-danger" role="alert"' in response.text
+
+    async def test_saml_registration_creates_account_with_valid_token(
+        self, client, monkeypatch, registration_token, db_session
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+
+        response = await client.post(
+            "/auth/saml/login",
+            headers={
+                "Shib-Session-ID": "_session",
+                "mail": "newteacher@example.edu",
+                "uid": "newteacher",
+            },
+            data={"registration_token": registration_token},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/teacher-dashboard"
+        teacher = await db_session.scalar(
+            select(Teacher).where(Teacher.email == "newteacher@example.edu")
+        )
+        assert teacher is not None
+        assert teacher.username == "newteacher"
+
     async def test_student_start_task_unauthenticated_redirects(self, client):
         r = await client.get("/student-start-task", follow_redirects=False)
         assert r.status_code == 303
@@ -2179,4 +2246,3 @@ class TestStaticFilesMounting:
             assert "/data" in mounted_paths
         
         importlib.reload(main_module)
-
