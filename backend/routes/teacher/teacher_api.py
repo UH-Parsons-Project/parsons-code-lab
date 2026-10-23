@@ -18,7 +18,13 @@ from ... import config
 from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user, render_template
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
-from ...saml_auth import require_saml, shibboleth_identity, shibboleth_login_url
+from ...saml_auth import (
+    has_shibboleth_session,
+    require_saml,
+    shibboleth_identity,
+    shibboleth_login_url,
+    shibboleth_logout_url,
+)
 
 router = APIRouter()
 
@@ -187,9 +193,12 @@ async def get_current_user_info(current_user: CurrentUser):
 
 
 @router.post("/api/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
     response.delete_cookie(key="access_token", path="/")
-    return {"message": "Successfully logged out"}
+    result = {"message": "Successfully logged out"}
+    if has_shibboleth_session(request):
+        result["logout_url"] = shibboleth_logout_url()
+    return result
 
 
 @router.post("/api/teacher_register")
