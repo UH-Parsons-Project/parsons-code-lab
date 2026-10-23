@@ -102,7 +102,7 @@ export async function loginTeacher(page, username, password) {
     await page.goto('about:blank');
   }
 
-  await page.goto('/');
+  await page.goto('/teacher-login');
   await page.waitForSelector('#login-form', { state: 'visible', timeout: 10000 });
 
   const usernameInput = page.locator('#login-form #username');
@@ -113,7 +113,7 @@ export async function loginTeacher(page, username, password) {
   await passwordInput.fill(password);
 
   await Promise.all([
-    page.waitForURL(/\/teacher-dashboard$|\/$/, { timeout: 15000 }).catch(() => null),
+    page.waitForURL(/\/teacher-dashboard$|\/teacher-login$/, { timeout: 15000 }).catch(() => null),
     page.locator('#login-btn').click(),
   ]);
 }

@@ -8,17 +8,13 @@
     </span>
   </div>
   <div class="ml-auto d-flex align-items-center" id="auth-section">
-{% if not request or not request.url or request.url.path not in ['/teacher-registration', '/student-registration', '/teacher-register', '/student-register'] %}
-    <form class="form-inline" id="login-form">
-      <div id="error-message" class="text-danger mr-2" style="display: none;"></div>
-      <input class="form-control mr-2" type="text" id="username" placeholder="Username or email" aria-label="Username or email" required>
-      <input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
-      <button class="btn btn-outline-dark btn-sm mr-2" id="login-btn" type="submit">Login</button>
+{% if not request or not request.url or request.url.path not in ['/teacher-login', '/teacher-registration', '/student-registration', '/teacher-register', '/student-register'] %}
+    <div class="form-inline" id="login-form">
+      <a class="btn btn-outline-dark btn-sm mr-2" id="login-btn" href="/teacher-login">Login</a>
       <a class="btn btn-outline-dark btn-sm mr-2" id="forgot-password-btn" href="/contact">Forgot password?</a>
-      {% if saml_enabled %}<a class="btn btn-outline-dark btn-sm mr-2" href="/auth/saml/login" id="saml-login-btn">HY Login</a>{% endif %}
-      <button class="btn btn-outline-dark btn-sm mr-2" id="register-btn" type="button">Register</button>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="register-btn" href="/teacher-registration">Register</a>
       <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
-    </form>
+    </div>
 {% endif %}
     <div id="user-info" class="align-items-center text-dark" style="display: none;">
       <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">

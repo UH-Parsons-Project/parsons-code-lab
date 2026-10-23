@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Login - Parsons Code Lab{% endblock %}
+
+{% block navigation %}
+  {% include 'common/nav-teacher.html' %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/js-parsons/parsons.css" />
+<link rel="stylesheet" href="/css/legacy/legacy-pages.css" />
+{% endblock %}
+
+{% block content %}
+<main class="container">
+  <div class="row justify-content-center register-row">
+    <div class="col-md-6">
+      <h2 class="mb-4 register-title teacher-login-title">Teacher Login</h2>
+      <p class="text-danger">
+        If you are a student, you can't log in here. Your teacher will share a link where you can log in before joining the task set.
+      </p>
+      <p>Choose how you want to sign in to Parsons Code Lab.</p>
+
+      <section class="mb-5" aria-labelledby="account-login-heading">
+        <h2 id="account-login-heading" class="h4 mt-4">Sign in with your Parsons Code Lab account</h2>
+        <div id="error-message" class="text-danger mb-3" style="display: none;" role="alert"></div>
+        <form id="login-form" class="d-flex flex-column">
+          <div class="form-group">
+            <label for="username">Username or email</label>
+            <input class="form-control" type="text" id="username" name="username" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input class="form-control" type="password" id="password" name="password" autocomplete="current-password" required>
+          </div>
+          <button class="btn btn-primary" id="login-btn" type="submit">Login</button>
+        </form>
+      </section>
+
+      <section aria-labelledby="institution-login-heading">
+        <h2 id="institution-login-heading" class="h4">Sign in with your organization</h2>
+        {% if saml_enabled %}
+        <a class="btn btn-primary btn-block" href="/auth/saml/login" id="saml-login-btn" style="background-color: #107eab; border-color: #107eab; color: #fff;">
+          Sign in with University of Helsinki
+        </a>
+        <p class="mt-2">
+          <a href="https://helpdesk.it.helsinki.fi/en/logging-and-connections/user-account/user-accounts-and-passwords" target="_blank" rel="noopener noreferrer">More information about University of Helsinki accounts</a>
+        </p>
+        {% else %}
+        <p class="text-muted">Organization sign-in is not configured yet.</p>
+        {% endif %}
+      </section>
+
+      <p class="mt-4">Don't have an account? <a href="/teacher-registration">Register</a></p>
+      <p>Forgot your password? <a href="/contact">Contact us</a></p>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { initLoginPage, initBurgerMenu } from '/js/core/auth-ui.js';
+  initLoginPage();
+  initBurgerMenu();
+</script>
+{% endblock %}

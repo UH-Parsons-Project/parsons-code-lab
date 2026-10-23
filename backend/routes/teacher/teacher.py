@@ -60,6 +60,12 @@ async def teacher_selector(
     return await _render_teacher_page(request, db, "teacher/teacher-dashboard.html")
 
 
+@router.get("/teacher-login", response_class=HTMLResponse)
+async def teacher_login_page(request: Request):
+    """Serve the teacher sign-in page."""
+    return render_template("teacher/teacher-login.html", request)
+
+
 @router.get("/teacher/profile", response_class=HTMLResponse)
 async def teacher_profile_page(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
