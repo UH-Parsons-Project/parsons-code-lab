@@ -636,6 +636,14 @@ h3.mb-3 {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.overview-view-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .6rem;
+  flex: 0 0 auto;
+}
+
 .observer-mode-toggle {
   display: inline-flex;
   align-items: center;
@@ -650,6 +658,10 @@ h3.mb-3 {
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+}
+
+.overview-view-controls .observer-mode-toggle {
+  align-self: stretch;
 }
 
 .observer-mode-toggle input {
