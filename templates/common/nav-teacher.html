@@ -1,11 +1,17 @@
 <nav class="navbar">
-  <div class="d-flex align-items-center">
-    <a href="/teacher-dashboard" class="title-logo-link">
-      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
-    </a>
-    <span class="ml-3 d-none d-md-inline" style="font-size: 1.2rem; color: #0056b3; white-space: nowrap; border-left: 3px solid #0056b3; padding-left: 1rem;">
-      <i class="fas fa-chalkboard-teacher"></i> <strong>Teacher Dashboard</strong>
+<div class="d-flex align-items-center">
+  <a href="/teacher-dashboard"
+    class="title-logo-link d-flex align-items-center"
+    style="text-decoration: none;">
+    <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+
+    <span
+      class="ml-3 d-none d-md-inline"
+      style="font-size: 1.2rem; color: #0056b3; white-space: nowrap; border-left: 3px solid #0056b3; padding-left: 1rem;">
+      <i class="fas fa-chalkboard-teacher"></i>
+      <strong>Teacher Dashboard</strong>
     </span>
+  </a>
   </div>
   <div class="ml-auto d-flex align-items-center" id="auth-section">
 {% if not request or not request.url or request.url.path not in ['/teacher-login', '/teacher-registration', '/student-registration', '/teacher-register', '/student-register'] %}
