@@ -158,9 +158,9 @@ probEl.setAttribute('name', isIndentWarmup ? 'demo-indent' : 'demo-print-order')
 probEl.setAttribute(
 	'taskInstructions',
 	isIndentWarmup
-		? '<div>Arrange the code blocks to make an <code>if</code> statement with an indented <code>print</code> line. The program should produce this output:</div>' +
+		? '<div>In Python, indentation means moving a line of code to the right. It shows which lines belong inside a statement, such as an <code>if</code> statement. Arrange the code blocks so that the <code>print</code> line is indented one level under <code>if True:</code>, so that the program returns the expected output:</div>' +
 			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">The line is indented.</pre>' +
-			'<div class="demo-info-note"><em>Indent the print line under the if statement.</em></div>'
+			'<div class="demo-info-note"><em>Drag the <code>print</code> block below <code>if True:</code> and move it one level to the right.</em></div>'
 		: '<div>Arrange the two print statements so the program produces this output:</div>' +
 			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>'
 );
