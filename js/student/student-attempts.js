@@ -93,7 +93,7 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks, task
 		</button>
 		` : ''}
 	</div>
-	${taskSetName ? `<div class="sa-taskset-info"><i class="fas fa-tasks mr-2"></i><strong>Task Set:</strong> ${escapeHtml(taskSetName)}</div>` : ''}
+	${taskSetName ? `<div class="taskset-chip"><span class="taskset-from">Task set</span><a class="taskset-name" id="task-set-overview-link" href="/task-set-overview?set_id=${encodeURIComponent(setId)}">${escapeHtml(taskSetName)}</a></div>` : ''}
 	<p class="text-muted">All tasks in this task set and student progress</p>
 	`;
 	bindRemoveStudentButton();

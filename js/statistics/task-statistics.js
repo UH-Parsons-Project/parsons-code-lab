@@ -424,7 +424,10 @@ async function loadStatistics() {
 	const taskName = data.task_name || '—';
 	document.getElementById('exercise-name').textContent = taskName;
 	const tasksetNameEl = document.getElementById('taskset-name-label');
-	if (tasksetNameEl) tasksetNameEl.textContent = data.task_set_name || task_setCode || 'Task set';
+	if (tasksetNameEl) {
+		tasksetNameEl.textContent = data.task_set_name || task_setCode || 'Task set';
+		if (setId) tasksetNameEl.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
+	}
 	if (privateBadgeSlot) {
 		privateBadgeSlot.innerHTML = '';
 		if (isPrivateTask(data)) {
