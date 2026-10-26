@@ -51,7 +51,9 @@ function renderHeader(data) {
 	document.getElementById('content-header').style.display = 'flex';
 	document.getElementById('exercise-name').textContent = data.task_name || '—';
 	document.getElementById('student-name-text').textContent = studentDisplayName;
-	if (data.task_set_name) document.getElementById('taskset-name-label').textContent = data.task_set_name;
+	const taskSetName = document.getElementById('taskset-name-label');
+	if (data.task_set_name) taskSetName.textContent = data.task_set_name;
+	taskSetName.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
 
 	const backBtn = document.getElementById('back-btn');
 	if (backBtn) {
