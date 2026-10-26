@@ -1,7 +1,11 @@
 import { escapeHtml } from '../utils/ui-utils.js';
 import { fetchJsonWithError } from '../utils/api-utils.js';
+import { getStudentDisplayName } from '../utils/student-display.js';
 
 let heatmapSetId = null;
+let hmTasks = null;
+let hmStudents = null;
+let hmTaskSet = null;
 
 // ─── Heatmap helpers ───────────────────────────────────────────────────────
 function daysAgo(isoString) {
@@ -52,13 +56,14 @@ let hmTtVisible = false;
 function hmShowTooltip(e, student, taskIdx, tasks) {
 	const cell = student.cells[taskIdx];
 	const task = tasks[taskIdx];
+	const displayName = getStudentDisplayName(student, heatmapSetId);
 	const sm   = STATUS_LABELS[cell.status];
 	const days = daysAgo(cell.last_active_at);
 	const lastStr = days === null ? '—' : days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`;
 	const attStr  = cell.attempts > 0 ? `${cell.attempts} attempt${cell.attempts !== 1 ? 's' : ''}` : 'No attempts yet';
 
 	hmTooltip.innerHTML = `
-		<div class="tt-header">${escapeHtml(student.username)}</div>
+		<div class="tt-header">${escapeHtml(displayName)}</div>
 		<div class="tt-status-row">
 			<span class="tt-dot" style="background:${sm.color}"></span>
 			<span class="tt-status-label">${sm.label}</span>
@@ -221,6 +226,7 @@ function hmRenderTable(tasks, students, taskSet) {
 
 	let tbody = '<tbody>';
 	sorted.forEach(student => {
+		const displayName = getStudentDisplayName(student, heatmapSetId);
 		const doneCount = student.cells.filter(c => c.status === 'completed').length;
 		const ratio     = tasks.length > 0 ? doneCount / tasks.length : 0;
 		const pct       = Math.round(ratio * 100);
@@ -232,7 +238,7 @@ function hmRenderTable(tasks, students, taskSet) {
 
 		tbody += `<tr class="hm-student-row">`;
 		tbody += `<td class="hm-student-td">
-			<a class="hm-student-link" href="/student-attempts?student_id=${encodeURIComponent(student.id)}&student=${encodeURIComponent(student.username)}&set_id=${heatmapSetId}">${escapeHtml(student.username)}</a>
+			<a class="hm-student-link" href="/student-attempts?student_id=${encodeURIComponent(student.id)}&student=${encodeURIComponent(displayName)}&set_id=${heatmapSetId}">${escapeHtml(displayName)}</a>
 			${badgeHTML}
 		</td>`;
 
@@ -242,7 +248,7 @@ function hmRenderTable(tasks, students, taskSet) {
 			if (cell.status === 'completed') inner = '<i class="fas fa-check" style="font-size:.62rem;"></i>';
 			else if (cell.attempts > 0)      inner = String(cell.attempts);
 
-			tbody += `<td class="hm-cell-td" data-student="${escapeHtml(student.username)}" data-task-idx="${ti}">
+			tbody += `<td class="hm-cell-td" data-student-id="${student.id}" data-task-idx="${ti}">
 				<div class="hm-cell-inner ${stClass}">${inner}</div>
 			</td>`;
 		});
@@ -267,18 +273,19 @@ function hmRenderTable(tasks, students, taskSet) {
 
 	table.querySelectorAll('.hm-cell-td').forEach(td => {
 		td.addEventListener('mouseenter', e => {
-			const s  = sorted.find(st => st.username === td.dataset.student);
+			const s  = sorted.find(st => String(st.id) === td.dataset.studentId);
 			const ti = parseInt(td.dataset.taskIdx);
 			if (s) hmShowTooltip(e, s, ti, tasks);
 		});
 		td.addEventListener('mousemove', e => { if (hmTtVisible) hmPositionTooltip(e); });
 		td.addEventListener('mouseleave', hmHideTooltip);
 		td.addEventListener('click', () => {
-			const s  = sorted.find(st => st.username === td.dataset.student);
+			const s  = sorted.find(st => String(st.id) === td.dataset.studentId);
 			const ti = parseInt(td.dataset.taskIdx);
 			if (s) {
+				const displayName = getStudentDisplayName(s, heatmapSetId);
 				window.location.href =
-					`/student-task-statistics?student_id=${encodeURIComponent(s.id)}&student=${encodeURIComponent(s.username)}&task_id=${tasks[ti].id}&set_id=${heatmapSetId}`;
+					`/student-task-statistics?student_id=${encodeURIComponent(s.id)}&student=${encodeURIComponent(displayName)}&task_id=${tasks[ti].id}&set_id=${heatmapSetId}`;
 			}
 		});
 	});
@@ -290,6 +297,9 @@ export async function loadHeatmap(taskSet, setId) {
 	try {
 		const heatmap = await fetchJsonWithError(`/api/my_sets/${setId}/heatmap`, 'Failed to load heatmap data');
 		const { tasks, students } = heatmap;
+		hmTasks = tasks;
+		hmStudents = students;
+		hmTaskSet = taskSet;
 
 		hmRenderControls(tasks, students, () => hmRenderTable(tasks, students, taskSet));
 		hmRenderLegend();
@@ -305,4 +315,9 @@ export async function loadHeatmap(taskSet, setId) {
 			</div>
 		`;
 	}
+}
+
+export function refreshHeatmap() {
+	if (!hmTasks || !hmStudents || !hmTaskSet) return;
+	hmRenderTable(hmTasks, hmStudents, hmTaskSet);
 }

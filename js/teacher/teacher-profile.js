@@ -1,5 +1,6 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { formatDate, showAlert } from '../utils/ui-utils.js';
+import { fetchJsonWithError } from '../utils/api-utils.js';
 
 // Enforce authentication check, display username/role in navbar, initialize hamburger menu
 initProtectedPage('/');
@@ -24,13 +25,10 @@ const passwordAlertPlaceholder = document.getElementById('password-alert-placeho
 // Load teacher profile data
 async function loadProfile() {
 	try {
-		const res = await fetch('/api/teacher/profile', {credentials: 'include'});
-		if (!res.ok) {
-			console.error('Failed to fetch profile', res.status);
-			return;
-		}
-
-		const data = await res.json();
+		const data = await fetchJsonWithError(
+			'/api/teacher/profile',
+			'Failed to fetch profile',
+		);
 
 		// Set profile details displays
 		if (profileUsernameEl) profileUsernameEl.textContent = data.username;

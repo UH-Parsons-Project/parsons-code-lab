@@ -2,6 +2,7 @@ import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, formatTime } from '../utils/ui-utils.js';
 import { openTaskPreview, setupPreviewModalClose } from '../task/task-preview.js';
+import { getStudentDisplayName } from '../utils/student-display.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
@@ -327,9 +328,12 @@ function renderSidebarSection(listEl, names, urlFn) {
 		const url = urlFn ? urlFn(n) : null;
 		const tag = url ? 'a' : 'div';
 		const href = url ? ` href="${url}"` : '';
+		const displayName = setId
+			? getStudentDisplayName({ id: n.id, username: n.name }, setId)
+			: n.name;
 		return `
 		<${tag} class="sidebar-row"${href}>
-			<span class="sidebar-row-name">${escapeHtml(n.name)}</span>
+			<span class="sidebar-row-name">${escapeHtml(displayName)}</span>
 			<span class="sidebar-row-meta">${escapeHtml(n.meta)}</span>
 		</${tag}>`;
 	}).join('');
@@ -347,10 +351,10 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 	document.getElementById('sidebar-not-started-count').textContent = notStarted;
 
 	const taskStatsUrl = (taskId && setId)
-		? n => `/student-task-statistics?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(n.name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
+		? n => `/student-task-statistics?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(getStudentDisplayName({ id: n.id, username: n.name }, setId))}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 	const attemptsUrl = setId
-		? n => `/student-attempts?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(n.name)}&set_id=${encodeURIComponent(setId)}`
+		? n => `/student-attempts?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(getStudentDisplayName({ id: n.id, username: n.name }, setId))}&set_id=${encodeURIComponent(setId)}`
 		: null;
 
 	renderSidebarSection(

@@ -1,10 +1,12 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs/promises';
 import {
   registerTeacher,
   loginTeacher,
   createTaskSetWithTasks,
   createTestStudent,
+  registerStudent,
   loginStudent,
   getStudentUrl,
 } from './test-helpers.js';
@@ -74,12 +76,10 @@ test('heatmap shows enrolled student row', async ({ page, browser }) => {
 
   const studentUsername = `st_hm_${unique % 1000000000}`;
   const studentEmail = `st_hm_${unique}@example.com`;
-  await createTestStudent(page, studentUsername, studentEmail);
-
   const studentCtx = await browser.newContext();
   const studentPage = await studentCtx.newPage();
   await studentPage.goto(studentUrl);
-  await loginStudent(studentPage, studentEmail);
+  await registerStudent(studentPage, studentUsername, studentEmail);
   await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
   await studentCtx.close();
 
@@ -88,6 +88,62 @@ test('heatmap shows enrolled student row', async ({ page, browser }) => {
   await navigateToHeatmap(page, taskSetTitle);
 
   await expect(page.locator('.hm-student-link', { hasText: studentUsername })).toBeVisible();
+});
+
+test('observer mode anonymizes overview and heatmap consistently', async ({ page, browser }) => {
+  const unique = Date.now();
+  const { taskSetTitle } = await setupTeacherWithTaskSet(page, unique);
+  const studentUrl = await getStudentUrl(page, taskSetTitle);
+
+  const studentUsername = `st_observer_${unique % 1000000000}`;
+  const studentEmail = `st_observer_${unique}@example.com`;
+
+  const studentCtx = await browser.newContext();
+  const studentPage = await studentCtx.newPage();
+  await studentPage.goto(studentUrl);
+  await registerStudent(studentPage, studentUsername, studentEmail);
+  await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
+  await studentCtx.close();
+
+  await page.goto('/teacher-dashboard');
+  await page.waitForSelector('.task-set-title', { timeout: 10000 });
+  await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+  await page.waitForSelector('#observer-mode-toggle', { timeout: 10000 });
+
+  const realStudentName = await page.locator('.student-name').first().textContent();
+  await page.locator('label[for="observer-mode-toggle"]').click();
+  await expect(page.locator('#observer-mode-toggle')).toBeChecked();
+  await expect(page.locator('#students-list')).not.toContainText(studentUsername);
+
+  const displayName = await page.locator('.student-name').first().textContent();
+  expect(displayName).toBeTruthy();
+  expect(displayName).not.toBe(studentUsername);
+
+  await page.locator('#toggle-heatmap').click();
+  await page.waitForSelector('#hm-table', { timeout: 10000 });
+  await expect(page.locator('#hm-table')).not.toContainText(studentUsername);
+  await expect(page.locator('.hm-student-link').first()).toHaveText(displayName);
+
+  await page.locator('label[for="observer-mode-toggle"]').click();
+  await expect(page.locator('#observer-mode-toggle')).not.toBeChecked();
+  await expect(page.locator('.hm-student-link').first()).toHaveText(realStudentName);
+
+  await page.locator('label[for="observer-mode-toggle"]').click();
+  await expect(page.locator('#observer-mode-toggle')).toBeChecked();
+  await expect(page.locator('.hm-student-link').first()).toHaveText(displayName);
+
+  await page.locator('#toggle-lists').click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#download-task-set-teacher-csv-btn').click();
+  const download = await downloadPromise;
+  const csv = await fs.readFile(await download.path(), 'utf8');
+  expect(csv).not.toContain(studentUsername);
+  expect(csv).not.toContain(studentEmail);
+  expect(csv).toContain(displayName);
+
+  await page.reload();
+  await page.waitForSelector('#observer-mode-toggle', { timeout: 10000 });
+  await expect(page.locator('#observer-mode-toggle')).toBeChecked();
 });
 
 test('heatmap shows in_progress cell after student attempts a task', async ({ page, browser }) => {

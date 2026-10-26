@@ -134,19 +134,11 @@ function renderTasks() {
 async function loadData() {
 	try {
 		// 1. Fetch users, all tasksets, and tasks
-		const [usersRes, setsRes, tasksRes] = await Promise.all([
-			fetch('/api/admin/users', { credentials: 'include' }),
-			fetch('/api/all-tasksets', { credentials: 'include' }),
-			fetch('/api/tasks', { credentials: 'include' })
+		const [allUsers, allSets, allTasks] = await Promise.all([
+			fetchJsonWithError('/api/admin/users', 'Failed to load users'),
+			fetchJsonWithError('/api/all-tasksets', 'Failed to load task sets'),
+			fetchJsonWithError('/api/tasks', 'Failed to load tasks'),
 		]);
-
-		if (!usersRes.ok || !setsRes.ok || !tasksRes.ok) {
-			throw new Error('Failed to load details from the database.');
-		}
-
-		const allUsers = await usersRes.json();
-		const allSets = await setsRes.json();
-		const allTasks = await tasksRes.json();
 
 		// 2. Find teacher details
 		const teacher = allUsers.find(u => u.role === 'teacher' && u.id === teacherId);
@@ -185,3 +177,4 @@ setsSearchInput.addEventListener('input', renderTaskSets);
 tasksSearchInput.addEventListener('input', renderTasks);
 
 loadData();
+import { fetchJsonWithError } from '../utils/api-utils.js';

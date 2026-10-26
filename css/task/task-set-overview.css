@@ -636,6 +636,81 @@ h3.mb-3 {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.overview-view-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .6rem;
+  flex: 0 0 auto;
+}
+
+.observer-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: .55rem;
+  min-height: 44px;
+  padding: .55rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.overview-view-controls .observer-mode-toggle {
+  align-self: stretch;
+}
+
+.observer-mode-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.observer-mode-toggle-track {
+  position: relative;
+  width: 2.15rem;
+  height: 1.2rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background .15s ease;
+}
+
+.observer-mode-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.2rem - 4px);
+  height: calc(1.2rem - 4px);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow);
+  transition: transform .15s ease;
+}
+
+.observer-mode-toggle input:checked + .observer-mode-toggle-track {
+  background: var(--brand-dark);
+}
+
+.observer-mode-toggle input:checked + .observer-mode-toggle-track::after {
+  transform: translateX(.95rem);
+}
+
+.observer-mode-toggle input:focus-visible + .observer-mode-toggle-track {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.observer-mode-toggle-label {
+  font-size: .78rem;
+  font-weight: 700;
+}
+
 /* ══════════════════════════════════════════════════════════════
    HEATMAP  (heatmap.html / heatmap.js)
    All classes prefixed hm- to avoid collisions with overview CSS

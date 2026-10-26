@@ -31,15 +31,22 @@
     <div id="content-container" style="display: none;">
 
       <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:space-between; margin-bottom:2rem; align-items:flex-start;">
-        <div class="view-toggle-control" id="view-toggle-container" style="margin-bottom:0;">
-          <div class="toggle-segment active" data-value="lists" id="toggle-lists" role="button" tabindex="0">
-            <span class="segment-title">Tasks & Students</span>
-            <span class="segment-desc">Task list and student cards</span>
+        <div class="overview-view-controls">
+          <div class="view-toggle-control" id="view-toggle-container" style="margin-bottom:0;">
+            <div class="toggle-segment active" data-value="lists" id="toggle-lists" role="button" tabindex="0">
+              <span class="segment-title">Tasks & Students</span>
+              <span class="segment-desc">Task list and student cards</span>
+            </div>
+            <div class="toggle-segment" data-value="heatmap" id="toggle-heatmap" role="button" tabindex="0">
+              <span class="segment-title">Completion Heatmap</span>
+              <span class="segment-desc">Student × task matrix</span>
+            </div>
           </div>
-          <div class="toggle-segment" data-value="heatmap" id="toggle-heatmap" role="button" tabindex="0">
-            <span class="segment-title">Completion Heatmap</span>
-            <span class="segment-desc">Student × task matrix</span>
-          </div>
+          <label class="observer-mode-toggle" for="observer-mode-toggle">
+            <input type="checkbox" id="observer-mode-toggle">
+            <span class="observer-mode-toggle-track" aria-hidden="true"></span>
+            <span class="observer-mode-toggle-label">Anonymous Mode</span>
+          </label>
         </div>
         <div id="stats-container" style="flex: 1 1 540px;"></div>
       </div>

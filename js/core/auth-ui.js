@@ -292,7 +292,12 @@ export function initLoginPage() {
 				await fetch('/api/student_logout', {method: 'POST'});
 				localStorage.removeItem('nickname');
 			} else {
-				await fetch('/api/logout', {method: 'POST'});
+				const logoutUrl = await teacherLogout();
+				if (logoutUrl) {
+					clearAuth();
+					window.location.href = logoutUrl;
+					return;
+				}
 			}
 			clearAuth();
 			showLoginForm();
@@ -386,8 +391,12 @@ export async function initProtectedPage(loginPageUrl = '/') {
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', async function () {
 			// Call logout endpoint to clear cookie
-			await fetch('/api/logout', {method: 'POST'});
+			const logoutUrl = await teacherLogout();
 			clearAuth();
+			if (logoutUrl) {
+				window.location.href = logoutUrl;
+				return;
+			}
 
 			// Hide user info elements immediately
 			const userInfo = document.getElementById('user-info');
@@ -445,8 +454,12 @@ export async function displayAuthStatus() {
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', async function () {
 			// Call logout endpoint to clear cookie
-			await fetch('/api/logout', {method: 'POST'});
+			const logoutUrl = await teacherLogout();
 			clearAuth();
+			if (logoutUrl) {
+				window.location.href = logoutUrl;
+				return;
+			}
 			window.location.reload();
 		});
 	}
@@ -545,6 +558,20 @@ export async function initSignedInAs({
 		if (loginForm) loginForm.style.display = 'none';
 	} else {
 		if (userInfoEl) userInfoEl.style.display = 'none';
+	}
+}
+
+/**
+ * Log out the teacher locally. Returns the SAML single logout URL when the
+ * session came from Shibboleth, otherwise null.
+ */
+async function teacherLogout() {
+	try {
+		const response = await fetch('/api/logout', {method: 'POST'});
+		const data = await response.json();
+		return data.logout_url || null;
+	} catch {
+		return null;
 	}
 }
 

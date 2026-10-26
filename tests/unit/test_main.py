@@ -28,7 +28,20 @@ import utils as utils
 import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
-from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem, TaskSetViewer, RegistrationToken
+from backend.models import (
+    Parsons,
+    Student,
+    StudentTaskSetEnrollment,
+    Teacher,
+    TaskAttempt,
+    TaskSet,
+    StudentTaskEnrollment,
+    TaskSession,
+    TaskSetItem,
+    TaskSetViewer,
+    TeacherPinnedTaskSet,
+    RegistrationToken,
+)
 from backend.utils import hash_token
 
 
@@ -149,6 +162,76 @@ class TestStaticPages:
 
     async def test_teacher_register_page_returns_200(self, client):
         assert (await client.get("/teacher-register")).status_code == 200
+
+    async def test_teacher_login_page_labels_account_sign_in_clearly(self, client):
+        response = await client.get("/teacher-login")
+
+        assert response.status_code == 200
+        assert (
+            'id="account-login-heading" class="h4 mt-4">Sign in with your Parsons Code Lab account</h2>'
+            in response.text
+        )
+        assert response.text.index('id="account-login-heading"') < response.text.index(
+            'id="institution-login-heading"'
+        )
+
+    async def test_teacher_registration_offers_saml_when_enabled(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+
+        response = await client.get("/teacher-registration")
+
+        assert response.status_code == 200
+        assert 'href="/auth/saml/login"' in response.text
+        assert "Register with Helsinki University credentials" in response.text
+
+    async def test_saml_registration_prefills_verified_identity(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+
+        response = await client.get(
+            "/auth/saml/login",
+            headers={
+                "Shib-Session-ID": "_session",
+                "mail": "newteacher@example.edu",
+                "uid": "newteacher",
+            },
+        )
+
+        assert response.status_code == 200
+        assert 'action="/auth/saml/login"' in response.text
+        assert 'value="newteacher" readonly' in response.text
+        assert 'value="newteacher@example.edu" readonly' in response.text
+        assert 'name="registration_token"' in response.text
+        assert 'name="password"' not in response.text
+        assert "This Helsinki University account is not registered with Parsons Code Lab yet." in response.text
+        assert 'class="alert alert-danger" role="alert"' in response.text
+
+    async def test_saml_registration_creates_account_with_valid_token(
+        self, client, monkeypatch, registration_token, db_session
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+
+        response = await client.post(
+            "/auth/saml/login",
+            headers={
+                "Shib-Session-ID": "_session",
+                "mail": "newteacher@example.edu",
+                "uid": "newteacher",
+            },
+            data={"registration_token": registration_token},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/teacher-dashboard"
+        teacher = await db_session.scalar(
+            select(Teacher).where(Teacher.email == "newteacher@example.edu")
+        )
+        assert teacher is not None
+        assert teacher.username == "newteacher"
 
     async def test_student_start_task_unauthenticated_redirects(self, client):
         r = await client.get("/student-start-task", follow_redirects=False)
@@ -370,6 +453,17 @@ class TestLogout:
         r = await client.post("/api/logout")
         assert r.status_code == 200
         assert "logged out" in r.json()["message"].lower()
+        assert "logout_url" not in r.json()
+
+    async def test_shibboleth_session_returns_slo_url(self, client, monkeypatch):
+        from backend import config
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        r = await client.post("/api/logout", headers={"Shib-Session-ID": "abc"})
+        assert r.status_code == 200
+        assert r.json()["logout_url"] == (
+            "/Shibboleth.sso/Logout?return="
+            "https%3A%2F%2Flogin.helsinki.fi%2Fidp%2Fprofile%2FLogout"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -714,7 +808,8 @@ class TestGetProblemsetTasks:
                     {"id": "block_2", "code": "print(___)", "indent": 0, "faded": True, "given": False},
                 ]
             },
-            correct_solution={"solution": [], "require_indentation": True},
+            correct_solution={"solution": [], "require_indentation": False},
+            faded=True,
             is_public=True,
         )
         db_session.add(task)
@@ -743,7 +838,8 @@ class TestGetProblemsetTasks:
                     {"id": "block_2", "code": "print('world')", "indent": 0, "given": False},
                 ]
             },
-            correct_solution={"solution": [], "require_indentation": False},
+            correct_solution={"solution": [], "require_indentation": True},
+            faded=False,
             is_public=True,
         )
         db_session.add(task)
@@ -1495,6 +1591,46 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert matching["task_count"] == 1
         assert matching["student_count"] == 1
 
+    async def test_my_sets_puts_expired_sets_last_but_keeps_pinned_sets_first(
+        self, client, test_teacher, task_set, db_session
+    ):
+        active_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Active Set",
+            unique_link_code="ACTIVE",
+        )
+        expired_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Expired Set",
+            unique_link_code="EXPIRED",
+            expires_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        )
+        pinned_expired_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Pinned Expired Set",
+            unique_link_code="PINNED_EXPIRED",
+            expires_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        )
+        db_session.add_all([active_set, expired_set, pinned_expired_set])
+        await db_session.flush()
+        db_session.add(
+            TeacherPinnedTaskSet(
+                teacher_id=test_teacher.id,
+                task_set_id=pinned_expired_set.id,
+            )
+        )
+        await db_session.commit()
+
+        r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
+
+        assert r.status_code == 200
+        assert [item["unique_link_code"] for item in r.json()] == [
+            "PINNED_EXPIRED",
+            "ACTIVE",
+            "WEEK1",
+            "EXPIRED",
+        ]
+
     async def test_student_register_success_and_duplicate_rejected(self, client):
         payload = {
             "username": "studentx",
@@ -2124,5 +2260,3 @@ class TestStaticFilesMounting:
             assert "/data" in mounted_paths
         
         importlib.reload(main_module)
-
-

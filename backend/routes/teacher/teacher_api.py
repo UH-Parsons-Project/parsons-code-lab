@@ -18,7 +18,13 @@ from ... import config
 from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user, render_template
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
-from ...saml_auth import require_saml, shibboleth_identity, shibboleth_login_url
+from ...saml_auth import (
+    has_shibboleth_session,
+    require_saml,
+    shibboleth_identity,
+    shibboleth_login_url,
+    shibboleth_logout_url,
+)
 
 router = APIRouter()
 
@@ -28,6 +34,27 @@ async def _get_saml_identity_or_redirect(request: Request):
     if identity is None:
         return None, RedirectResponse(shibboleth_login_url())
     return identity, None
+
+
+def _render_saml_registration(
+    request: Request,
+    email: str,
+    username: str,
+    *,
+    registration_error: bool = False,
+    status_code: int = 200,
+):
+    return render_template(
+        "teacher/teacher-registration.html",
+        request,
+        status_code=status_code,
+        context={
+            "saml_registration": True,
+            "registration_error": registration_error,
+            "registration_email": email,
+            "registration_username": username,
+        },
+    )
 
 
 @router.get("/auth/saml/login")
@@ -44,11 +71,7 @@ async def saml_login(
     result = await db.execute(select(Teacher).where(Teacher.email.ilike(email)))
     user = result.scalar_one_or_none()
     if user is None:
-        return render_template(
-            "teacher/saml-registration.html",
-            request,
-            context={"registration_error": False},
-        )
+        return _render_saml_registration(request, email, username)
     return await _complete_saml_login(user)
 
 
@@ -75,11 +98,12 @@ async def saml_register(
         )
         valid_token = token_result.scalar_one_or_none()
         if not valid_token or valid_token.is_expired():
-            return render_template(
-                "teacher/saml-registration.html",
+            return _render_saml_registration(
                 request,
+                email,
+                username,
+                registration_error=True,
                 status_code=403,
-                context={"registration_error": True},
             )
 
         user = Teacher(username=username[:100], email=email)
@@ -169,9 +193,12 @@ async def get_current_user_info(current_user: CurrentUser):
 
 
 @router.post("/api/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
     response.delete_cookie(key="access_token", path="/")
-    return {"message": "Successfully logged out"}
+    result = {"message": "Successfully logged out"}
+    if has_shibboleth_session(request):
+        result["logout_url"] = shibboleth_logout_url()
+    return result
 
 
 @router.post("/api/teacher_register")
