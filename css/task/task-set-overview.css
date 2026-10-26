@@ -467,6 +467,55 @@ h3.mb-3 {
 .task-stat-loading { font-size: .75rem; color: var(--gray); font-style: italic; }
 
 /* ── Student card ────────────────────────────────────── */
+.student-list-controls {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  margin: 0 0 .85rem;
+  padding: .75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.student-filter-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.student-filter-group legend,
+.student-sort-control label {
+  width: 100%;
+  margin: 0 0 .35rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.student-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+}
+.student-filter-options .custom-control {
+  min-height: 1.35rem;
+  padding-left: 1.5rem;
+  font-size: .78rem;
+}
+.student-sort-control {
+  max-width: 300px;
+}
+.student-sort-control label {
+  display: block;
+}
+.student-sort-select {
+  border-color: var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+}
+.student-sort-select:focus {
+  border-color: var(--brand-dark);
+  box-shadow: 0 0 0 .2rem rgba(82, 99, 204, .15);
+}
 .students-list { display: flex; flex-direction: column; gap: .5rem; }
 .student-item {
   background: var(--card);
