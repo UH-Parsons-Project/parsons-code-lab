@@ -106,6 +106,19 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     await page.waitForSelector('#students-list', { timeout: 10000 });
     const studentItem = page.locator('.student-item', { hasText: studentUsername });
     await expect(studentItem).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#student-sort')).toHaveValue('completed-desc');
+    await expect(page.locator('.student-status-filter[value="all"]')).toBeChecked();
+
+    await page.locator('.student-status-filter[value="no-attempts"]').check();
+    await expect(page.locator('#student-count')).toHaveText('0');
+    await expect(page.locator('#students-list')).toContainText('No students match the selected filters.');
+
+    await page.locator('.student-status-filter[value="no-completions"]').check();
+    await expect(page.locator('#student-count')).toHaveText('1');
+    await expect(studentItem).toBeVisible();
+
+    await page.locator('.student-status-filter[value="all"]').check();
+    await expect(page.locator('#student-count')).toHaveText('1');
     await studentItem.click();
 
     // 3. Teacher lands on student attempts page (/student-attempts?student_id=...)
