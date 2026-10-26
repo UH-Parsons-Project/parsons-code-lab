@@ -1594,20 +1594,25 @@ function renderStudents(students, tasks) {
 }
 
 function setupStudentListControls() {
-	const allFilter = document.querySelector('.student-status-filter[value="all"]');
-	document.querySelectorAll('.student-status-filter').forEach(input => {
-		input.addEventListener('change', () => {
-			if (input === allFilter && input.checked) {
-				document.querySelectorAll('.student-status-filter:not([value="all"])')
-					.forEach(filter => { filter.checked = false; });
-			} else if (input !== allFilter && input.checked && allFilter) {
-				allFilter.checked = false;
-			}
-			renderStudents(currentStudents, currentTasks);
-		});
-	});
+	const controls = document.querySelector('.student-list-controls');
+	if (!controls) return;
 
-	document.getElementById('student-sort')?.addEventListener('change', () => {
+	controls.addEventListener('change', event => {
+		const target = event.target;
+		if (!(target instanceof HTMLInputElement) || !target.matches('.student-status-filter')) {
+			if (target instanceof HTMLSelectElement && target.id === 'student-sort') {
+				renderStudents(currentStudents, currentTasks);
+			}
+			return;
+		}
+
+		const allFilter = controls.querySelector('.student-status-filter[value="all"]');
+		if (target === allFilter && target.checked) {
+			controls.querySelectorAll('.student-status-filter:not([value="all"])')
+				.forEach(filter => { filter.checked = false; });
+		} else if (target.checked && allFilter) {
+			allFilter.checked = false;
+		}
 		renderStudents(currentStudents, currentTasks);
 	});
 }
