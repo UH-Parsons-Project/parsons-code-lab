@@ -121,12 +121,12 @@ test.describe('Task URL resilience and Task Reordering', () => {
     await studentPage.reload();
     await studentPage.waitForSelector('.task-set-item', { timeout: 10000 });
     
-    // Note: nth(0) is the demo task "Hello, stranger!"
-    const studentFirstTaskTitle = await studentPage.locator('.task-set-item').nth(1).locator('.task-set-title').innerText();
-    expect(studentFirstTaskTitle.trim()).toBe('greater_num');
-    
-    const studentSecondTaskTitle = await studentPage.locator('.task-set-item').nth(2).locator('.task-set-title').innerText();
-    expect(studentSecondTaskTitle.trim()).toBe('add_in_range');
+    // Ignore the optional warm-up cards and verify the reordered exercises by title.
+    const studentExerciseTitles = studentPage
+      .locator('.task-set-item .task-set-title')
+      .filter({ hasText: /^(greater_num|add_in_range)$/ });
+    await expect(studentExerciseTitles.nth(0)).toHaveText('greater_num');
+    await expect(studentExerciseTitles.nth(1)).toHaveText('add_in_range');
 
     await teacherContext.close();
     await studentContext.close();

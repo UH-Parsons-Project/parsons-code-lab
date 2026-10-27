@@ -269,10 +269,12 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     await loginStudent(studentPage, studentEmail);
     await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
 
-    // Verify student sees tasks in the NEW order (nth(0) is the optional warm-up demo task "Hello, stranger!")
-    const studentTaskTitles = studentPage.locator('.task-set-item .task-set-title');
-    await expect(studentTaskTitles.nth(1)).toHaveText('greater_num');
-    await expect(studentTaskTitles.nth(2)).toHaveText('add_in_range');
+    // Ignore the optional warm-up cards and verify the reordered exercises by title.
+    const studentExerciseTitles = studentPage
+      .locator('.task-set-item .task-set-title')
+      .filter({ hasText: /^(greater_num|add_in_range)$/ });
+    await expect(studentExerciseTitles.nth(0)).toHaveText('greater_num');
+    await expect(studentExerciseTitles.nth(1)).toHaveText('add_in_range');
 
     await studentContext.close();
   });

@@ -112,8 +112,8 @@ test('student can navigate back to task list and see in-progress status', async 
   // Verify student is redirected to task list
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
-  // Verify task list is displayed with tasks
-  await expect(studentPage.locator('.task-set-item')).toHaveCount(3); // 2 tasks created (add_in_range, greater_num) + demo task
+  // Verify task list is displayed with the two exercises and both optional warm-ups
+  await expect(studentPage.locator('.task-set-item')).toHaveCount(4);
   await expect(studentPage.locator('.task-set-item', { hasText: 'add_in_range' })).toBeVisible();
   await expect(studentPage.locator('.task-set-item', { hasText: 'greater_num' })).toBeVisible();
 
