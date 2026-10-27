@@ -42,6 +42,14 @@
   font-size: 0.78rem;
   color: var(--brand-text);
   font-weight: 700;
+  text-decoration: none;
+}
+.taskset-name:link,
+.taskset-name:visited,
+.taskset-name:hover,
+.taskset-name:focus {
+  color: var(--brand-text);
+  text-decoration: none;
 }
 .page-title {
   font-size: 1.65rem;

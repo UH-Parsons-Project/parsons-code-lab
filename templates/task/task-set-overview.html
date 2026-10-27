@@ -8,7 +8,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="/js-parsons/parsons.css">
-<link rel="stylesheet" href="/css/task/task-set-overview.css?v=3">
+<link rel="stylesheet" href="/css/task/task-set-overview.css?v=5">
 <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
 {% endblock %}
 
@@ -66,6 +66,39 @@
 
         <div class="right-panel">
           <h3 class="mb-3">Students <span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:.9rem;">(<span id="student-count">—</span>)</span></h3>
+          <div class="student-list-controls">
+            <fieldset class="student-filter-group">
+              <legend>Show</legend>
+              <div class="student-filter-options">
+                <div class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input student-status-filter" id="student-filter-no-attempts" value="no-attempts">
+                  <label class="custom-control-label" for="student-filter-no-attempts">No tasks attempted</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input student-status-filter" id="student-filter-no-completions" value="no-completions">
+                  <label class="custom-control-label" for="student-filter-no-completions">No attempted tasks completed</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input student-status-filter" id="student-filter-all-completed" value="all-completed">
+                  <label class="custom-control-label" for="student-filter-all-completed">All tasks completed</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input student-status-filter" id="student-filter-all" value="all" checked>
+                  <label class="custom-control-label" for="student-filter-all">All</label>
+                </div>
+              </div>
+            </fieldset>
+            <div class="student-sort-control">
+              <label for="student-sort">Sort by:</label>
+              <select id="student-sort" class="form-control form-control-sm student-sort-select">
+                <option value="attempts-asc">Least attempts</option>
+                <option value="attempts-desc">Most attempts</option>
+                <option value="completed-asc">Least completed tasks</option>
+                <option value="completed-desc" selected>Most completed tasks</option>
+                <option value="unfinished-desc">Most unfinished tasks</option>
+              </select>
+            </div>
+          </div>
           <div id="students-list"></div>
         </div>
 
@@ -289,5 +322,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
 <script src="/js/lib/jquery.ui.touch-punch.js"></script>
 <script src="/js-parsons/parsons.js"></script>
-<script type="module" src="/js/task/task-set-overview.js"></script>
+<script type="module" src="/js/task/task-set-overview.js?v=student-list-controls-1"></script>
 {% endblock %}

@@ -19,7 +19,11 @@
   padding: .22rem .7rem .22rem .5rem; margin-bottom: .5rem;
 }
 .taskset-from { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--brand-text); }
-.taskset-name { font-size: 0.78rem; font-weight: 700; color: var(--brand-text); }
+.taskset-name { font-size: 0.78rem; font-weight: 700; color: var(--brand-text); text-decoration: none; }
+.taskset-name:link,
+.taskset-name:visited,
+.taskset-name:hover,
+.taskset-name:focus { color: var(--brand-text); text-decoration: none; }
 .taskset-code { font-family: var(--mono); font-size: 0.7rem; background: rgba(255,255,255,0.45); color: var(--brand-text); padding: .05rem .4rem; border-radius: 1rem; font-weight: 600; }
 .page-title { font-size: 1.65rem; font-weight: 800; color: var(--text); font-family: var(--mono); letter-spacing: -0.02em; }
 .page-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: .25rem; }

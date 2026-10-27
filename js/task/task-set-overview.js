@@ -1503,27 +1503,118 @@ function createStudentItem(student, tasks) {
 	return item;
 }
 
+function getStudentTaskProgress(student, tasks) {
+	let attemptedTasks = 0;
+	let totalAttempts = 0;
+	let completedTasks = 0;
+	let unfinishedTasks = 0;
+	let activeTaskCount = 0;
+
+	tasks.forEach((task, index) => {
+		if (task.is_hidden) return;
+		activeTaskCount += 1;
+
+		const attempts = student.task_attempts?.[index] ?? 0;
+		const completed = Boolean(student.task_completion_flags?.[index]);
+		const started = student.task_started_flags?.[index] === 1 || attempts > 0;
+
+		if (attempts > 0) attemptedTasks += 1;
+		totalAttempts += attempts;
+		if (completed) completedTasks += 1;
+		else if (started) unfinishedTasks += 1;
+	});
+
+	return { attemptedTasks, totalAttempts, completedTasks, unfinishedTasks, activeTaskCount };
+}
+
+function getStudentStatusFilters() {
+	return [...document.querySelectorAll('.student-status-filter:checked')]
+		.map(input => input.value);
+}
+
+function filterAndSortStudents(students, tasks) {
+	const selectedFilters = getStudentStatusFilters();
+	const sortOrder = document.getElementById('student-sort')?.value || 'completed-desc';
+
+	const matchingStudents = students
+		.map(student => ({ student, progress: getStudentTaskProgress(student, tasks) }))
+		.filter(({ progress }) => {
+			if (selectedFilters.includes('all')) return true;
+			if (selectedFilters.length === 0) return false;
+
+			return selectedFilters.some(filter => {
+				if (filter === 'no-attempts') return progress.attemptedTasks === 0;
+				if (filter === 'no-completions') {
+					return progress.attemptedTasks > 0 && progress.completedTasks === 0;
+				}
+				if (filter === 'all-completed') {
+					return progress.activeTaskCount > 0 && progress.completedTasks >= progress.activeTaskCount;
+				}
+				return false;
+			});
+		});
+
+	const [sortMetric, sortDirection] = sortOrder.split('-');
+	const direction = sortDirection === 'asc' ? 1 : -1;
+	matchingStudents.sort((studentA, studentB) => {
+		const metric = sortMetric === 'attempts'
+			? 'totalAttempts'
+			: sortMetric === 'unfinished' ? 'unfinishedTasks' : 'completedTasks';
+		return (studentA.progress[metric] - studentB.progress[metric]) * direction;
+	});
+
+	return matchingStudents.map(({ student }) => student);
+}
+
 function renderStudents(students, tasks) {
 	const studentsList = document.getElementById('students-list');
+	studentsList.className = 'students-list';
+	const visibleStudents = filterAndSortStudents(students, tasks);
 
 	// Update student count
-	updateStudentCount(students.length);
+	updateStudentCount(visibleStudents.length);
 
-	if (students.length === 0) {
-	studentsList.innerHTML = `
+	if (visibleStudents.length === 0) {
+		const message = students.length === 0
+			? 'No students have enrolled in this task set yet.'
+			: 'No students match the selected filters.';
+		studentsList.innerHTML = `
 		<div class="empty-state">
 		<i class="fas fa-user-slash"></i>
-		<h4>No Students Yet</h4>
-		<p>No students have enrolled in this task set yet.</p>
+		<h4>${students.length === 0 ? 'No Students Yet' : 'No Matching Students'}</h4>
+		<p>${message}</p>
 		</div>
 	`;
 	} else {
-	studentsList.innerHTML = '';
-	studentsList.className = 'students-list';
-	students.forEach(student => {
-		studentsList.appendChild(createStudentItem(student, tasks));
-	});
+		studentsList.innerHTML = '';
+		visibleStudents.forEach(student => {
+			studentsList.appendChild(createStudentItem(student, tasks));
+		});
 	}
+}
+
+function setupStudentListControls() {
+	const controls = document.querySelector('.student-list-controls');
+	if (!controls) return;
+
+	controls.addEventListener('change', event => {
+		const target = event.target;
+		if (!(target instanceof HTMLInputElement) || !target.matches('.student-status-filter')) {
+			if (target instanceof HTMLSelectElement && target.id === 'student-sort') {
+				renderStudents(currentStudents, currentTasks);
+			}
+			return;
+		}
+
+		const allFilter = controls.querySelector('.student-status-filter[value="all"]');
+		if (target === allFilter && target.checked) {
+			controls.querySelectorAll('.student-status-filter:not([value="all"])')
+				.forEach(filter => { filter.checked = false; });
+		} else if (target.checked && allFilter) {
+			allFilter.checked = false;
+		}
+		renderStudents(currentStudents, currentTasks);
+	});
 }
 
 function updateStudentCount(count) {
@@ -1571,6 +1662,7 @@ fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
 		currentStudents = students;
 		renderListHeader(taskSet, tasks, students);
 		renderTasks(tasks, taskSet);
+		setupStudentListControls();
 		renderStudents(students, tasks);
 		setupEditTasksButton(taskSet);
 		setupPreviewModalClose();

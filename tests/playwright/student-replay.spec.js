@@ -106,11 +106,29 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     await page.waitForSelector('#students-list', { timeout: 10000 });
     const studentItem = page.locator('.student-item', { hasText: studentUsername });
     await expect(studentItem).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#student-sort')).toHaveValue('completed-desc');
+    await expect(page.locator('.student-status-filter[value="all"]')).toBeChecked();
+
+    await page.locator('label[for="student-filter-no-attempts"]').click();
+    await expect(page.locator('#student-count')).toHaveText('0');
+    await expect(page.locator('#students-list')).toContainText('No students match the selected filters.');
+
+    await page.locator('label[for="student-filter-no-completions"]').click();
+    await expect(page.locator('#student-count')).toHaveText('1');
+    await expect(studentItem).toBeVisible();
+
+    await page.locator('label[for="student-filter-all"]').click();
+    await expect(page.locator('#student-count')).toHaveText('1');
     await studentItem.click();
 
     // 3. Teacher lands on student attempts page (/student-attempts?student_id=...)
     await page.waitForURL(/\/student-attempts\?/, { timeout: 15000 });
     await page.waitForSelector('#attempts-container', { timeout: 15000 });
+    const studentAttemptsSetId = new URL(page.url()).searchParams.get('set_id');
+    await expect(page.locator('#task-set-overview-link')).toHaveAttribute(
+      'href',
+      `/task-set-overview?set_id=${studentAttemptsSetId}`
+    );
 
     // Click on the task item for add_in_range
     const taskItem = page.locator('.task-set-item', { hasText: 'add_in_range' });
@@ -120,6 +138,13 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     // 4. Teacher lands on student task statistics page (/student-task-statistics?...)
     await page.waitForURL(/\/student-task-statistics\?/, { timeout: 15000 });
     await page.waitForSelector('#content-container', { timeout: 15000 });
+    const statisticsParams = new URL(page.url()).searchParams;
+    const taskSetId = statisticsParams.get('set_id');
+    const taskId = statisticsParams.get('task_id');
+    await expect(page.locator('#taskset-name-label')).toHaveAttribute(
+      'href',
+      `/task-set-overview?set_id=${taskSetId}`
+    );
 
     // Verify Header & KPI strip
     await expect(page.locator('#exercise-name')).toContainText('add_in_range');
@@ -160,5 +185,16 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     // Test Slider Scrubber is enabled
     const slider = page.locator('#replay-slider');
     await expect(slider).toBeEnabled();
+
+    const taskSetResponse = await page.request.get(`/api/my_sets/${taskSetId}`);
+    expect(taskSetResponse.ok()).toBeTruthy();
+    const taskSet = await taskSetResponse.json();
+    await page.goto(
+      `/task-statistics?id=${taskId}&task_set=${encodeURIComponent(taskSet.unique_link_code)}&set_id=${taskSetId}`
+    );
+    await expect(page.locator('#taskset-name-label')).toHaveAttribute(
+      'href',
+      `/task-set-overview?set_id=${taskSetId}`
+    );
   });
 });
