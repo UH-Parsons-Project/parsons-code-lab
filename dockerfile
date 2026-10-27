@@ -1,8 +1,11 @@
-FROM node:24
+FROM node:24.22.1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip python3-venv && \
+    apt-get install -y --only-upgrade libbrotli1 libbrotli-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment outside the bind-mounted application directory.
 RUN python3 -m venv /opt/venv
