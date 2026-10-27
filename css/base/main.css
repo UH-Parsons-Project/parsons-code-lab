@@ -171,6 +171,14 @@ a:focus {
   text-decoration: underline;
 }
 
+.filter-panel-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem;
+  box-shadow: var(--shadow);
+}
+
 a.btn,
 a.btn:link,
 a.btn:visited,

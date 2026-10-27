@@ -467,16 +467,39 @@ h3.mb-3 {
 .task-stat-loading { font-size: .75rem; color: var(--gray); font-style: italic; }
 
 /* ── Student card ────────────────────────────────────── */
+.student-filter-menu .nav-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .45rem .9rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: .875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.student-filter-menu .nav-link-btn:link,
+.student-filter-menu .nav-link-btn:visited {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.student-filter-menu .nav-link-btn:hover,
+.student-filter-menu .nav-link-btn:focus {
+  background: var(--bg);
+  border-color: var(--gray);
+  color: var(--text);
+  text-decoration: none;
+}
 .student-list-controls {
   display: flex;
   flex-direction: column;
   gap: .75rem;
   margin: 0 0 .85rem;
-  padding: .75rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
 }
 .student-filter-group {
   margin: 0;
@@ -488,8 +511,9 @@ h3.mb-3 {
   width: 100%;
   margin: 0 0 .35rem;
   font-size: .82rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
+  opacity: 1;
 }
 .student-filter-options {
   display: flex;

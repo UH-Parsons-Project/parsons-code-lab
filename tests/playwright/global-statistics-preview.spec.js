@@ -24,6 +24,28 @@ test.describe('Task Database Browser & Quick Preview E2E', () => {
     await expect(emptyState).toContainText('Hover over a task to see a quick overview');
   });
 
+  test('selecting a tag immediately filters the task database list', async ({ page }) => {
+    await page.goto('/global-statistics');
+    await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
+    await page.locator('#task-filter-toggle').click();
+    await page.locator('#tagsDropdown').click();
+
+    const enabledTag = page.locator('#tags-list .tag-checkbox:not(:disabled)').first();
+    const tagValue = await enabledTag.getAttribute('value');
+    if (!tagValue) throw new Error('Enabled task tag did not have a value.');
+    await expect(page.locator(`#tags-list label[for="tag-${tagValue}"]`)).toBeVisible();
+    await page.locator(`#tags-list label[for="tag-${tagValue}"]`).click();
+
+    await expect(page.locator('#tags-dropdown-text')).toHaveText('1 tags selected');
+    const cards = page.locator('#problems-list .task-set-item');
+    await expect(cards.first()).toBeVisible();
+    const cardCount = await cards.count();
+    for (let index = 0; index < cardCount; index++) {
+      const taskType = await cards.nth(index).locator('.task-type-badge').innerText();
+      expect(taskType.toLowerCase()).toContain(tagValue.toLowerCase());
+    }
+  });
+
   test('task list cards feature creation date next to title, popping type badge, and borderless star button', async ({ page }) => {
     await page.goto('/global-statistics');
     await page.waitForSelector('#problems-list .task-set-item', { timeout: 15000 });
@@ -310,6 +332,3 @@ test.describe('Task Database Browser & Quick Preview E2E', () => {
     await expect(teacherCheckbox).not.toBeChecked();
   });
 });
-
-
-
