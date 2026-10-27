@@ -1594,10 +1594,17 @@ function renderStudents(students, tasks) {
 }
 
 function setupStudentListControls() {
-	const controls = document.querySelector('.student-list-controls');
-	if (!controls) return;
+	const toggleButton = document.getElementById('student-filter-toggle');
+	const filterPanel = document.getElementById('student-filter-panel');
+	if (!toggleButton || !filterPanel) return;
 
-	controls.addEventListener('change', event => {
+	toggleButton.addEventListener('click', () => {
+		const isExpanded = filterPanel.classList.contains('show');
+		filterPanel.classList.toggle('show', !isExpanded);
+		toggleButton.setAttribute('aria-expanded', String(!isExpanded));
+	});
+
+	filterPanel.addEventListener('change', event => {
 		const target = event.target;
 		if (!(target instanceof HTMLInputElement) || !target.matches('.student-status-filter')) {
 			if (target instanceof HTMLSelectElement && target.id === 'student-sort') {
@@ -1606,9 +1613,9 @@ function setupStudentListControls() {
 			return;
 		}
 
-		const allFilter = controls.querySelector('.student-status-filter[value="all"]');
+		const allFilter = filterPanel.querySelector('.student-status-filter[value="all"]');
 		if (target === allFilter && target.checked) {
-			controls.querySelectorAll('.student-status-filter:not([value="all"])')
+			filterPanel.querySelectorAll('.student-status-filter:not([value="all"])')
 				.forEach(filter => { filter.checked = false; });
 		} else if (target.checked && allFilter) {
 			allFilter.checked = false;

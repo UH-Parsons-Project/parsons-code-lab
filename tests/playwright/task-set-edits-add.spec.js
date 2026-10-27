@@ -65,8 +65,8 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     await page.waitForSelector('#add-task-modal.show', { timeout: 10000 });
 
     // Expand the Search & Filter panel first (it's collapsed by default)
-    await page.locator('button.task-filter-toggle').click();
-    await page.waitForSelector('#task-filter-panel.show', { timeout: 5000 });
+    await page.locator('#add-task-modal .task-filter-toggle').click();
+    await page.waitForSelector('#add-task-modal #task-filter-panel.show', { timeout: 5000 });
 
     // Search for 'greater_num' task inside the modal
     await page.locator('#task-search').fill('greater_num');
@@ -144,8 +144,8 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     await page.waitForSelector('#add-task-modal.show', { timeout: 10000 });
 
     // Expand the Search & Filter panel first (it's collapsed by default)
-    await page.locator('button.task-filter-toggle').click();
-    await page.waitForSelector('#task-filter-panel.show', { timeout: 5000 });
+    await page.locator('#add-task-modal .task-filter-toggle').click();
+    await page.waitForSelector('#add-task-modal #task-filter-panel.show', { timeout: 5000 });
 
     await page.locator('#task-search').fill('greater_num');
     await page.waitForSelector('#task-selector .task-item', { timeout: 10000 });

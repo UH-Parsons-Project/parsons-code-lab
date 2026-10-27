@@ -198,7 +198,6 @@ test.describe('Task Set Creation Validation & Features', () => {
     if (enabledCount > 0) {
       const tagValue = await enabledCheckboxes.first().getAttribute('value');
       await page.locator(`#tags-list label[for="tag-${tagValue}"]`).click();
-      await page.locator('#apply-tags-btn').click();
 
       // Verify filtered tasks only contain tasks matching the tag
       const filteredTasks = page.locator('.task-item');

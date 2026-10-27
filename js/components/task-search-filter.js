@@ -97,12 +97,13 @@ export class TaskSearchFilter {
         this.container.innerHTML = `
             <div class="task-filter-menu mb-4">
                 <button
-                    class="btn btn-outline-secondary task-filter-toggle"
+                    class="btn nav-link-btn task-filter-toggle"
                     id="task-filter-toggle"
                     type="button"
                     aria-expanded="false"
+                    aria-controls="task-filter-panel"
                 >
-                    <i class="fas fa-bars"></i> Search & Filter
+                    <i class="fas fa-filter"></i> Search & Filter
                 </button>
 
                 <div class="task-filter-panel collapse mt-2" id="task-filter-panel">
@@ -145,7 +146,6 @@ export class TaskSearchFilter {
                                         <div id="tags-list" class="mb-3">
                                             <!-- Tags injected here -->
                                         </div>
-                                        <button class="btn btn-primary btn-sm w-100" type="button" id="apply-tags-btn">Apply Tags</button>
                                     </div>
                                 </div>
                             </div>
@@ -160,7 +160,6 @@ export class TaskSearchFilter {
         this.searchInput = this.container.querySelector('#task-search') || this.container.querySelector('#universal-task-search');
         this.scopeCheckboxes = this.container.querySelectorAll('.filter-scope');
         this.tagsList = this.container.querySelector('#tags-list');
-        this.applyTagsBtn = this.container.querySelector('#apply-tags-btn');
         this.tagsDropdownText = this.container.querySelector('#tags-dropdown-text');
         
         const dropdownMenu = this.container.querySelector('.dropdown-menu');
@@ -256,7 +255,11 @@ export class TaskSearchFilter {
             });
         });
 
-        this.applyTagsBtn.addEventListener('click', () => {
+        this.tagsList.addEventListener('change', (event) => {
+            if (!(event.target instanceof HTMLInputElement) || !event.target.matches('.tag-checkbox')) {
+                return;
+            }
+
             const tagCheckboxes = this.container.querySelectorAll('.tag-checkbox:not(:disabled)');
             this.activeFilters.selectedTags.clear();
             tagCheckboxes.forEach(cb => {
@@ -266,16 +269,6 @@ export class TaskSearchFilter {
             });
             this.updateTagsDropdownText();
             this.applyFilters();
-            
-            const dropdownToggle = this.container.querySelector('#tagsDropdown');
-            const dropdownMenu = this.container.querySelector('.dropdown-menu');
-            const dropdownContainer = this.container.querySelector('#tags-dropdown-container');
-            
-            if (dropdownToggle && dropdownMenu && dropdownContainer) {
-                dropdownToggle.setAttribute('aria-expanded', 'false');
-                dropdownMenu.classList.remove('show');
-                dropdownContainer.classList.remove('show');
-            }
         });
     }
 

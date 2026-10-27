@@ -108,6 +108,8 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     await expect(studentItem).toBeVisible({ timeout: 10000 });
     await expect(page.locator('#student-sort')).toHaveValue('completed-desc');
     await expect(page.locator('.student-status-filter[value="all"]')).toBeChecked();
+    await page.locator('#student-filter-toggle').click();
+    await expect(page.locator('#student-filter-toggle')).toHaveAttribute('aria-expanded', 'true');
 
     await page.locator('label[for="student-filter-no-attempts"]').click();
     await expect(page.locator('#student-count')).toHaveText('0');

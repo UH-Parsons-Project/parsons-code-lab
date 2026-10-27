@@ -3,7 +3,7 @@ import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.j
 import { escapeHtml, showError } from '../utils/ui-utils.js';
 import { openTaskPreview, setupPreviewModalClose } from './task-preview.js';
 import { createAvailableTaskElement } from './task-helpers.js';
-import { TaskSearchFilter } from '../components/task-search-filter.js';
+import { TaskSearchFilter } from '../components/task-search-filter.js?v=tag-filter-1';
     initSignedInAs();
     initProtectedPage('/');
     initBurgerMenu();
@@ -591,4 +591,3 @@ function setupFormSubmission() {
 }
 
 document.addEventListener('DOMContentLoaded', initializePage);
-

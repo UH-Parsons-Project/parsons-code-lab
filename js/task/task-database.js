@@ -1,4 +1,4 @@
-import { TaskSearchFilter } from '../components/task-search-filter.js';
+import { TaskSearchFilter } from '../components/task-search-filter.js?v=tag-filter-1';
 import {initNavbarExercisesButton, initSignedInAs, initProtectedPage, initBurgerMenu} from '../core/auth-ui.js';
 import { isPrivateTask } from '../components/privacy-badge.js';
 import { formatDate, escapeHtml } from '../utils/ui-utils.js';
