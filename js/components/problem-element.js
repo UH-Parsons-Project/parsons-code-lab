@@ -410,6 +410,9 @@ export class ProblemElement extends LitElement {
 			trashId: this.starterRef.value,
 			containment: this.taskCardRef.value.querySelector('.card-body'),
 			can_indent: !!this.requireIndentation,
+			solution_label: this.requireIndentation
+				? undefined
+				: 'Construct your solution here',
 			onSortableUpdate: () => {
 				if (!pendingMove) {
 					return;

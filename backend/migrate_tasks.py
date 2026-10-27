@@ -228,13 +228,13 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         code_lines = yaml_data.get("code_lines", "")
         blocks, has_faded = parse_code_lines(code_lines)
 
-        # Load model answer code to reconstruct solution_code and set block indentations
-        model_answer_code = load_model_answer_file(task_name)
+        # Load the model answer to reconstruct solution_code and set block indentations.
+        model_answer_code = load_model_answer(task_name)
         if model_answer_code:
-            md_lines = [line for line in model_answer_code.split("\n") if line.strip()]
-            if len(blocks) == len(md_lines):
-                for block, md_line in zip(blocks, md_lines):
-                    indent_count = len(md_line) - len(md_line.lstrip())
+            answer_lines = [line for line in model_answer_code.split("\n") if line.strip()]
+            if len(blocks) == len(answer_lines):
+                for block, answer_line in zip(blocks, answer_lines):
+                    indent_count = len(answer_line) - len(answer_line.lstrip())
                     block["indent"] = indent_count // 4
 
         # Generate correct order based on block IDs
@@ -277,12 +277,12 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
                 if clean:
                     yaml_lines.append(clean)
 
-            md_lines = [line for line in model_answer_code.split("\n") if line.strip()]
+            answer_lines = [line for line in model_answer_code.split("\n") if line.strip()]
 
-            if len(yaml_lines) == len(md_lines):
+            if len(yaml_lines) == len(answer_lines):
                 result_lines = []
-                for yaml_line, md_line in zip(yaml_lines, md_lines):
-                    indent_count = len(md_line) - len(md_line.lstrip())
+                for yaml_line, answer_line in zip(yaml_lines, answer_lines):
+                    indent_count = len(answer_line) - len(answer_line.lstrip())
                     indent_spaces = " " * indent_count
                     result_lines.append(indent_spaces + yaml_line)
                 solution_code = "\n".join(result_lines)
@@ -347,8 +347,28 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         return None
 
 
+def load_model_answer(task_name: str) -> str | None:
+    """Load a YAML model answer, falling back to the legacy markdown file."""
+    yaml_path = PARSONS_PROBS_DIR / f"{task_name}.yaml"
+    if yaml_path.exists():
+        try:
+            with open(yaml_path, "r", encoding="utf-8") as f:
+                yaml_data = yaml.safe_load(f)
+            if isinstance(yaml_data, dict) and "model_answer" in yaml_data:
+                answer = yaml_data["model_answer"]
+                if answer is None:
+                    return None
+                if not isinstance(answer, str):
+                    raise ValueError("model_answer must be a string")
+                return answer.replace("\r\n", "\n").replace("\r", "\n").strip()
+        except Exception as e:
+            print(f"Error loading YAML model answer for {task_name}: {e}")
+
+    return load_model_answer_file(task_name)
+
+
 def load_model_answer_file(task_name: str) -> str | None:
-    """Load model answer code from a task markdown file if present."""
+    """Load model answer code from a legacy task markdown file if present."""
     md_path = PARSONS_PROBS_DIR / f"{task_name}.md"
 
     if not md_path.exists():
@@ -447,7 +467,7 @@ async def migrate_tasks():
         for task_name in task_names:
             print(f"\n  Processing: {task_name}...", end=" ")
 
-            model_answer_code = load_model_answer_file(task_name)
+            model_answer_code = load_model_answer(task_name)
 
             # Check if already exists
             if await task_exists(task_name):

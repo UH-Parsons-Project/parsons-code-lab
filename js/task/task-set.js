@@ -138,40 +138,54 @@ function createDemoSection() {
 	heading.textContent = 'Warm-up (optional)';
 	section.appendChild(heading);
 
-	const card = document.createElement('div');
-	card.className = 'task-set-item';
-	card.style.cssText = 'border-color: #ced4da; background: #f8f9fa;';
-	card.onclick = () => {
-		window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/demo`;
-	};
+	const warmups = [
+		{
+			title: 'Arrange two print lines',
+			description: 'Practice arranging code blocks to produce the right output',
+			url: `/${username}/set/${uniqueLinkCode}/tasks/demo`,
+		},
+		{
+			title: 'Indent one line',
+			description: 'Arrange an if statement and indent its print line',
+			url: `/${username}/set/${uniqueLinkCode}/tasks/demo?step=indent`,
+		},
+	];
 
-	const badge = document.createElement('div');
-	badge.className = 'task-set-item-number';
-	badge.style.background = '#adb5bd';
-	badge.textContent = '★';
-	card.appendChild(badge);
+	warmups.forEach(({ title: cardTitle, description, url }) => {
+		const card = document.createElement('div');
+		card.className = 'task-set-item';
+		card.style.cssText = 'border-color: #ced4da; background: #f8f9fa;';
+		const navigate = () => { window.location.href = url; };
+		card.onclick = navigate;
+		makeKeyActivatable(card, navigate);
 
-	const body = document.createElement('div');
-	body.className = 'task-set-item-body';
+		const badge = document.createElement('div');
+		badge.className = 'task-set-item-number';
+		badge.style.background = '#adb5bd';
+		badge.textContent = '★';
+		card.appendChild(badge);
 
-	const title = document.createElement('div');
-	title.className = 'task-set-title';
-	title.textContent = 'Hello, stranger!';
-	body.appendChild(title);
+		const body = document.createElement('div');
+		body.className = 'task-set-item-body';
 
-	const meta = document.createElement('div');
-	meta.className = 'task-set-meta';
-	meta.style.minHeight = '1.5rem';
-	meta.textContent = 'A short exercise to get familiar with the format';
-	body.appendChild(meta);
+		const title = document.createElement('div');
+		title.className = 'task-set-title';
+		title.textContent = cardTitle;
+		body.appendChild(title);
 
-	card.appendChild(body);
+		const meta = document.createElement('div');
+		meta.className = 'task-set-meta';
+		meta.style.minHeight = '1.5rem';
+		meta.textContent = description;
+		body.appendChild(meta);
 
-	const chevron = document.createElement('i');
-	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
-	card.appendChild(chevron);
+		card.appendChild(body);
 
-	section.appendChild(card);
+		const chevron = document.createElement('i');
+		chevron.className = 'fas fa-chevron-right task-set-item-chevron';
+		card.appendChild(chevron);
+		section.appendChild(card);
+	});
 
 	const divider = document.createElement('div');
 	divider.style.cssText = 'margin-top: 2rem; margin-bottom: 0.5rem; border-top: 1px solid #dee2e6;';

@@ -1,5 +1,4 @@
 import { initStudentLogout, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
-import { getUsername } from '../core/auth-utils.js';
 import {
 	prepareCode,
 	processTestResults,
@@ -13,6 +12,7 @@ initStudentLogout();
 
 const params = new URL(document.location).searchParams;
 let returnUrl = params.get('return') || null;
+const isIndentWarmup = params.get('step') === 'indent';
 
 if (!returnUrl) {
 	const pathParts = window.location.pathname.split('/').filter(p => p);
@@ -29,34 +29,26 @@ if (backBtn) {
 	backBtn.style.display = 'inline-block';
 }
 
-const FUNCTION_HEADER = 'def greet(name):\n    """\n    Returns a greeting for the given name.\n    """\n';
+const EXPECTED_OUTPUT = isIndentWarmup
+	? 'The line is indented.'
+	: 'Hello, World!\nWelcome to Parsons Code Lab!';
 
-const BLOCKS = [
-	{ id: 'block_1', code: 'def greet(name):', indent: 0, given: true },
-	{ id: 'block_2', code: 'if name == "":', indent: 1, given: false },
-	{ id: 'block_3', code: 'return "Hello, stranger!"', indent: 2, given: false },
-	{ id: 'block_4', code: 'else:', indent: 1, given: false },
-	{ id: 'block_5', code: 'return "Hello, " + name + "!"', indent: 2, given: false },
-];
+const BLOCKS = isIndentWarmup
+	? [
+		{ code: 'if True:', indent: 0, given: false },
+		{ code: 'print("The line is indented.")', indent: 0, given: false },
+	]
+	: [
+		{ code: 'print("Hello, World!")', indent: 0, given: false },
+		{ code: 'print("Welcome to Parsons Code Lab!")', indent: 0, given: false },
+	];
 
 function buildCodeLines(blocks) {
 	const lines = blocks.map((b) => {
 		const indent = '    '.repeat(b.indent);
 		return indent + b.code + (b.given ? ` #${b.indent}given` : '');
 	});
-	lines.push("print('DEBUG:', !BLANK)");
-	lines.push("print('DEBUG:', !BLANK)");
-	lines.push('# !BLANK');
-	lines.push('# !BLANK');
 	return lines.join('\n');
-}
-
-function buildTeacherTests() {
-	const username = localStorage.getItem('nickname') || getUsername();
-	const nameTest = username
-		? `assert greet("${username}") == "Hello, ${username}!"`
-		: `assert greet("World") == "Hello, World!"`;
-	return `${nameTest}\nassert greet("") == "Hello, stranger!"`;
 }
 
 // Instructions modal
@@ -78,23 +70,21 @@ modal.innerHTML = `
 		               font-size:1.4rem;line-height:1;cursor:pointer;color:#6c757d;"
 		        aria-label="Close">&times;</button>
 		<h5 style="margin-bottom:1.25rem;">How this exercise works</h5>
-		<p style="margin-bottom:0.5rem;"><strong>1. Drag the code blocks</strong></p>
+		<p style="margin-bottom:0.5rem;"><strong>1. ${isIndentWarmup ? 'Arrange the code blocks' : 'Drag the code blocks'}</strong></p>
 		<p style="margin-bottom:1rem;color:#495057;">
-			On the left you'll see shuffled code blocks. Drag them into the solution area
-			on the right. You can drag blocks to reorder them and to change their
-			indentation — for example, the body of an <code>if</code> statement needs
-			one extra indent.
+			${isIndentWarmup
+				? 'On the left you\'ll see an <code>if</code> line and a <code>print</code> line. Drag them into the solution area, then indent <code>print</code> under <code>if</code>.'
+				: 'On the left you\'ll see two shuffled <code>print</code> statements. Drag them into the solution area on the right in the order that produces the expected output.'}
 		</p>
-		<p style="margin-bottom:0.5rem;"><strong>2. Fill in the blanks</strong></p>
+		<p style="margin-bottom:0.5rem;"><strong>2. Run your solution</strong></p>
 		<p style="margin-bottom:1rem;color:#495057;">
-			Some blocks contain a blank field (<code>___</code>). Click on it and type
-			the missing piece of code directly in the block.
-		</p>
-		<p style="margin-bottom:0.5rem;"><strong>3. Run your solution</strong></p>
-		<p style="margin-bottom:1.5rem;color:#495057;">
 			When you are happy with the arrangement, click <strong>Run</strong>.
-			The result will tell you whether your solution is correct and show
-			which tests passed or failed.
+			The result will tell you whether the output is correct.
+		</p>
+		<p style="margin-bottom:1.5rem;color:#495057;">
+			${isIndentWarmup
+				? 'This warm-up practices arranging an <code>if</code> statement and indenting its <code>print</code> line.'
+				: 'No functions, conditions, or return statements are needed for this warm-up.'}
 		</p>
 		<button onclick="window.__closeDemoModal()"
 		        style="background:#007bff;color:#fff;border:none;border-radius:6px;
@@ -111,17 +101,17 @@ document.body.appendChild(modal);
 window.__openDemoModal = () => { modal.style.display = 'flex'; };
 window.__closeDemoModal = () => { modal.style.display = 'none'; };
 
-const LS_DEMO_REPR = 'demo-greet-repr';
+const LS_DEMO_REPR = isIndentWarmup ? 'demo-indent-repr-v2' : 'demo-print-order-repr';
 let probEl;
 
-async function handleSubmit(submittedCode, codeHeader) {
-	let testResults = prepareCode(submittedCode, codeHeader, buildTeacherTests());
+async function handleSubmit(submittedCode) {
+	let testResults = prepareCode(submittedCode, '', '', 'stdout');
 
 	if (testResults.code) {
 		try {
 			const { results, error } = await new FiniteWorker(testResults.code);
 			if (typeof results === 'string') {
-				testResults = processTestResults(results);
+				testResults = processTestResults(results, [], 'stdout', EXPECTED_OUTPUT);
 			} else {
 				testResults = processTestError(error, testResults.startLine);
 			}
@@ -163,18 +153,28 @@ async function handleSubmit(submittedCode, codeHeader) {
 }
 
 probEl = document.createElement('problem-element');
-probEl.setAttribute('name', 'demo-greet');
+probEl.setAttribute('name', isIndentWarmup ? 'demo-indent' : 'demo-print-order');
+
 probEl.setAttribute(
 	'taskInstructions',
-	'<div>Build a greeter function which returns a greeting with the name given or "Hello, stranger! if no name is given.</div><br><br><div class="demo-info-note"><em>You might not yet be familiar with all the programming concepts seen in this example. Do not worry if you can not solve the problem quite yet! You can still get familiar with the exercise area by just trying moving the blocks and running the tests.</em></div>'
+	isIndentWarmup
+		? '<div>In Python, indentation means moving a line of code to the right. It shows which lines belong inside a statement, such as an <code>if</code> statement. Arrange the code blocks so that the <code>print</code> line is indented one level under <code>if True:</code>, so that the program returns the expected output:</div>' +
+			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">The line is indented.</pre>' +
+			'<div class="demo-info-note"><em>Drag the <code>print</code> block below <code>if True:</code> and move it one level to the right.</em></div>'
+		: '<div>Arrange the two print statements so the program produces this output:</div>' +
+			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>'
 );
+
 probEl.setAttribute(
 	'description',
-	'A short warm-up exercise to get familiar with the format before starting the main tasks.'
+	isIndentWarmup
+		? 'A short warm-up exercise for arranging an if statement and indenting its print line.'
+		: 'A short warm-up exercise for arranging two print statements.'
 );
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
-probEl.setAttribute('codeHeader', FUNCTION_HEADER);
-probEl.setAttribute('requireIndentation', 'true');
+probEl.setAttribute('codeHeader', '');
+probEl.setAttribute('evalType', 'stdout');
+probEl.requireIndentation = isIndentWarmup;
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
 probEl.shuffleStarterBlocks = true;
 
@@ -188,7 +188,7 @@ if (savedArrangementJson) {
 }
 
 probEl.addEventListener('run', (e) => {
-	handleSubmit(e.detail.code, FUNCTION_HEADER);
+	handleSubmit(e.detail.code);
 });
 
 probEl.addEventListener('arrangement-changed', (e) => {
