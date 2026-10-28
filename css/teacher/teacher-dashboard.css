@@ -99,7 +99,7 @@
 }
 .empty-state p { font-size: .875rem; }
 
-/* ── Dashboard parallel layout ───────────────────────── */
+/* ── Parallel layout used on other teacher and admin pages ── */
 .parallel-layout {
   display: flex;
   gap: 1.5rem;
@@ -107,14 +107,55 @@
 }
 .parallel-col { flex: 1; min-width: 0; }
 
+/* ── Dashboard tabs ──────────────────────────────────── */
+.dashboard-tabs {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: .5rem;
+  flex-wrap: wrap;
+}
+.dashboard-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: .45rem .9rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.dashboard-tab-btn:hover {
+  background: var(--bg);
+  border-color: var(--gray);
+  color: var(--text);
+}
+.dashboard-tab-btn:focus-visible {
+  outline: 2px solid var(--brand-dark);
+  outline-offset: 2px;
+}
+.dashboard-tab-btn.active {
+  background: var(--brand);
+  border-color: var(--brand-dark);
+  color: var(--brand-text);
+  box-shadow: var(--shadow);
+}
+.dashboard-tab-panels { max-width: 960px; }
+.dashboard-tab-panel[hidden] { display: none; }
+
 /* ── Section create-button row ───────────────────────── */
 .section-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: .75rem;
 }
-.section-header-row h4 { margin: 0; }
 .section-create-btn {
   display: inline-flex;
   align-items: center;
@@ -358,8 +399,6 @@ a.btn-success.btn-block:hover {
   font-size: .82rem;
 }
 #all-sets-button:hover { background: #253080; border-color: #253080; }
-
-/* ── Your Tasks section ──────────────────────────────── */
 
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }

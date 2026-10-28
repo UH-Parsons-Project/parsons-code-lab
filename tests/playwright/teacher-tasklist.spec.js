@@ -2,6 +2,41 @@
 import { test, expect } from '@playwright/test';
 import { registerTeacher, loginTeacher, createTaskSet, logoutTeacher } from './test-helpers.js';
 
+test('teacher dashboard shows task sets and tasks in tabs with task sets selected by default', async ({ page }) => {
+  const unique = Date.now();
+  const email = `teacher_tabs_${unique}@example.com`;
+
+  await registerTeacher(page, `teacher_tabs_${unique}`, email, 'password123');
+  await loginTeacher(page, email, 'password123');
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  const taskSetsTab = page.getByRole('tab', { name: 'My Task Sets' });
+  const myTasksTab = page.getByRole('tab', { name: 'My Tasks' });
+  const taskSetsPanel = page.locator('#task-sets-panel');
+  const myTasksPanel = page.locator('#my-tasks-panel');
+
+  await expect(taskSetsTab).toHaveAttribute('aria-selected', 'true');
+  await expect(myTasksTab).toHaveAttribute('aria-selected', 'false');
+  await expect(taskSetsPanel).toBeVisible();
+  await expect(myTasksPanel).toBeHidden();
+  await expect(taskSetsPanel.getByRole('heading', { name: 'My Task Sets' })).toHaveCount(0);
+  await expect(taskSetsPanel.getByRole('link', { name: 'New Task Set' })).toBeVisible();
+
+  await taskSetsTab.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(myTasksTab).toBeFocused();
+  await expect(myTasksTab).toHaveAttribute('aria-selected', 'true');
+  await expect(myTasksPanel).toBeVisible();
+  await expect(taskSetsPanel).toBeHidden();
+  await expect(myTasksPanel.getByRole('heading', { name: 'My Tasks' })).toHaveCount(0);
+  await expect(myTasksPanel.getByRole('link', { name: 'New Task' })).toBeVisible();
+
+  await page.setViewportSize({ width: 375, height: 800 });
+  await expect(myTasksTab).toBeVisible();
+  await expect(myTasksPanel.getByRole('link', { name: 'New Task' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
 test('teacher can create a new task set by clicking "Create New Task Set"', async ({ page }) => {
   const unique = Date.now();
   const username = `teacher_${unique}`;
@@ -43,6 +78,7 @@ test('teacher can add a new task', async ({ page }) => {
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Click the "New Task" link and wait for navigation together
+  await page.getByRole('tab', { name: 'My Tasks' }).click();
   const newTaskLink = page.locator('a[href="/create-task"]');
   await expect(newTaskLink).toBeVisible();
   await expect(newTaskLink).toBeEnabled();

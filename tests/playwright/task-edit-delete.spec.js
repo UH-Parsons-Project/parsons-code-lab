@@ -96,6 +96,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await page.locator('#add-to-problem-list').click();
     await page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 });
 
+    await page.getByRole('tab', { name: 'My Tasks' }).click();
     await expect(page.locator('.task-set-title', { hasText: title })).toBeVisible({ timeout: 10000 });
 
     return title;
@@ -188,6 +189,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
 
     // Navigate back to teacher 1's dashboard
     await page.goto('/teacher-dashboard');
+    await page.getByRole('tab', { name: 'My Tasks' }).click();
 
     const taskCard = page.locator('.task-set-item', { hasText: title });
 
