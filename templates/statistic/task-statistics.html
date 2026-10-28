@@ -57,32 +57,40 @@
   <div class="page-content">
 
   <!-- Page header -->
-  <div class="page-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
-    <div>
+  <div class="page-header">
+    <div class="statistics-header-back">
       <a href="#" id="back-btn" class="embossed-btn">
         <i class="fas fa-arrow-left"></i> Back
       </a>
+      <div class="page-title statistics-page-heading">
+        <i class="fas fa-chart-line"></i> Task Analytics
+      </div>
     </div>
-    <div class="header-badge">Exercise Analytics</div>
-    <div style="display: flex; align-items: flex-start; justify-content: space-between; width: 100%;">
-      <div>
+    <div class="statistics-header-details">
+      <div class="statistics-header-primary">
+        <div class="statistics-header-main">
+          <div class="statistics-header-task-title">
+            <div class="page-title-row">
+              <div class="page-title" id="exercise-name">—</div>
+              <div id="exercise-private-badge"></div>
+            </div>
+            <button class="secondary-btn task-statistics-preview-btn" id="preview-task-statistics-btn" type="button">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="page-header-right">
+          <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Toggle student overview">
+            <i class="fas fa-users"></i> Students
+          </button>
+        </div>
+      </div>
+      <div class="statistics-header-taskset">
         <div class="taskset-chip" id="taskset-chip">
           <span class="taskset-from">Task set</span>
           <a class="taskset-name" id="taskset-name-label"></a>
         </div>
         <div class="global-chip" id="global-chip" style="display:none;">Global Data</div>
-        <div class="page-title-row">
-          <div class="page-title" id="exercise-name">—</div>
-          <div id="exercise-private-badge"></div>
-        </div>
-        <button class="secondary-btn task-statistics-preview-btn" id="preview-task-statistics-btn" type="button">
-          <i class="fas fa-eye"></i>
-        </button>
-      </div>
-      <div class="page-header-right">
-        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Toggle student overview">
-          <i class="fas fa-users"></i> Students
-        </button>
       </div>
     </div>
   </div>

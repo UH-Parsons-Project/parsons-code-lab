@@ -2,9 +2,63 @@
 .page-header {
   padding: 1.75rem 2.5rem 1.25rem;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2rem;
+}
+.statistics-header-back {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  min-height: 2rem;
+}
+.statistics-header-back #back-btn {
+  grid-column: 1;
+  justify-self: start;
+}
+.statistics-header-back .statistics-page-heading {
+  grid-column: 2;
+  justify-self: center;
+  font-size: 1.5rem;
+  white-space: nowrap;
+}
+.statistics-header-details {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  min-width: 0;
+}
+.statistics-header-primary {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  min-width: 0;
+}
+.statistics-header-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .75rem;
+  min-width: 0;
+}
+.statistics-header-task-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .75rem;
+  min-width: 0;
+}
+.statistics-header-taskset {
+  display: flex;
+}
+.statistics-header-taskset .taskset-chip,
+.statistics-header-taskset .global-chip {
+  margin: 0;
+}
+.task-statistics-preview-btn {
+  flex-shrink: 0;
 }
 .global-chip {
   display: inline-flex;
