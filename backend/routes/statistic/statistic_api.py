@@ -535,7 +535,7 @@ async def get_task_statistics(
         )
 
     cache_scope = task_set.id if task_set else "public"
-    cache_key = f"stats:task:{task_id}:set:{cache_scope}:v1"
+    cache_key = f"stats:task:{task_id}:set:{cache_scope}:v2"
     cached_statistics = await get_json(cache_key)
     if cached_statistics is not None:
         return cached_statistics
@@ -576,6 +576,7 @@ async def get_task_statistics(
             "model_answer": await _get_model_answer_for_task(task, db),
             "custom_error_messages": _parse_custom_error_messages(task),
             "total_completions": 0,
+            "successful_attempts": 0,
             "students_attempted": early_started,
             "students_completed": 0,
             "students_not_started": early_not_started,
@@ -837,6 +838,7 @@ async def get_task_statistics(
         "model_answer": await _get_model_answer_for_task(task, db),
         "custom_error_messages": _parse_custom_error_messages(task),
         "total_completions": len(attempts_data),
+        "successful_attempts": len(successful_attempts),
         "students_attempted": students_attempted,
         "students_completed": students_completed,
         "students_not_started": students_not_started,
