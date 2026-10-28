@@ -446,11 +446,16 @@ async function loadStatistics() {
 	const completionRate = studentsAttempted > 0
 		? ((studentsCompleted / studentsAttempted) * 100).toFixed(1)
 		: '0';
+	const successfulAttemptRate = totalAttempts > 0
+		? (((data.successful_attempts ?? 0) / totalAttempts) * 100).toFixed(1)
+		: '0.0';
 
 	document.getElementById('total-completions').textContent = totalAttempts;
+	document.getElementById('total-attempts-sub').textContent =
+		`across all students, of which ${successfulAttemptRate} % successful`;
 	document.getElementById('students-completed-num').textContent = studentsCompleted;
 	document.getElementById('students-attempted-denom').textContent = ` / ${studentsAttempted}`;
-	document.getElementById('completion-rate-sub').textContent = `${completionRate}% completion rate`;
+	document.getElementById('completion-rate-sub').textContent = `${completionRate} % completion rate`;
 	document.getElementById('students-struggling').textContent = studentsNotYetCompleted;
 	document.getElementById('kpi-not-started-num').textContent = studentsNotStarted;
 	if (totalInSet > 0) {
