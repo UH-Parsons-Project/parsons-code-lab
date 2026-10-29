@@ -99,7 +99,7 @@
 }
 .empty-state p { font-size: .875rem; }
 
-/* ── Dashboard parallel layout ───────────────────────── */
+/* ── Parallel layout used on other teacher and admin pages ── */
 .parallel-layout {
   display: flex;
   gap: 1.5rem;
@@ -107,14 +107,84 @@
 }
 .parallel-col { flex: 1; min-width: 0; }
 
-/* ── Section create-button row ───────────────────────── */
+/* ── Dashboard tabs ──────────────────────────────────── */
+.dashboard-tabs {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 0;
+  margin-bottom: 1rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  flex-wrap: nowrap;
+}
+.dashboard-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: .45rem .9rem;
+  background: var(--card);
+  border: 0;
+  border-radius: 0;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.dashboard-tab-btn + .dashboard-tab-btn {
+  border-left: 1px solid var(--border);
+}
+.dashboard-tab-btn:first-child {
+  border-top-left-radius: calc(var(--radius) - 1px);
+  border-bottom-left-radius: calc(var(--radius) - 1px);
+}
+.dashboard-tab-btn:last-child {
+  border-top-right-radius: calc(var(--radius) - 1px);
+  border-bottom-right-radius: calc(var(--radius) - 1px);
+}
+.dashboard-tab-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.dashboard-tab-btn:focus {
+  position: relative;
+  z-index: 1;
+}
+.dashboard-tab-btn:focus-visible {
+  outline: 2px solid var(--brand-dark);
+  outline-offset: 2px;
+}
+.dashboard-tab-btn.active {
+  background: var(--blue-light);
+  color: var(--brand-text);
+}
+.dashboard-tab-panels {
+  width: 100%;
+  max-width: 1040px;
+}
+.dashboard-tab-panel[hidden] { display: none; }
+
+/* ── Section toolbar and create-button row ───────────── */
+.section-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+.section-toolbar .search-box {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
 .section-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: .75rem;
+  justify-content: flex-end;
+  flex: 0 0 auto;
 }
-.section-header-row h4 { margin: 0; }
 .section-create-btn {
   display: inline-flex;
   align-items: center;
@@ -359,8 +429,6 @@ a.btn-success.btn-block:hover {
 }
 #all-sets-button:hover { background: #253080; border-color: #253080; }
 
-/* ── Your Tasks section ──────────────────────────────── */
-
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }
 
@@ -371,6 +439,19 @@ a.btn-success.btn-block:hover {
 /* ── Navbar: collapse username to icon on small screens ─ */
 @media (max-width: 600px) {
   #user-name { display: none; }
+}
+
+@media (max-width: 700px) {
+  .section-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .section-toolbar .section-header-row { width: 100%; }
+  .section-toolbar .section-create-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ── Admin Modals ────────────────────────────────────── */
@@ -440,4 +521,3 @@ a.btn-success.btn-block:hover {
   justify-content: flex-end;
   gap: 0.625rem;
 }
-

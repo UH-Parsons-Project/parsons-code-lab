@@ -14,7 +14,7 @@
 {% block content %}
 <div class="page-header">
     <div class="page-title">My Dashboard</div>
-    <div class="page-subtitle">Select a task set to view its statistics and analytics</div>
+    <div class="page-subtitle">Manage your task sets and exercises</div>
   </div>
 
   <div class="dashboard-main">
@@ -25,16 +25,50 @@
       <a href="/instructions" id="instructions-btn" class="nav-link-btn"><i class="fas fa-info-circle"></i> Instructions</a>
     </div>
 
-    <div class="parallel-layout">
-      <div class="parallel-col">
+    <div class="dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+      <button type="button"
+              class="dashboard-tab-btn active"
+              id="task-sets-tab"
+              role="tab"
+              aria-selected="true"
+              aria-controls="task-sets-panel"
+              tabindex="0"
+              data-tab="task-sets">
+        My Task Sets
+      </button>
+      <button type="button"
+              class="dashboard-tab-btn"
+              id="my-tasks-tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="my-tasks-panel"
+              tabindex="-1"
+              data-tab="my-tasks">
+        My Tasks
+      </button>
+    </div>
+
+    <div class="dashboard-tab-panels">
+      <section class="dashboard-tab-panel active"
+               id="task-sets-panel"
+               role="tabpanel"
+               aria-labelledby="task-sets-tab"
+               aria-hidden="false">
         <div id="task-sets-container" class="loading-spinner">
           <div class="spinner-border text-primary" role="status">
             <span class="sr-only">Loading...</span>
           </div>
           <p class="mt-2">Loading task sets...</p>
         </div>
-      </div>
-      <div class="parallel-col" id="your-tasks-container"></div>
+      </section>
+      <section class="dashboard-tab-panel"
+               id="my-tasks-panel"
+               role="tabpanel"
+               aria-labelledby="my-tasks-tab"
+               aria-hidden="true"
+               hidden>
+        <div id="your-tasks-container"></div>
+      </section>
     </div>
 
   </div>

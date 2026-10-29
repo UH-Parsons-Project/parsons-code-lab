@@ -16,6 +16,57 @@ function clearTaskDraftStorage() {
 	});
 }
 
+function switchDashboardTab(tabName, focusTab = false) {
+	const tabs = Array.from(document.querySelectorAll('.dashboard-tab-btn'));
+	const activeTab = tabs.find((tab) => tab.dataset.tab === tabName);
+	if (!activeTab) return;
+
+	tabs.forEach((tab) => {
+		const isActive = tab === activeTab;
+		tab.classList.toggle('active', isActive);
+		tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+		tab.tabIndex = isActive ? 0 : -1;
+	});
+
+	document.querySelectorAll('.dashboard-tab-panel').forEach((panel) => {
+		const isActive = panel.id === activeTab.getAttribute('aria-controls');
+		panel.classList.toggle('active', isActive);
+		panel.hidden = !isActive;
+		panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+	});
+
+	if (focusTab) activeTab.focus();
+}
+
+function setupDashboardTabs() {
+	const tabs = Array.from(document.querySelectorAll('.dashboard-tab-btn'));
+	if (tabs.length === 0) return;
+
+	tabs.forEach((tab, index) => {
+		tab.addEventListener('click', () => switchDashboardTab(tab.dataset.tab));
+		tab.addEventListener('keydown', (event) => {
+			let nextIndex = null;
+			if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+				nextIndex = (index + 1) % tabs.length;
+			} else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+				nextIndex = (index - 1 + tabs.length) % tabs.length;
+			} else if (event.key === 'Home') {
+				nextIndex = 0;
+			} else if (event.key === 'End') {
+				nextIndex = tabs.length - 1;
+			}
+
+			if (nextIndex !== null) {
+				event.preventDefault();
+				switchDashboardTab(tabs[nextIndex].dataset.tab, true);
+			}
+		});
+	});
+
+	// Always start on My Task Sets when the dashboard is loaded.
+	switchDashboardTab('task-sets');
+}
+
 // Clear any draft states from the task creator when loading the dashboard
 clearTaskDraftStorage();
 
@@ -60,17 +111,18 @@ function renderTaskSets(taskSets) {
 	container.className = '';
 	container.innerHTML = '';
 
+	const toolbar = document.createElement('div');
+	toolbar.className = 'section-toolbar';
+
 	const headerRow = document.createElement('div');
 	headerRow.className = 'section-header-row';
-	const heading = document.createElement('h4');
-	heading.textContent = 'My Task Sets';
 	const createBtn = document.createElement('a');
 	createBtn.href = '/create-task-set';
 	createBtn.className = 'section-create-btn';
 	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task Set';
-	headerRow.appendChild(heading);
 	headerRow.appendChild(createBtn);
-	container.appendChild(headerRow);
+	toolbar.appendChild(headerRow);
+	container.appendChild(toolbar);
 
 	if (taskSets.length === 0) {
 		container.insertAdjacentHTML('beforeend', `
@@ -86,7 +138,7 @@ function renderTaskSets(taskSets) {
 	const searchBox = document.createElement('div');
 	searchBox.className = 'search-box';
 	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-search" placeholder="Search task sets…" autocomplete="off">';
-	container.appendChild(searchBox);
+	toolbar.insertBefore(searchBox, headerRow);
 
 	const ownedLists = currentUsername
 		? taskSets.filter(taskSet => taskSet.owner_username === currentUsername)
@@ -293,24 +345,23 @@ function renderMyTasks(tasks) {
 	const sectionHeader = document.createElement('div');
 	sectionHeader.className = 'section-header-row';
 
-	const heading = document.createElement('h4');
-	heading.textContent = 'My Tasks';
-
 	const createBtn = document.createElement('a');
 	createBtn.href = '/create-task';
 	createBtn.className = 'section-create-btn';
 	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task';
 	createBtn.addEventListener('click', clearTaskDraftStorage);
 
-	sectionHeader.appendChild(heading);
 	sectionHeader.appendChild(createBtn);
-
-	section.appendChild(sectionHeader);
 
 	const searchBox = document.createElement('div');
 	searchBox.className = 'search-box';
 	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-item-search" placeholder="Search tasks…" autocomplete="off">';
-	section.appendChild(searchBox);
+
+	const toolbar = document.createElement('div');
+	toolbar.className = 'section-toolbar';
+	toolbar.appendChild(searchBox);
+	toolbar.appendChild(sectionHeader);
+	section.appendChild(toolbar);
 
 	if (tasks.length === 0) {
 		const empty = document.createElement('p');
@@ -364,6 +415,7 @@ async function loadMyTasks() {
 }
 
 async function initPage() {
+	setupDashboardTabs();
 	await loadCurrentUser();
 	await Promise.all([loadTaskSets(), loadMyTasks()]);
 }
