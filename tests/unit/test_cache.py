@@ -60,8 +60,8 @@ async def test_set_json_serializes_value_with_ttl(fake_redis):
 
 
 async def test_invalidate_task_statistics_removes_public_and_task_set_keys(fake_redis):
-    public_key = "stats:task:7:set:public:v1"
-    task_set_key = "stats:task:7:set:12:v1"
+    public_key = "stats:task:7:set:public:v2"
+    task_set_key = "stats:task:7:set:12:v2"
     aggregate_key = "stats:taskset:aggregate:12:v1"
     student_key = "stats:student:4:task:7:set:12:v1"
     fake_redis.values[public_key] = "public"

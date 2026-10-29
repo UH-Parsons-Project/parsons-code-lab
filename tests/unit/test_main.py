@@ -951,6 +951,7 @@ class TestStatistics:
         body = r.json()
         assert body["task_name"] == task.title
         assert body["total_completions"] == 0
+        assert body["successful_attempts"] == 0
         assert body["students_attempted"] == 0
         assert body["students_completed"] == 0
         assert body["avg_tries"] == 0
@@ -967,6 +968,7 @@ class TestStatistics:
                               headers=_auth(test_teacher.username))
         body = r.json()
         assert body["total_completions"] == 1
+        assert body["successful_attempts"] == 1
         assert body["students_completed"] == 1
         assert body["avg_tries"] == 1
         assert body["time_to_first_success"]["avg"] == 120.0
@@ -985,6 +987,7 @@ class TestStatistics:
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
         assert body["total_completions"] == 3
+        assert body["successful_attempts"] == 1
         assert body["students_completed"] == 1
         assert body["avg_tries"] == 3          # success was on attempt #3
         assert body["time_to_first_fail"]["avg"] == 30.0
@@ -999,6 +1002,7 @@ class TestStatistics:
                                 end=datetime(2026, 1, 1, 0, i, 30))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
+        assert body["successful_attempts"] == 0
         assert body["students_completed"] == 0
         assert body["avg_tries"] == 0
         assert body["time_to_first_success"] is None

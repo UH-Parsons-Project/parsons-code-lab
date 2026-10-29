@@ -43,11 +43,11 @@ async def invalidate_task_statistics(
         return
 
     keys = [
-        f"stats:task:{task_id}:set:public:v1",
+        f"stats:task:{task_id}:set:public:v2",
         f"stats:taskset:aggregate:{task_set_id}:v1" if task_set_id is not None else None,
     ]
     if task_set_id is not None:
-        keys.append(f"stats:task:{task_id}:set:{task_set_id}:v1")
+        keys.append(f"stats:task:{task_id}:set:{task_set_id}:v2")
     if student_id is not None and task_set_id is not None:
         keys.append(f"stats:student:{student_id}:task:{task_id}:set:{task_set_id}:v1")
 
