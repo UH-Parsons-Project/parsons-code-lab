@@ -146,15 +146,29 @@
   color: var(--brand-text);
   box-shadow: var(--shadow);
 }
-.dashboard-tab-panels { max-width: 960px; }
+.dashboard-tab-panels {
+  width: 100%;
+  max-width: 1040px;
+}
 .dashboard-tab-panel[hidden] { display: none; }
 
-/* ── Section create-button row ───────────────────────── */
+/* ── Section toolbar and create-button row ───────────── */
+.section-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+.section-toolbar .search-box {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
 .section-header-row {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin-bottom: .75rem;
+  flex: 0 0 auto;
 }
 .section-create-btn {
   display: inline-flex;
@@ -412,6 +426,19 @@ a.btn-success.btn-block:hover {
   #user-name { display: none; }
 }
 
+@media (max-width: 700px) {
+  .section-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .section-toolbar .section-header-row { width: 100%; }
+  .section-toolbar .section-create-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ── Admin Modals ────────────────────────────────────── */
 .admin-modal-overlay {
   position: fixed;
@@ -479,4 +506,3 @@ a.btn-success.btn-block:hover {
   justify-content: flex-end;
   gap: 0.625rem;
 }
-

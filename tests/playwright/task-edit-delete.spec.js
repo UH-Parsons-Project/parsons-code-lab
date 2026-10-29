@@ -96,10 +96,14 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await page.locator('#add-to-problem-list').click();
     await page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 });
 
-    await page.getByRole('tab', { name: 'My Tasks' }).click();
+    await openMyTasksTab(page);
     await expect(page.locator('.task-set-title', { hasText: title })).toBeVisible({ timeout: 10000 });
 
     return title;
+  }
+
+  async function openMyTasksTab(page) {
+    await page.getByRole('tab', { name: 'My Tasks' }).click();
   }
 
   /**
@@ -287,6 +291,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await page.locator('#add-to-problem-list').click();
     await page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 });
 
+    await openMyTasksTab(page);
     await expect(page.locator('.task-set-title', { hasText: title })).toBeVisible();
   });
 
@@ -355,6 +360,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     page.once('dialog', dialog => dialog.accept());
     await page.locator('#add-to-problem-list').click();
     await page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 });
+    await openMyTasksTab(page);
     await expect(page.locator('.task-set-title', { hasText: title })).toBeVisible();
   });
 
@@ -424,6 +430,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 });
 
     // 4. Re-open direct edit and verify unit_test was persisted in the database
+    await openMyTasksTab(page);
     await page.locator('.task-set-item', { hasText: title })
       .locator('a.btn-outline-success', { hasText: 'Edit' })
       .click();
@@ -487,6 +494,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 });
 
     // 4. Re-open direct edit and verify order_only was persisted
+    await openMyTasksTab(page);
     await page.locator('.task-set-item', { hasText: title })
       .locator('a.btn-outline-success', { hasText: 'Edit' })
       .click();

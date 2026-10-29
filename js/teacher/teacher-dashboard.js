@@ -111,6 +111,9 @@ function renderTaskSets(taskSets) {
 	container.className = '';
 	container.innerHTML = '';
 
+	const toolbar = document.createElement('div');
+	toolbar.className = 'section-toolbar';
+
 	const headerRow = document.createElement('div');
 	headerRow.className = 'section-header-row';
 	const createBtn = document.createElement('a');
@@ -118,7 +121,8 @@ function renderTaskSets(taskSets) {
 	createBtn.className = 'section-create-btn';
 	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task Set';
 	headerRow.appendChild(createBtn);
-	container.appendChild(headerRow);
+	toolbar.appendChild(headerRow);
+	container.appendChild(toolbar);
 
 	if (taskSets.length === 0) {
 		container.insertAdjacentHTML('beforeend', `
@@ -134,7 +138,7 @@ function renderTaskSets(taskSets) {
 	const searchBox = document.createElement('div');
 	searchBox.className = 'search-box';
 	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-search" placeholder="Search task sets…" autocomplete="off">';
-	container.appendChild(searchBox);
+	toolbar.insertBefore(searchBox, headerRow);
 
 	const ownedLists = currentUsername
 		? taskSets.filter(taskSet => taskSet.owner_username === currentUsername)
@@ -349,12 +353,15 @@ function renderMyTasks(tasks) {
 
 	sectionHeader.appendChild(createBtn);
 
-	section.appendChild(sectionHeader);
-
 	const searchBox = document.createElement('div');
 	searchBox.className = 'search-box';
 	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-item-search" placeholder="Search tasks…" autocomplete="off">';
-	section.appendChild(searchBox);
+
+	const toolbar = document.createElement('div');
+	toolbar.className = 'section-toolbar';
+	toolbar.appendChild(searchBox);
+	toolbar.appendChild(sectionHeader);
+	section.appendChild(toolbar);
 
 	if (tasks.length === 0) {
 		const empty = document.createElement('p');
