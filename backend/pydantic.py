@@ -270,6 +270,7 @@ class UpdateTaskSetTasksRequest(BaseModel):
 
 class InitialEventsExportRequest(BaseModel):
     task_ids: list[int] = Field(default_factory=list)
+    include_task_details: bool = False
 
 
 class UpdateExpiresAtRequest(BaseModel):

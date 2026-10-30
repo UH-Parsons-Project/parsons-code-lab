@@ -1,3 +1,4 @@
+import csv
 import io
 import re
 import zipfile
@@ -37,6 +38,10 @@ INITIAL_EVENTS_HEADERS = [
     "attempt_was_made_after_event",
 ]
 
+TASK_DETAILS_HEADERS = [
+    "task-id", "task-name", "block-id", "block-code", "solution-block", "faded",
+]
+
 
 def _csv_datetime(value: datetime | None) -> str:
     return value.isoformat(timespec="microseconds") if value else ""
@@ -58,14 +63,26 @@ def _initial_events_csv(rows: list[list[str]]) -> str:
     )
 
 
+def _task_details_csv(rows: list[list[object]]) -> str:
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, delimiter=";", lineterminator="\n")
+    writer.writerow(TASK_DETAILS_HEADERS)
+    writer.writerows(rows)
+    return output.getvalue()
+
+
 def _safe_filename_part(value: str, fallback: str) -> str:
     safe = "".join(char if char.isalnum() or char in "-_" else "_" for char in (value or ""))
     return safe.strip("_") or fallback
 
 
-def _task_codelines(task: Parsons) -> dict[str, str]:
+def _task_codeline_details(task: Parsons) -> list[dict]:
     blocks = (task.code_blocks or {}).get("blocks", [])
     eval_type = (task.correct_solution or {}).get("eval_type", "unit_test")
+    solution_block_ids = {
+        str(block_id)
+        for block_id in (task.correct_solution or {}).get("correct_order") or []
+    }
 
     def is_given(block: dict | str) -> bool:
         return isinstance(block, dict) and block.get("given", False)
@@ -84,12 +101,36 @@ def _task_codelines(task: Parsons) -> dict[str, str]:
         code = re.sub(r"<[^>]+>", "", code)
         return code.replace("___", "!BLANK").strip()
 
-    codelines = {}
+    details = []
     line_index = 0
-    for block in blocks:
+
+    def add_block(block: dict | str, block_index: int | None = None, synthetic: bool = False):
+        nonlocal line_index
+        if synthetic:
+            code = str(block)
+            solution_block = False
+            faded = True
+        else:
+            code = clean_code(block)
+            stored_block_id = (
+                str(block.get("id") or f"block_{block_index + 1}")
+                if isinstance(block, dict) and block_index is not None
+                else f"block_{(block_index or 0) + 1}"
+            )
+            solution_block = stored_block_id in solution_block_ids
+            faded = bool(block.get("faded", False)) if isinstance(block, dict) else False
+
+        details.append({
+            "block-id": f"sortable-codeline{line_index}",
+            "block-code": code,
+            "solution-block": solution_block,
+            "faded": faded,
+        })
+        line_index += 1
+
+    for block_index, block in enumerate(blocks):
         if not is_given(block):
-            codelines[f"sortable-codeline{line_index}"] = clean_code(block)
-            line_index += 1
+            add_block(block, block_index)
 
     if eval_type != "order_only":
         for code in (
@@ -98,14 +139,33 @@ def _task_codelines(task: Parsons) -> dict[str, str]:
             "# !BLANK",
             "# !BLANK",
         ):
-            codelines[f"sortable-codeline{line_index}"] = code
-            line_index += 1
+            add_block(code, synthetic=True)
 
-    for block in blocks:
+    for block_index, block in enumerate(blocks):
         if is_given(block):
-            codelines[f"sortable-codeline{line_index}"] = clean_code(block)
-            line_index += 1
-    return codelines
+            add_block(block, block_index)
+    return details
+
+
+def _task_codelines(task: Parsons) -> dict[str, str]:
+    return {
+        detail["block-id"]: detail["block-code"]
+        for detail in _task_codeline_details(task)
+    }
+
+
+def _task_details_rows(task: Parsons) -> list[list[object]]:
+    return [
+        [
+            task.id,
+            task.title,
+            detail["block-id"],
+            detail["block-code"],
+            str(detail["solution-block"]),
+            str(detail["faded"]),
+        ]
+        for detail in _task_codeline_details(task)
+    ]
 
 
 def _codeline_state(code: str, blank_values: dict[int, str]) -> str:
@@ -152,9 +212,12 @@ async def export_initial_events(
     generation_date = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     set_name = _safe_filename_part(task_set.title, "taskSet")
     teacher_name = _safe_filename_part(teacher.username if teacher else "teacher", "teacher")
+    task_details_rows = []
 
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for task, _ in task_rows:
+            if request.include_task_details:
+                task_details_rows.extend(_task_details_rows(task))
             student_ids = [student.id for student, _ in students]
             enrollment_result = await db.execute(
                 select(StudentTaskEnrollment)
@@ -286,6 +349,12 @@ async def export_initial_events(
                 f"taskID_{task.id}_{generation_date}.csv"
             )
             zip_file.writestr(filename, _initial_events_csv(rows))
+
+        if request.include_task_details:
+            zip_file.writestr(
+                f"{set_name}_task-details.csv",
+                _task_details_csv(task_details_rows),
+            )
 
     archive.seek(0)
     zip_name = f"{set_name}_{teacher_name}_INITIAL_EVENTS_{generation_date}.zip"

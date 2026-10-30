@@ -430,6 +430,7 @@ function setupTitleEdit(taskSet, isOwner) {
 function setupInitialEventsExport(taskSet, tasks) {
 	const button = document.getElementById('download-initial-events-btn');
 	const list = document.getElementById('initial-events-task-list');
+	const taskDetailsCheckbox = document.getElementById('initial-events-task-details');
 	const confirmButton = document.getElementById('confirm-initial-events-btn');
 	if (!button || !list || !confirmButton) return;
 
@@ -458,7 +459,10 @@ function setupInitialEventsExport(taskSet, tasks) {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ task_ids: taskIds }),
+				body: JSON.stringify({
+					task_ids: taskIds,
+					include_task_details: taskDetailsCheckbox ? taskDetailsCheckbox.checked : true,
+				}),
 			});
 			if (!response.ok) {
 				const error = await response.json().catch(() => ({}));
