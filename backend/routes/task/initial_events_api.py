@@ -30,7 +30,7 @@ from ..utils.commons import get_task_set_or_404
 router = APIRouter()
 
 INITIAL_EVENTS_HEADERS = [
-    "userID", "starting_time", "failed_attempt_count", "failed_attempt_times",
+    "userID", "starting_time", "total_failed_attempts", "failed_attempt_times",
     "first_success_time", "event_type", "event_time", "block-id", "codeline_state",
     "from_container", "to_container", "from_index", "to_index",
     "from_indent", "to_indent", "blank_index", "value",
@@ -239,6 +239,7 @@ async def export_initial_events(
 
                 codelines = _task_codelines(task)
                 blank_values: dict[str, dict[int, str]] = {}
+                attempts_by_id = {attempt.id: attempt for attempt in attempts_through_success}
                 attempt_times = [attempt.completed_at for attempt in attempts_through_success]
                 export_context = [
                     str(student.id),
@@ -272,9 +273,14 @@ async def export_initial_events(
                             blank_values.get(block_id, {}),
                         )
 
-                    attempt_was_made_after_event = any(
-                        attempt_time >= event_time for attempt_time in attempt_times
-                    )
+                    if isinstance(event, (MoveEvent, EditEvent)):
+                        attempt_was_made_after_event = (
+                            attempts_by_id[event.attempt_id].completed_at >= event_time
+                        )
+                    else:
+                        attempt_was_made_after_event = any(
+                            attempt_time >= event_time for attempt_time in attempt_times
+                        )
                     rows.append([
                         *export_context, event_type, _csv_datetime(event_time),
                         block_id, state, *specific,
