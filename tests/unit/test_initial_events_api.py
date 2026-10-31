@@ -64,7 +64,7 @@ async def test_initial_events_export_includes_attempts_through_first_success(
             block_id="sortable-codeline0",
             blank_index=0,
             value="first",
-            event_time=datetime(2026, 9, 11, 14, 1),
+            event_time=datetime(2026, 9, 11, 14, 2, 30),
         ),
         MoveEvent(
             attempt_id=attempts[1].id,
@@ -109,7 +109,7 @@ async def test_initial_events_export_includes_attempts_through_first_success(
     rows = [dict(zip(headers, (value.strip() for value in line))) for line in lines[1:]]
 
     assert "starting_time" in headers
-    assert "failed_attempt_count" in headers
+    assert "total_failed_attempts" in headers
     assert "failed_attempt_times" in headers
     assert "first_success_time" in headers
     assert "codeline_state" in headers
@@ -118,14 +118,21 @@ async def test_initial_events_export_includes_attempts_through_first_success(
     assert "first attempt time" not in headers
     assert len(rows) == 3
     assert {row["event_type"] for row in rows} == {"edit", "move"}
-    assert all(row["failed_attempt_count"] == "2" for row in rows)
+    assert all(row["total_failed_attempts"] == "2" for row in rows)
     assert all(
         row["failed_attempt_times"]
         == "2026-09-11T14:02:00.000000|2026-09-11T14:04:00.000000"
         for row in rows
     )
     assert all(row["first_success_time"] == "2026-09-11T14:06:00.000000" for row in rows)
-    assert all(row["attempt_was_made_after_event"] == "True" for row in rows)
+    assert next(row for row in rows if row["event_time"].startswith("2026-09-11T14:02:30"))[
+        "attempt_was_made_after_event"
+    ] == "False"
+    assert all(
+        row["attempt_was_made_after_event"] == "True"
+        for row in rows
+        if not row["event_time"].startswith("2026-09-11T14:02:30")
+    )
     assert next(row for row in rows if row["event_type"] == "move")["codeline_state"] == "print(value)"
     assert {
         row["codeline_state"] for row in rows if row["event_type"] == "edit"
