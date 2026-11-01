@@ -1,3 +1,4 @@
+import csv
 import io
 import re
 import zipfile
@@ -43,19 +44,11 @@ def _csv_datetime(value: datetime | None) -> str:
 
 
 def _initial_events_csv(rows: list[list[str]]) -> str:
-    all_rows = [INITIAL_EVENTS_HEADERS, *rows]
-    widths = [
-        max(len(str(row[column_index] or "")) for row in all_rows)
-        for column_index in range(len(INITIAL_EVENTS_HEADERS))
-    ]
-
-    return "\n".join(
-        " ; ".join(
-            str(cell or "").ljust(widths[column_index])
-            for column_index, cell in enumerate(row)
-        )
-        for row in all_rows
-    )
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, delimiter=";", lineterminator="\n")
+    writer.writerow(INITIAL_EVENTS_HEADERS)
+    writer.writerows(rows)
+    return output.getvalue()
 
 
 def _safe_filename_part(value: str, fallback: str) -> str:
