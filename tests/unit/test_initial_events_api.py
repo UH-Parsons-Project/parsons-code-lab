@@ -1,3 +1,4 @@
+import csv
 import io
 import zipfile
 from datetime import datetime
@@ -25,7 +26,7 @@ async def test_initial_events_export_includes_attempts_through_first_success(
     task_set, task = task_set_with_task
     task.code_blocks = {
         "blocks": [
-            {"code": "value = !BLANK", "indent": 0, "given": False},
+            {"code": "value = !BLANK; print(value)", "indent": 0, "given": False},
             {"code": "print(value)", "indent": 0, "given": False},
         ]
     }
@@ -104,10 +105,11 @@ async def test_initial_events_export_includes_attempts_through_first_success(
     assert response.status_code == 200
     with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
         content = archive.read(archive.namelist()[0]).decode()
-    lines = [line.split(" ; ") for line in content.splitlines()]
+    lines = list(csv.reader(content.splitlines(), delimiter=";"))
     headers = [value.strip() for value in lines[0]]
     rows = [dict(zip(headers, (value.strip() for value in line))) for line in lines[1:]]
 
+    assert all(len(line) == len(headers) for line in lines)
     assert "starting_time" in headers
     assert "total_failed_attempts" in headers
     assert "failed_attempt_times" in headers
@@ -136,4 +138,4 @@ async def test_initial_events_export_includes_attempts_through_first_success(
     assert next(row for row in rows if row["event_type"] == "move")["codeline_state"] == "print(value)"
     assert {
         row["codeline_state"] for row in rows if row["event_type"] == "edit"
-    } == {"value = first", "value = final"}
+    } == {"value = first; print(value)", "value = final; print(value)"}
