@@ -105,6 +105,7 @@ async def test_initial_events_export_includes_attempts_through_first_success(
     assert response.status_code == 200
     with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
         content = archive.read(archive.namelist()[0]).decode()
+    assert content.startswith('"userID";"starting_time";')
     lines = list(csv.reader(content.splitlines(), delimiter=";"))
     headers = [value.strip() for value in lines[0]]
     rows = [dict(zip(headers, (value.strip() for value in line))) for line in lines[1:]]

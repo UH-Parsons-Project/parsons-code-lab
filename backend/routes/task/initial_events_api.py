@@ -45,7 +45,12 @@ def _csv_datetime(value: datetime | None) -> str:
 
 def _initial_events_csv(rows: list[list[str]]) -> str:
     output = io.StringIO(newline="")
-    writer = csv.writer(output, delimiter=";", lineterminator="\n")
+    writer = csv.writer(
+        output,
+        delimiter=";",
+        lineterminator="\n",
+        quoting=csv.QUOTE_ALL,
+    )
     writer.writerow(INITIAL_EVENTS_HEADERS)
     writer.writerows(rows)
     return output.getvalue()
