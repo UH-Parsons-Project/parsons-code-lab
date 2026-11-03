@@ -465,6 +465,23 @@ class TestLogout:
             "https%3A%2F%2Flogin.helsinki.fi%2Fidp%2Fprofile%2FLogout"
         )
 
+    async def test_shibboleth_cookie_returns_slo_url(self, client, monkeypatch):
+        from backend import config
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        r = await client.post(
+            "/api/logout", headers={"Cookie": "_shibsession_abc=value"}
+        )
+        assert r.status_code == 200
+        assert r.json()["logout_url"].startswith("/Shibboleth.sso/Logout?return=")
+
+    async def test_shibboleth_cookie_ignored_when_saml_disabled(self, client, monkeypatch):
+        from backend import config
+        monkeypatch.setattr(config, "SAML_ENABLED", False)
+        r = await client.post(
+            "/api/logout", headers={"Cookie": "_shibsession_abc=value"}
+        )
+        assert "logout_url" not in r.json()
+
 
 # ---------------------------------------------------------------------------
 # POST /api/register
