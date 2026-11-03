@@ -465,21 +465,23 @@ class TestLogout:
             "https%3A%2F%2Flogin.helsinki.fi%2Fidp%2Fprofile%2FLogout"
         )
 
-    async def test_shibboleth_cookie_returns_slo_url(self, client, monkeypatch):
-        from backend import config
+    async def test_saml_login_token_returns_slo_url(self, client, monkeypatch):
         monkeypatch.setattr(config, "SAML_ENABLED", True)
-        r = await client.post(
-            "/api/logout", headers={"Cookie": "_shibsession_abc=value"}
-        )
+        token = create_access_token({"sub": "t", "auth": "saml"})
+        r = await client.post("/api/logout", headers={"Cookie": f"access_token={token}"})
         assert r.status_code == 200
         assert r.json()["logout_url"].startswith("/Shibboleth.sso/Logout?return=")
 
-    async def test_shibboleth_cookie_ignored_when_saml_disabled(self, client, monkeypatch):
-        from backend import config
+    async def test_password_login_token_has_no_slo_url(self, client, monkeypatch):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        token = create_access_token({"sub": "t"})
+        r = await client.post("/api/logout", headers={"Cookie": f"access_token={token}"})
+        assert "logout_url" not in r.json()
+
+    async def test_saml_login_token_ignored_when_saml_disabled(self, client, monkeypatch):
         monkeypatch.setattr(config, "SAML_ENABLED", False)
-        r = await client.post(
-            "/api/logout", headers={"Cookie": "_shibsession_abc=value"}
-        )
+        token = create_access_token({"sub": "t", "auth": "saml"})
+        r = await client.post("/api/logout", headers={"Cookie": f"access_token={token}"})
         assert "logout_url" not in r.json()
 
 

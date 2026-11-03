@@ -19,6 +19,7 @@ from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user, render_template
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 from ...saml_auth import (
+    SAML_AUTH_CLAIM,
     has_shibboleth_session,
     require_saml,
     shibboleth_identity,
@@ -118,7 +119,10 @@ async def saml_register(
 
 
 async def _complete_saml_login(user: Teacher):
-    access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    access_token = create_access_token(
+        data={"sub": user.username, **SAML_AUTH_CLAIM},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
     response = RedirectResponse(url="/teacher-dashboard", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="access_token", value=access_token, httponly=True,
                         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/",
