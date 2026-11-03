@@ -20,7 +20,17 @@ def shibboleth_logout_url() -> str:
 
 
 def has_shibboleth_session(request: Request) -> bool:
-    return bool(config.SAML_ENABLED and request.headers.get("Shib-Session-ID"))
+    """Detect a Shibboleth session from the proxy header or the SP cookie.
+
+    The cookie fallback keeps SAML logout working even if the proxy does not
+    forward Shib-Session-ID to this route. It only selects the logout redirect;
+    Shibboleth validates the cookie itself.
+    """
+    if not config.SAML_ENABLED:
+        return False
+    if request.headers.get("Shib-Session-ID"):
+        return True
+    return any(name.startswith("_shibsession_") for name in request.cookies)
 
 
 def shibboleth_identity(request: Request) -> tuple[str, str] | None:
