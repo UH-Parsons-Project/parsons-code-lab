@@ -15,6 +15,13 @@ Only the trusted Shibboleth proxy may reach the application directly. The
 proxy must remove client-supplied copies of these headers before adding its
 own values.
 
+The logout flow clears the application's cookie, initiates SAML logout through
+Shibboleth (with local SP logout as a fallback), and then redirects the browser
+to the HY IdP logout page. The `/auth/saml/login` location sets
+`ShibRequestSetting forceAuthn 1` in `apache/shibboleth-proxy.conf`, so every
+new login makes the IdP ask for credentials again even if the IdP's own SSO
+session is still active.
+
 ## Register the SP
 
 Production:
@@ -23,7 +30,8 @@ Production:
 Entity ID: https://parsonscodelab.web.helsinki.fi/sp
 ACS:       https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/SAML2/POST
 Metadata:  https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/Metadata
-Logout:    https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/Logout
+SLO:       https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/SLO/Redirect
+           https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/SLO/POST
 ```
 
 Staging:
@@ -32,14 +40,16 @@ Staging:
 Entity ID: https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/sp
 ACS:       https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/SAML2/POST
 Metadata:  https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/Metadata
-Logout:    https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/Logout
+SLO:       https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/SLO/Redirect
+           https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/SLO/POST
 ```
 
-Register the entity ID and the three Shibboleth endpoints with the HY/SP
-registry. The metadata, ACS, and logout entries must be Shibboleth endpoint
-types, not FastAPI routes. The Shibboleth configuration and its SP
-certificate/private key are managed by the platform deployment, not by this
-application container.
+Register the entity ID and these Shibboleth endpoints with the HY/SP registry.
+The SLO endpoints above receive SAML logout messages; the user-facing logout
+is initiated separately at `/Shibboleth.sso/Logout`. Register the metadata,
+ACS, and SLO entries as Shibboleth endpoint types, not FastAPI routes. The
+Shibboleth configuration and its SP certificate/private key are managed by
+the platform deployment, not by this application container.
 
 ## Configure OpenShift
 
