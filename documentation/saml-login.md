@@ -17,10 +17,7 @@ own values.
 
 The logout flow clears the application's cookie, initiates SAML logout through
 Shibboleth (with local SP logout as a fallback), and then redirects the browser
-to the HY IdP logout page. The `/auth/saml/login` location sets
-`ShibRequestSetting forceAuthn 1` in `apache/shibboleth-proxy.conf`, so every
-new login makes the IdP ask for credentials again even if the IdP's own SSO
-session is still active.
+to the HY IdP logout page.
 
 ## Register the SP
 
