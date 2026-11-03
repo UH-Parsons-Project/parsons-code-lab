@@ -2,9 +2,11 @@
 
 from urllib.parse import quote
 
+import jwt
 from fastapi import HTTPException, Request, status
 
 from . import config
+from .teacher_auth import ALGORITHM, SECRET_KEY
 
 
 def shibboleth_login_url(target: str = "/auth/saml/login") -> str:
@@ -19,18 +21,32 @@ def shibboleth_logout_url() -> str:
     return f"/Shibboleth.sso/Logout?return={quote(HY_IDP_LOGOUT_URL, safe='')}"
 
 
-def has_shibboleth_session(request: Request) -> bool:
-    """Detect a Shibboleth session from the proxy header or the SP cookie.
+SAML_AUTH_CLAIM = {"auth": "saml"}
 
-    The cookie fallback keeps SAML logout working even if the proxy does not
-    forward Shib-Session-ID to this route. It only selects the logout redirect;
-    Shibboleth validates the cookie itself.
+
+def _app_token_is_saml(request: Request) -> bool:
+    token = request.cookies.get("access_token")
+    if not token:
+        return False
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.InvalidTokenError:
+        return False
+    return payload.get("auth") == SAML_AUTH_CLAIM["auth"]
+
+
+def has_shibboleth_session(request: Request) -> bool:
+    """Whether logout should also end the Shibboleth/HY session.
+
+    Besides the proxy header, the app's own token records that the login came
+    from SAML, so logout still reaches Shibboleth if the proxy does not forward
+    Shib-Session-ID or the SP cookie to this route.
     """
     if not config.SAML_ENABLED:
         return False
     if request.headers.get("Shib-Session-ID"):
         return True
-    return any(name.startswith("_shibsession_") for name in request.cookies)
+    return _app_token_is_saml(request)
 
 
 def shibboleth_identity(request: Request) -> tuple[str, str] | None:
