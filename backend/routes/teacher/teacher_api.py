@@ -21,10 +21,12 @@ from ...rate_limit import limiter, check_brute_force, record_failed_attempt, cle
 from ...saml_auth import (
     SAML_AUTH_CLAIM,
     has_shibboleth_session,
+    record_saml_login,
+    record_saml_logout,
     require_saml,
+    saml_login_requires_authentication,
     shibboleth_identity,
     shibboleth_login_url,
-    shibboleth_logout_url,
 )
 
 router = APIRouter()
@@ -35,6 +37,16 @@ async def _get_saml_identity_or_redirect(request: Request):
     if identity is None:
         return None, RedirectResponse(shibboleth_login_url())
     return identity, None
+
+
+@router.get("/auth/saml/start")
+async def saml_login_start(request: Request):
+    require_saml()
+    return RedirectResponse(
+        shibboleth_login_url(
+            force_authn=saml_login_requires_authentication(request)
+        )
+    )
 
 
 def _render_saml_registration(
@@ -73,7 +85,7 @@ async def saml_login(
     user = result.scalar_one_or_none()
     if user is None:
         return _render_saml_registration(request, email, username)
-    return await _complete_saml_login(user)
+    return await _complete_saml_login(user, request)
 
 
 @router.post("/auth/saml/login")
@@ -115,10 +127,10 @@ async def saml_register(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
 
-    return await _complete_saml_login(user)
+    return await _complete_saml_login(user, request)
 
 
-async def _complete_saml_login(user: Teacher):
+async def _complete_saml_login(user: Teacher, request: Request):
     access_token = create_access_token(
         data={"sub": user.username, **SAML_AUTH_CLAIM},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -127,6 +139,7 @@ async def _complete_saml_login(user: Teacher):
     response.set_cookie(key="access_token", value=access_token, httponly=True,
                         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/",
                         samesite="lax", secure=config.COOKIE_SECURE)
+    record_saml_login(request, response)
     return response
 
 
@@ -201,7 +214,7 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="access_token", path="/")
     result = {"message": "Successfully logged out"}
     if has_shibboleth_session(request):
-        result["logout_url"] = shibboleth_logout_url()
+        result["logout_url"] = record_saml_logout(request, response)
     return result
 
 

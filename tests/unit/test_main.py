@@ -14,6 +14,7 @@ SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 
 import os
 import importlib
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
@@ -22,7 +23,8 @@ from unittest.mock import AsyncMock
 import pytest
 from sqlalchemy import select
 
-from backend.teacher_auth import create_access_token
+import jwt
+from backend.teacher_auth import ALGORITHM, SECRET_KEY, create_access_token
 import backend.main as main_module
 import utils as utils
 import backend.config as config
@@ -183,7 +185,7 @@ class TestStaticPages:
         response = await client.get("/teacher-registration")
 
         assert response.status_code == 200
-        assert 'href="/auth/saml/login"' in response.text
+        assert 'href="/auth/saml/start"' in response.text
         assert "Register with Helsinki University credentials" in response.text
 
     async def test_saml_registration_prefills_verified_identity(
@@ -455,28 +457,102 @@ class TestLogout:
         assert "logged out" in r.json()["message"].lower()
         assert "logout_url" not in r.json()
 
-    async def test_shibboleth_session_returns_slo_url(self, client, monkeypatch):
+    async def test_first_shibboleth_logout_is_local(self, client, monkeypatch):
         from backend import config
         monkeypatch.setattr(config, "SAML_ENABLED", True)
         r = await client.post("/api/logout", headers={"Shib-Session-ID": "abc"})
         assert r.status_code == 200
         assert r.json()["logout_url"] == (
-            "/Shibboleth.sso/Logout?return="
-            "https%3A%2F%2Flogin.helsinki.fi%2Fidp%2Fprofile%2FLogout"
+            "/Shibboleth.sso/Logout/Local?return=%2F"
         )
 
-    async def test_saml_login_token_returns_slo_url(self, client, monkeypatch):
+    async def test_saml_login_token_returns_local_logout_url(self, client, monkeypatch):
         monkeypatch.setattr(config, "SAML_ENABLED", True)
         token = create_access_token({"sub": "t", "auth": "saml"})
         r = await client.post("/api/logout", headers={"Cookie": f"access_token={token}"})
         assert r.status_code == 200
-        assert r.json()["logout_url"].startswith("/Shibboleth.sso/Logout?return=")
+        assert r.json()["logout_url"] == (
+            "/Shibboleth.sso/Logout/Local?return=%2F"
+        )
+
+    async def test_fourth_logout_in_two_hours_starts_hy_logout(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        for logout_number in range(1, 5):
+            response = await client.post(
+                "/api/logout", headers={"Shib-Session-ID": "abc"}
+            )
+            if logout_number < 4:
+                assert response.json()["logout_url"] == (
+                    "/Shibboleth.sso/Logout/Local?return=%2F"
+                )
+            else:
+                assert response.json()["logout_url"] == (
+                    "/Shibboleth.sso/Logout?return="
+                    "https%3A%2F%2Flogin.helsinki.fi%2Fidp%2Fprofile%2FLogout"
+                )
 
     async def test_password_login_token_has_no_slo_url(self, client, monkeypatch):
         monkeypatch.setattr(config, "SAML_ENABLED", True)
         token = create_access_token({"sub": "t"})
         r = await client.post("/api/logout", headers={"Cookie": f"access_token={token}"})
         assert "logout_url" not in r.json()
+
+
+@pytest.mark.asyncio
+class TestSamlLoginStart:
+    async def test_normal_login_does_not_force_authentication(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        response = await client.get("/auth/saml/start", follow_redirects=False)
+        assert response.status_code == 307
+        assert "forceAuthn" not in response.headers["location"]
+
+    async def test_login_after_one_hour_forces_authentication(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        now = int(time.time())
+        flow = jwt.encode(
+            {
+                "logout_times": [now - 3700],
+                "last_logout": now - 3700,
+                "exp": now + 7200,
+            },
+            SECRET_KEY,
+            algorithm=ALGORITHM,
+        )
+        response = await client.get(
+            "/auth/saml/start",
+            headers={"Cookie": f"saml_flow={flow}"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 307
+        assert response.headers["location"].endswith("&forceAuthn=true")
+
+    async def test_login_within_one_hour_reuses_hy_session(
+        self, client, monkeypatch
+    ):
+        monkeypatch.setattr(config, "SAML_ENABLED", True)
+        now = int(time.time())
+        flow = jwt.encode(
+            {
+                "logout_times": [now - 1800],
+                "last_logout": now - 1800,
+                "exp": now + 7200,
+            },
+            SECRET_KEY,
+            algorithm=ALGORITHM,
+        )
+        response = await client.get(
+            "/auth/saml/start",
+            headers={"Cookie": f"saml_flow={flow}"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 307
+        assert "forceAuthn" not in response.headers["location"]
 
     async def test_saml_login_token_ignored_when_saml_disabled(self, client, monkeypatch):
         monkeypatch.setattr(config, "SAML_ENABLED", False)

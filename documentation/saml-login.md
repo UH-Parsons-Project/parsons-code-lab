@@ -15,9 +15,22 @@ Only the trusted Shibboleth proxy may reach the application directly. The
 proxy must remove client-supplied copies of these headers before adding its
 own values.
 
-The logout flow clears the application's cookie, initiates SAML logout through
-Shibboleth (with local SP logout as a fallback), and then redirects the browser
-to the HY IdP logout page.
+HY login starts at `/auth/saml/start`. The application remembers logout times
+in a signed, HttpOnly cookie:
+
+- The first three HY logouts in a rolling two-hour window end only the local
+  application and Shibboleth sessions, then return to `/`. The HY IdP session
+  remains active, so logging in again within an hour can reuse it.
+- If more than an hour has passed since the last logout, the next HY login
+  includes SAML `ForceAuthn`, asking the IdP to authenticate again. The IdP
+  still determines which factors are required.
+- The fourth HY logout in that rolling window starts SAML single logout and
+  continues to the HY IdP logout page. The logout counter starts over after
+  that full logout.
+
+There is no automatic logout after two hours. Local logout uses a dedicated
+Shibboleth `Local` initiator at `/Shibboleth.sso/Logout/Local`; the registered
+SLO endpoints continue to handle SAML logout messages.
 
 ## Register the SP
 
