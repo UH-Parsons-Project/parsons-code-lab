@@ -1953,6 +1953,9 @@ initBurgerMenu();
         hasOpenedStudentPreview = false;
         updateAddToListState();
       });
+
+      // Keep the button unavailable until the board exists and its handler is ready.
+      setModelAnswerBtn.disabled = !parsonsWidget;
     }
 
     if (previewStudentBtn) {
