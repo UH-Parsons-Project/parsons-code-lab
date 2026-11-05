@@ -19,7 +19,8 @@
         cookieProps="https">
       <SSO entityID="https://login.helsinki.fi/shibboleth">SAML2</SSO>
       <Logout>SAML2 Local</Logout>
-            <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
+      <LogoutInitiator type="Local" Location="/Logout/Local"/>
+      <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
     </Sessions>
 
     <Errors supportContact="REPLACE_WITH_SUPPORT_EMAIL@helsinki.fi"/>
