@@ -160,7 +160,7 @@ probEl.setAttribute(
 	isIndentWarmup
 		? '<div>In Python, indentation means adding spaces at the beginning of a line. Indentation shows which lines belong inside a block, such as the code inside an <code>if</code> statement. Arrange the code lines so that the <code>print</code> line is indented one level under <code>if True:</code>. The program should then produce the following output:</div>' +
 			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">This line is indented.</pre>' +
-			'<div class="demo-info-note"><em>Drag the <code>print</code> <strong>line</strong> below <code>if True:</code> and move it one level to the right.</em></div>'
+			'<div class="demo-info-note"><em>Drag the <code>print</code> line below <code>if True:</code> and move it one level to the right.</em></div>'
 		: '<div>Arrange the two print statements so the program produces this output:</div>' +
 			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>'
 );
