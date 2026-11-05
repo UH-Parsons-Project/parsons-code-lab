@@ -62,7 +62,12 @@ def _initial_events_csv(rows: list[list[str]]) -> str:
 
 def _task_details_csv(rows: list[list[object]]) -> str:
     output = io.StringIO(newline="")
-    writer = csv.writer(output, delimiter=";", lineterminator="\n")
+    writer = csv.writer(
+        output,
+        delimiter=";",
+        lineterminator="\n",
+        quoting=csv.QUOTE_ALL,
+    )
     writer.writerow(TASK_DETAILS_HEADERS)
     writer.writerows(rows)
     return output.getvalue()

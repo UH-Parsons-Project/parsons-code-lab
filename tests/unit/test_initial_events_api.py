@@ -172,7 +172,7 @@ async def test_initial_events_export_includes_task_details_for_selected_tasks(
             },
             {
                 "id": "block_2",
-                "code": 'print; "distractor" #blankteacher-only#',
+                "code": 'print,; "distractor" #blankteacher-only#',
                 "indent": 0,
                 "given": False,
                 "faded": False,
@@ -244,6 +244,9 @@ async def test_initial_events_export_includes_task_details_for_selected_tasks(
         assert all("userID" in archive.read(name).decode() for name in event_names)
         details_content = archive.read(details_name).decode()
 
+    csv_records = list(csv.reader(io.StringIO(details_content), delimiter=";"))
+    assert all(len(record) == 6 for record in csv_records)
+
     rows = list(csv.DictReader(io.StringIO(details_content), delimiter=";"))
     assert list(rows[0]) == [
         "task-id", "task-name", "block-id", "block-code", "solution-block", "faded",
@@ -262,9 +265,13 @@ async def test_initial_events_export_includes_task_details_for_selected_tasks(
         "sortable-codeline6",
         "sortable-codeline7",
     ]
-    assert rows[1]["block-code"] == 'print; "distractor"'
+    assert rows[1]["block-code"] == 'print,; "distractor"'
     assert rows[1]["solution-block"] == "False"
     assert rows[2]["block-code"] == "print('DEBUG:', !BLANK)"
+    assert [row["block-code"] for row in rows if "DEBUG" in row["block-code"]] == [
+        "print('DEBUG:', !BLANK)",
+        "print('DEBUG:', !BLANK)",
+    ]
     assert rows[2]["solution-block"] == "False"
     assert rows[2]["faded"] == "True"
     assert rows[5]["block-code"] == "# !BLANK"
@@ -286,7 +293,8 @@ async def test_initial_events_export_includes_task_details_for_selected_tasks(
     assert order_only_rows[2]["solution-block"] == "False"
 
     assert '"Task; ""one"""' in details_content
-    assert '"print; ""distractor"""' in details_content
+    assert '"print,; ""distractor"""' in details_content
+    assert details_content.count('"print(\'DEBUG:\', !BLANK)"') == 2
 
 
 @pytest.mark.asyncio
