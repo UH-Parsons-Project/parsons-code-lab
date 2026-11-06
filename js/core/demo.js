@@ -159,8 +159,8 @@ probEl.setAttribute(
 	'taskInstructions',
 	isIndentWarmup
 		? '<div>In Python, indentation means adding spaces at the beginning of a line. Indentation shows which lines belong inside a block, such as the code inside an <code>if</code> statement. Arrange the code lines so that the <code>print</code> line is indented one level under <code>if True:</code>. The program should then produce the following output:</div>' +
-			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;"><span style="text-decoration:underline;">This</span> line is indented.</pre>' +
-			'<div class="demo-info-note"><em>Drag the <code>print</code> <strong>line</strong> below <code>if True:</code> and move it one level to the right.</em></div>'
+			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">This line is indented.</pre>' +
+			'<div class="demo-info-note"><em>Drag the <code>print</code> line below <code>if True:</code> and move it one level to the right.</em></div>'
 		: '<div>Arrange the two print statements so the program produces this output:</div>' +
 			'<pre style="margin:0.75rem 0 1rem;padding:0.75rem;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;">Hello, World!\nWelcome to Parsons Code Lab!</pre>'
 );
@@ -203,35 +203,6 @@ probEl.showNextTask = false;
 probEl.nextTaskUrl = '';
 
 document.getElementById('problem-wrapper').appendChild(probEl);
-
-// Emphasize the word from the expected output in the draggable code line too.
-if (isIndentWarmup) {
-	const emphasizeCodeLine = () => {
-		const codeLine = Array.from(probEl.querySelectorAll('.sortable-code li'))
-			.find((line) => line.textContent.includes('print("This line is indented.")'));
-		if (!codeLine || codeLine.querySelector('[data-demo-emphasis="this"]')) return;
-
-		const walker = document.createTreeWalker(codeLine, NodeFilter.SHOW_TEXT);
-		let textNode;
-		while ((textNode = walker.nextNode())) {
-			const start = textNode.nodeValue.indexOf('This');
-			if (start === -1) continue;
-
-			const range = document.createRange();
-			range.setStart(textNode, start);
-			range.setEnd(textNode, start + 'This'.length);
-			const emphasis = document.createElement('span');
-			emphasis.dataset.demoEmphasis = 'this';
-			emphasis.style.textDecoration = 'underline';
-			range.surroundContents(emphasis);
-			return;
-		}
-	};
-
-	const codeLineObserver = new MutationObserver(emphasizeCodeLine);
-	codeLineObserver.observe(probEl, { childList: true, subtree: true });
-	emphasizeCodeLine();
-}
 
 // Insert the instructions button into the "Drag from here" label once the widget renders
 const labelObserver = new MutationObserver(() => {
