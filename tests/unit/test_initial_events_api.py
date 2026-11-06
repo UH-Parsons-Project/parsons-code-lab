@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 import zipfile
 from datetime import datetime
 
@@ -246,6 +247,10 @@ async def test_initial_events_export_includes_task_details_for_selected_tasks(
 
     csv_records = list(csv.reader(io.StringIO(details_content), delimiter=";"))
     assert all(len(record) == 6 for record in csv_records)
+    assert all(
+        re.fullmatch(r'"(?:[^"]|"")*"(?:;"(?:[^"]|"")*"){5}', line)
+        for line in details_content.splitlines()
+    )
 
     rows = list(csv.DictReader(io.StringIO(details_content), delimiter=";"))
     assert list(rows[0]) == [
