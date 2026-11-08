@@ -88,9 +88,11 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks, task
 			<i class="fas fa-user-graduate mr-1"></i>${escapeHtml(username)}
 		</span>
 		${isOwner ? `
-		<button type="button" id="remove-student-btn" class="btn btn-sm sa-remove-student-btn">
-			Remove student from task set
-		</button>
+			<div style="btn btn-sm sa-remove-student-btn">
+				<button type="button" id="remove-student-btn" class="btn btn-sm sa-remove-student-btn">
+					<i class="fas fa-trash"></i> Remove student from task set
+				</button>
+			</div>
 		` : ''}
 	</div>
 	${taskSetName ? `<div class="taskset-chip"><span class="taskset-from">Task set</span><a class="taskset-name" id="task-set-overview-link" href="/task-set-overview?set_id=${encodeURIComponent(setId)}">${escapeHtml(taskSetName)}</a></div>` : ''}
