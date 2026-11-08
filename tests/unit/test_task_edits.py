@@ -658,7 +658,10 @@ class TestUpdateAndReorderTaskSetTasks:
         assert response.json()["status"] == "success"
 
         # Verify new order via GET tasks
-        get_res = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
+        get_res = await client.get(
+            f"/api/my_sets/{task_set.unique_link_code}/tasks",
+            headers=_auth(test_teacher.username),
+        )
         assert get_res.status_code == 200
         tasks = get_res.json()
         assert len(tasks) == 2

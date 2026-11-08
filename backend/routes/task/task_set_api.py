@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import and_, case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...teacher_auth import CurrentUser
+from ...teacher_auth import CurrentUser, OptionalCurrentUser
+from ...student_auth import get_current_student_session
 from ...database import get_db
 from ...models import (
     EditEvent,
@@ -44,9 +45,6 @@ from ..utils.commons import (
     get_task_set_or_404,
     run_with_task_ids_or_empty,
 )
-
-from ...teacher_auth import OptionalCurrentUser
-from ...student_auth import get_current_student_session
 
 router = APIRouter()
 
@@ -390,9 +388,10 @@ async def get_task_set_tasks(
     current_user: OptionalCurrentUser,
     student_session: Annotated[
         Student | None,
-        Depends(get_current_student_session)
+        Depends(get_current_student_session),
     ],
-    db: Annotated[AsyncSession, Depends(get_db)]):
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     """Get all tasks belonging to a task_set by unique link code."""
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     task_set_result = await db.execute(
@@ -413,13 +412,13 @@ async def get_task_set_tasks(
         if student_session is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Student session required"
+                detail="Student session required",
             )
         
         enrollment_result = await db.execute(
-            select(StudentTaskEnrollment).where(
+            select(StudentTaskSetEnrollment).where(
                 StudentTaskSetEnrollment.student_id == student_session.id,
-                StudentTaskSetEnrollment.task_set_id == task_set.id
+                StudentTaskSetEnrollment.task_set_id == task_set.id,
             )
         )
 
