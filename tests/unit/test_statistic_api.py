@@ -800,3 +800,177 @@ class TestStatisticAPIIntegration:
         assert agg_data["max_page_exits"] == 1
         assert agg_data["avg_page_exits"] == 1.0
 
+    async def test_class_comparison_averages(self, client, db_session, test_teacher, task_set, task,
+                                            student_with_attempts):
+        """Class aggregates compare per-student values using the existing metric definitions."""
+        student = Student(username="class_average_student", email="class-average@example.com")
+        student.set_password("password123")
+        db_session.add(student)
+        await db_session.flush()
+        enrollment = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0),
+        )
+        db_session.add(enrollment)
+        await db_session.flush()
+        session = TaskSession(
+            student_task_enrollment_id=enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0),
+            exited_at=datetime(2026, 1, 1, 10, 10, 0),
+        )
+        db_session.add(session)
+        await db_session.flush()
+        failed_attempt = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=enrollment.id,
+            task_session_id=session.id,
+            completed_at=datetime(2026, 1, 1, 10, 8, 0),
+            success=False,
+            submitted_inputs={"code": "custom failure"},
+        )
+        successful_attempt = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=enrollment.id,
+            task_session_id=session.id,
+            completed_at=datetime(2026, 1, 1, 10, 10, 0),
+            success=True,
+            submitted_inputs={"code": "custom success"},
+        )
+        db_session.add_all([failed_attempt, successful_attempt])
+        await db_session.flush()
+        db_session.add_all([
+            MoveEvent(
+                attempt_id=failed_attempt.id, block_id="one", from_container="source", to_container="target",
+                from_index=0, to_index=1, from_indent=0, to_indent=0,
+                event_time=datetime(2026, 1, 1, 10, 0, 30),
+            ),
+            MoveEvent(
+                attempt_id=successful_attempt.id, block_id="two", from_container="source", to_container="target",
+                from_index=0, to_index=1, from_indent=0, to_indent=0,
+                event_time=datetime(2026, 1, 1, 10, 1, 0),
+            ),
+        ])
+        await db_session.commit()
+
+        response = await client.get(
+            f"/api/tasks/{task.id}/statistics?task_set_code={task_set.unique_link_code}",
+            headers=_auth(test_teacher.username),
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["avg_total_attempts"] == 1.5
+        assert data["avg_total_time_seconds"] == 450.0
+        assert data["time_to_first_success"]["avg"] == 450.0
+        assert data["time_to_first_fail"]["avg"] == 480.0
+        assert data["thinking_time"]["avg"] == 30.0
+        assert data["number_of_moves"]["avg"] == 1.0
+
+    async def test_class_comparison_averages_are_unavailable_without_attempt_data(
+        self, client, test_teacher, task_set, task
+    ):
+        response = await client.get(
+            f"/api/tasks/{task.id}/statistics?task_set_code={task_set.unique_link_code}",
+            headers=_auth(test_teacher.username),
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["avg_total_attempts"] is None
+        assert data["avg_total_time_seconds"] is None
+        assert data["time_to_first_success"] is None
+        assert data["time_to_first_fail"] is None
+        assert data["thinking_time"] is None
+        assert data["number_of_moves"] is None
+
+    async def test_class_comparison_averages_are_scoped_to_task_set(
+        self, client, db_session, test_teacher, task_set, task
+    ):
+        other_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Other exercises",
+            unique_link_code="OTHERSET",
+        )
+        student = Student(username="two_set_student", email="two-sets@example.com")
+        student.set_password("password123")
+        db_session.add_all([other_set, student])
+        await db_session.flush()
+
+        for set_id, attempt_count, duration in (
+            (task_set.id, 1, 60),
+            (other_set.id, 2, 120),
+        ):
+            started_at = datetime(2026, 1, 1, 10, 0, 0)
+            enrollment = StudentTaskEnrollment(
+                student_id=student.id,
+                task_id=task.id,
+                task_set_id=set_id,
+                started_at=started_at,
+            )
+            db_session.add(enrollment)
+            await db_session.flush()
+            session = TaskSession(
+                student_task_enrollment_id=enrollment.id,
+                entered_at=started_at,
+                exited_at=started_at + timedelta(seconds=duration),
+            )
+            db_session.add(session)
+            await db_session.flush()
+            for attempt_index in range(attempt_count):
+                attempt = TaskAttempt(
+                    student_id=student.id,
+                    task_id=task.id,
+                    student_task_enrollment_id=enrollment.id,
+                    task_session_id=session.id,
+                    completed_at=started_at + timedelta(seconds=(duration * (attempt_index + 1) / attempt_count)),
+                    success=True,
+                    submitted_inputs={"code": f"custom code {set_id} {attempt_index}"},
+                )
+                db_session.add(attempt)
+                await db_session.flush()
+                db_session.add(MoveEvent(
+                    attempt_id=attempt.id,
+                    block_id=f"block_{set_id}_{attempt_index}",
+                    from_container="source",
+                    to_container="target",
+                    from_index=0,
+                    to_index=1,
+                    from_indent=0,
+                    to_indent=0,
+                    event_time=started_at + timedelta(seconds=5 if attempt_count == 1 else 20),
+                ))
+            await db_session.flush()
+
+        await db_session.commit()
+
+        averages = []
+        for task_set_code in (task_set.unique_link_code, other_set.unique_link_code):
+            response = await client.get(
+                f"/api/tasks/{task.id}/statistics?task_set_code={task_set_code}",
+                headers=_auth(test_teacher.username),
+            )
+            assert response.status_code == 200
+            averages.append(response.json())
+
+        assert averages[0]["avg_total_attempts"] == 1.0
+        assert averages[0]["avg_total_time_seconds"] == 60.0
+        assert averages[0]["number_of_moves"]["avg"] == 1.0
+        assert averages[1]["avg_total_attempts"] == 2.0
+        assert averages[1]["avg_total_time_seconds"] == 120.0
+        assert averages[1]["number_of_moves"]["avg"] == 2.0
+
+        student_averages = []
+        for set_id in (task_set.id, other_set.id):
+            response = await client.get(
+                f"/api/students/{student.id}/tasks/{task.id}/statistics?set_id={set_id}",
+                headers=_auth(test_teacher.username),
+            )
+            assert response.status_code == 200
+            student_averages.append(response.json())
+        assert student_averages[0]["move_count"] == 1
+        assert student_averages[0]["thinking_time"]["seconds"] == 5.0
+        assert student_averages[1]["move_count"] == 2
+        assert student_averages[1]["thinking_time"]["seconds"] == 20.0
+

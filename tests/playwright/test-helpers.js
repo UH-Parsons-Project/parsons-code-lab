@@ -102,7 +102,9 @@ export async function loginTeacher(page, username, password) {
     await page.goto('about:blank');
   }
 
-  await page.goto('/teacher-login');
+  // The login page can render before every linked asset finishes loading.
+  // Don't make authentication setup wait for the browser's full load event.
+  await page.goto('/teacher-login', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#login-form', { state: 'visible', timeout: 10000 });
 
   const usernameInput = page.locator('#login-form #username');
@@ -219,7 +221,7 @@ export async function loginStudent(page, username, password = 'password123', uni
   await page.request.post('/api/student_logout');
   await page.waitForURL(/\/[^/]+\/set\/[^/]+\/?$/, { timeout: 5000 }).catch(() => null);
   loginUrl = page.url();
-  await page.goto(loginUrl);
+  await page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#login-form', { state: 'visible', timeout: 10000 });
 
   const usernameInput = page.locator('#login-form #username');
@@ -237,10 +239,19 @@ export async function loginStudent(page, username, password = 'password123', uni
     }
   }
 
-  await Promise.all([
-    page.waitForURL(/\/tasks$/, { timeout: 15000 }).catch(() => null),
+  const loginResponsePromise = page.waitForResponse(
+    response => response.url().includes('/api/student_login')
+  );
+  const [loginResponse] = await Promise.all([
+    loginResponsePromise,
     page.locator('#login-btn').click(),
   ]);
+
+  // Rejected credentials stay on the login page, so only await navigation
+  // after the API confirms a successful login.
+  if (loginResponse.ok()) {
+    await page.waitForURL(/\/tasks$/, { timeout: 15000 });
+  }
 }
 
 export async function loginStudentAndVerify(page, username, password = 'password123', uniqueLinkCode = null) {

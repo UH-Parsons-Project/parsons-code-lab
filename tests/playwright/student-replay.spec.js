@@ -135,6 +135,22 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     // Click on the task item for add_in_range
     const taskItem = page.locator('.task-set-item', { hasText: 'add_in_range' });
     await expect(taskItem).toBeVisible({ timeout: 10000 });
+    const classStatisticsRoute = /\/api\/tasks\/\d+\/statistics\?task_set_code=/;
+    await page.route(classStatisticsRoute, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        avg_total_attempts: 2.5,
+        avg_total_time_seconds: 600,
+        number_of_moves: { avg: 3.5 },
+        time_to_first_success: { avg: 180 },
+        time_to_first_success_on_page: { avg: 120 },
+        time_to_first_fail: { avg: 90 },
+        time_to_first_fail_on_page: { avg: 60 },
+        thinking_time: { avg: 45 },
+        thinking_time_on_page: { avg: 30 },
+      }),
+    }));
     await taskItem.click();
 
     // 4. Teacher lands on student task statistics page (/student-task-statistics?...)
@@ -152,6 +168,17 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     await expect(page.locator('#exercise-name')).toContainText('add_in_range');
     await expect(page.locator('#student-name-text')).toContainText(studentUsername);
     await expect(page.locator('#stat-total')).toHaveText('1');
+    await expect(page.locator('#class-total-attempts')).toHaveText('Class average: 2.5');
+    await expect(page.locator('#class-total-time')).toHaveText('Class average: 10m 0s');
+    await expect(page.locator('#class-move-count')).toHaveText('Class average: 3.5');
+    await expect(page.locator('#class-time-to-success')).toHaveText('Class mean: 2m 0s');
+    await expect(page.locator('#class-time-to-fail')).toHaveText('Class mean: 1m 0s');
+    await expect(page.locator('#class-thinking-time')).toHaveText('Class mean: 30s');
+
+    await page.locator('#toggle-total').click();
+    await expect(page.locator('#class-time-to-success')).toHaveText('Class mean: 3m 0s');
+    await expect(page.locator('#class-time-to-fail')).toHaveText('Class mean: 1m 30s');
+    await expect(page.locator('#class-thinking-time')).toHaveText('Class mean: 45s');
 
     // Verify Attempts List
     await expect(page.locator('#attempts-list .attempt-item')).toHaveCount(1);
@@ -187,6 +214,14 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     // Test Slider Scrubber is enabled
     const slider = page.locator('#replay-slider');
     await expect(slider).toBeEnabled();
+
+    await page.unroute(classStatisticsRoute);
+    await page.route(classStatisticsRoute, route => route.abort());
+    await page.reload();
+    await expect(page.locator('#content-container')).toBeVisible();
+    await expect(page.locator('#stat-total')).toHaveText('1');
+    await expect(page.locator('#class-total-attempts')).toHaveText('Class average: —');
+    await page.unroute(classStatisticsRoute);
 
     const taskSetResponse = await page.request.get(`/api/my_sets/${taskSetId}`);
     expect(taskSetResponse.ok()).toBeTruthy();
