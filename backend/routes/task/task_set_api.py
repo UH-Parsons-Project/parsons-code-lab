@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import and_, case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...teacher_auth import CurrentUser
+from ...teacher_auth import CurrentUser, OptionalCurrentUser
+from ...student_auth import get_current_student_session
 from ...database import get_db
 from ...models import (
     EditEvent,
@@ -381,7 +382,16 @@ async def duplicate_task_set(
 
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
-async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_task_set_tasks(
+    code: str, 
+    response: Response, 
+    current_user: OptionalCurrentUser,
+    student_session: Annotated[
+        Student | None,
+        Depends(get_current_student_session),
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     """Get all tasks belonging to a task_set by unique link code."""
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     task_set_result = await db.execute(
@@ -395,12 +405,39 @@ async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncS
             detail=f"Problem set '{code}' not found",
         )
 
+    if current_user:
+        await require_task_set_view_access(task_set, current_user, db)
+        include_hidden = True
+    else:
+        if student_session is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Student session required",
+            )
+        
+        enrollment_result = await db.execute(
+            select(StudentTaskSetEnrollment).where(
+                StudentTaskSetEnrollment.student_id == student_session.id,
+                StudentTaskSetEnrollment.task_set_id == task_set.id,
+            )
+        )
+
+    if current_user:
+        await require_task_set_view_access(task_set, current_user, db)
+        include_hidden = True
+    else:
+        include_hidden = False
+
     stmt = (
         select(Parsons, TaskSetItem.is_hidden)
         .join(TaskSetItem, TaskSetItem.task_id == Parsons.id)
         .where(TaskSetItem.task_set_id == task_set.id)
         .order_by(TaskSetItem.id.asc())
     )
+
+    if not include_hidden:
+        stmt = stmt.where(TaskSetItem.is_hidden.is_(False))
+
     result = await db.execute(stmt)
     rows = result.all()
 
@@ -414,7 +451,7 @@ async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncS
                 title=task.title,
                 task_type=task.task_type,
                 created_at=task.created_at.isoformat(),
-                is_hidden=is_hidden,
+                is_hidden=is_hidden if include_hidden else False,
                 is_public=task.is_public,
                 is_faded=task.faded,
                 require_indentation=bool(solution.get("require_indentation", True)),

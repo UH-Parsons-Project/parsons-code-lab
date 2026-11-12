@@ -849,6 +849,10 @@ class TestGetProblemset:
 
 @pytest.mark.asyncio
 class TestGetProblemsetTasks:
+    @pytest.fixture(autouse=True)
+    def authenticate_student(self, client, student_session):
+        client.cookies.set("student_session", student_session.session_token)
+
     async def test_get_by_string_code(self, client, task_set_with_task):
         ps, task = task_set_with_task
         r = await client.get(f"/api/my_sets/{ps.unique_link_code}/tasks")
@@ -874,7 +878,10 @@ class TestGetProblemsetTasks:
         db_session.add(TaskSetItem(task_set_id=ps.id, task_id=task.id))
         await db_session.commit()
 
-        r = await client.get("/api/my_sets/303/tasks")
+        r = await client.get(
+            "/api/my_sets/303/tasks",
+            headers=_auth(test_teacher.username),
+        )
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
