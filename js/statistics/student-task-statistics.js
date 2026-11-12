@@ -12,6 +12,7 @@ const studentId = params.get('student_id');
 const taskId = params.get('task_id');
 const setId = params.get('set_id');
 const studentDisplayName = getStudentDisplayName({ student_id: studentId, username: studentUsername }, setId);
+let classStatistics = null;
 
 if (!studentId || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
@@ -186,6 +187,30 @@ function renderSessions(sessions) {
 	});
 }
 
+function renderClassTimeMetrics() {
+	const activeOnly = document.getElementById('toggle-active')?.classList.contains('active') || false;
+	const tfs = activeOnly ? classStatistics?.time_to_first_success_on_page?.avg : classStatistics?.time_to_first_success?.avg;
+	const tff = activeOnly ? classStatistics?.time_to_first_fail_on_page?.avg : classStatistics?.time_to_first_fail?.avg;
+	const think = activeOnly ? classStatistics?.thinking_time_on_page?.avg : classStatistics?.thinking_time?.avg;
+	const successEl = document.getElementById('class-time-to-success');
+	const failEl = document.getElementById('class-time-to-fail');
+	const thinkEl = document.getElementById('class-thinking-time');
+	if (successEl) successEl.textContent = `Class mean: ${tfs == null ? '—' : formatTime(tfs)}`;
+	if (failEl) failEl.textContent = `Class mean: ${tff == null ? '—' : formatTime(tff)}`;
+	if (thinkEl) thinkEl.textContent = `Class mean: ${think == null ? '—' : formatTime(think)}`;
+}
+
+function renderClassStatistics(data) {
+	classStatistics = data;
+	document.getElementById('class-total-attempts').textContent =
+		`Class average: ${data.avg_total_attempts == null ? '—' : data.avg_total_attempts}`;
+	document.getElementById('class-total-time').textContent =
+		`Class average: ${data.avg_total_time_seconds == null ? '—' : formatTime(data.avg_total_time_seconds)}`;
+	document.getElementById('class-move-count').textContent =
+		`Class average: ${data.number_of_moves?.avg == null ? '—' : data.number_of_moves.avg}`;
+	renderClassTimeMetrics();
+}
+
 function renderStatistics(data) {
 	document.getElementById('stat-total').textContent   = data.total_attempts;
 	document.getElementById('stat-success').textContent = data.successful_attempts;
@@ -235,6 +260,7 @@ function renderStatistics(data) {
 				if (subEl) subEl.style.display = '';
 			}
 		}
+		renderClassTimeMetrics();
 	}
 
 	if (toggleTotal && toggleActive) {
@@ -260,6 +286,19 @@ function renderStatistics(data) {
 	if (exitsEl) {
 		exitsEl.textContent = data.median_page_exits != null ? String(data.median_page_exits) : '—';
 	}
+}
+
+function loadClassStatistics(taskSetCode) {
+	if (!taskSetCode) return;
+	fetch(`/api/tasks/${taskId}/statistics?task_set_code=${encodeURIComponent(taskSetCode)}`, {
+		credentials: 'include'
+	})
+		.then(response => {
+			if (!response.ok) throw new Error('Failed to load class statistics');
+			return response.json();
+		})
+		.then(renderClassStatistics)
+		.catch(error => console.warn('Error loading class statistics:', error));
 }
 
 
@@ -566,6 +605,7 @@ fetch(`/api/students/${encodeURIComponent(studentId)}/tasks/${taskId}/statistics
 		renderAttempts(data.attempts_detail);
 		renderSessions(data.sessions || []);
 		renderStatistics(data);
+		loadClassStatistics(data.task_set_code);
 		initReplay(studentId, taskId, setId);
 		document.getElementById('content-container').style.display = 'block';
 	})
